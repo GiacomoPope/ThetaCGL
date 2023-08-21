@@ -65,7 +65,7 @@ class ThetaCGL(CGL):
         disc = A * A - 4
         assert disc.is_square()
 
-        d = self.sqrt(A * A - 4)
+        d = self.sqrt(disc)
         alpha = (-A + d) / 2
 
         # The theta coordinates a^2 and b^2
@@ -95,13 +95,22 @@ class ThetaCGL(CGL):
         BB = aa - bb
         AABB = AA * BB
         AB = self.sqrt(AABB)
-        AB = sign * AB
-        anew = AA + AB
-        bnew = AA - AB
+        
+        # Swapping the sign of AB is the same as 
+        # picking (a', b') = (b', a')
+        # NOTE: 1*a costs the same as a*b, so multiplying 
+        # by the sign is expensive!
+        if sign == 1:
+            anew = AA + AB
+            bnew = AA - AB
+        else:
+            bnew = AA + AB
+            anew = AA - AB
         O1 = ThetaNullPoint(anew, bnew)
         return O1
 
     def advance(self, bit=0):
+        # TODO: this line could be removed
         sign = 1 if bit == 1 else -1
         O1 = self.radical_2isogeny(sign)
         return ThetaCGL(O1, sqrt_function=self.sqrt_function)
