@@ -36,14 +36,8 @@ O0 = ThetaCGL(E0, sqrt_function=new_sqrt_Fp2)
 print(f"Hashing test 1: {O0.hash(m1)}")
 print(f"Hashing test 2: {O0.hash(m2)}")
 
-print_info(f"Example in dim 2")
-O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0)
-print(f"Hashing test 1: {O0.hash(m1)}")
-print(f"Hashing test 2: {O0.hash(m2)}")
-m3 = [0, 1, 1, 0, 1, 0, 1] #length non multiple of 3
-print(f"Hashing test 3: {O0.hash(m3)}")
 
-print_info(f"Timings")
+print_info(f"Dimension One Timings")
 O0 = ThetaCGL(E0)
 t_sage = time_ms("O0.hash(m1)")
 print(f"Sage Sqrt Hashing time took: {t_sage}ms")
@@ -53,6 +47,32 @@ t_fast = time_ms("O0.hash(m1)")
 print(f"Fast Sqrt Hashing time took: {t_fast}ms")
 
 O0 = ThetaCGL(E0, sqrt_function=new_sqrt_Fp2)
+t_fast = time_ms("O0.hash(m1)")
+print(f"New Sqrt Hashing time took: {t_fast}ms")
+
+print_info(f"Example in dim 2")
+
+O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0)
+print(f"Hashing test 1: {O0.hash(m1)}")
+print(f"Hashing test 2: {O0.hash(m2)}")
+m3 = [0, 1, 1, 0, 1, 0, 1] #length non multiple of 3
+print(f"Hashing test 3: {O0.hash(m3)}")
+
+O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0, sqrt_function=sqrt_Fp2)
+print(f"Hashing test 3: {O0.hash(m3)}")
+O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0, sqrt_function=new_sqrt_Fp2)
+print(f"Hashing test 3: {O0.hash(m3)}")
+
+print_info(f"Dimension Two Timings")
+O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0)
+t_sage = time_ms("O0.hash(m1)")
+print(f"Sage Sqrt Hashing time took: {t_sage}ms")
+
+O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0, sqrt_function=sqrt_Fp2)
+t_fast = time_ms("O0.hash(m1)")
+print(f"Fast Sqrt Hashing time took: {t_fast}ms")
+
+O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0, sqrt_function=new_sqrt_Fp2)
 t_fast = time_ms("O0.hash(m1)")
 print(f"New Sqrt Hashing time took: {t_fast}ms")
 
