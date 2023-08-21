@@ -8,9 +8,10 @@ ThetaNullPoint = namedtuple("ThetaNullPoint_dim_1", "a b")
 
 
 class CGL:
-    def __init__(self, domain, sqrt_function=None):
+    def __init__(self, domain, sqrt_function=None, chunk=1):
         self.domain = domain
         self.sqrt_function = sqrt_function
+        self.chunk = chunk
 
     def __repr__(self):
         return f"CGL with domain={self.domain}"
@@ -26,13 +27,17 @@ class CGL:
         # helps with the comparison
         return min(r, -r)
 
-    def advance(self, bit=0):
+    def advance(self, bits=None):
         pass
 
-    def bit_string(self, bits):
+    def bit_string(self, message):
         r = self
-        for bit in bits:
-            r = r.advance(bit)
+        for x in range(0, len(message), self.chunk):
+            bits=message[x:x+self.chunk]
+            if len(bits) < self.chunk:
+                # pad bits if too short
+                bits += [0]*(self.chunk - len(bits))
+            r = r.advance(bits)
         return r
 
     def to_hash():
@@ -44,8 +49,8 @@ class CGL:
 
 
 class ThetaCGL(CGL):
-    def __init__(self, domain, sqrt_function=None):
-        super().__init__(domain, sqrt_function=sqrt_function)
+    def __init__(self, domain, **kwds):
+        super().__init__(domain, **kwds)
         if isinstance(self.domain, EllipticCurve_generic):
             self.domain = self.montgomery_curve_to_theta_null_point(domain)
 
@@ -86,7 +91,7 @@ class ThetaCGL(CGL):
     def hadamard(x,z):
         return (x+z, x-z)
 
-    def radical_2isogeny(self, sign=1):
+    def radical_2isogeny(self, bits=[0]):
         """
         Given a level 2-theta null point, compute a 2-isogeneous theta null
         point
@@ -103,17 +108,15 @@ class ThetaCGL(CGL):
         # picking (a', b') = (b', a')
         # NOTE: 1*a costs the same as a*b, so multiplying
         # by the sign is expensive!
-        if sign == 1:
+        if bits[0] == 0:
             anew, bnew = ThetaCGL.hadamard(AA, AB)
         else:
             anew, bnew = ThetaCGL.hadamard(AB, AA)
         O1 = ThetaNullPoint(anew, bnew)
         return O1
 
-    def advance(self, bit=0):
-        # TODO: this line could be removed
-        sign = 1 if bit == 1 else -1
-        O1 = self.radical_2isogeny(sign)
+    def advance(self, bits=[0]):
+        O1 = self.radical_2isogeny(bits=bits)
         return ThetaCGL(O1, sqrt_function=self.sqrt_function)
 
     def to_hash(self):

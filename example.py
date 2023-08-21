@@ -66,17 +66,10 @@ print(E1.j_invariant() == E2.j_invariant())
 # print(f"Hashing test 2: {O0.hash(m2)}")
 
 
-<<<<<<< HEAD
 # print_info(f"Timings")
 # O0 = ThetaCGL(E0)
 # t_sage = time_ms("O0.hash(m1)")
 # print(f"Sage Sqrt Hashing time took: {t_sage}ms")
-=======
-print_info(f"Dimension One Timings")
-O0 = ThetaCGL(E0)
-t_sage = time_ms("O0.hash(m1)")
-print(f"Sage Sqrt Hashing time took: {t_sage}ms")
->>>>>>> afb53aa1c9779219fc866727df740efbdf3d058f
 
 # O0 = ThetaCGL(E0, sqrt_function=sqrt_Fp2)
 # t_fast = time_ms("O0.hash(m1)")
