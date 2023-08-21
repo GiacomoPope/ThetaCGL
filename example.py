@@ -50,6 +50,13 @@ O0 = ThetaCGLRadical4(E0, zeta=F.gen())
 print(f"Hashing test 1: {O0.hash(m1)}")
 print(f"Hashing test 2: {O0.hash(m2)}")
 
+print("- Sanity checks")
+O0 = ThetaCGL(E0)
+O1 = O0.bit_string(m1)
+O2 = O0.bit_string(m2)
+print(f"Are the isogeneous curve the same? {O1.j_invariant() == O2.j_invariant()}")
+print(f"Are the isogeneous curve isogeneous? {O1.cardinality() == O2.cardinality()}")
+
 print_info(f"Timings")
 O0 = ThetaCGL(E0)
 t_sage = time_ms("O0.hash(m1)")

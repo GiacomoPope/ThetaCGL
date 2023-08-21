@@ -118,6 +118,9 @@ class ThetaCGL(CGL):
 
         return self.to_montgomery_curve().j_invariant()
 
+    def cardinality(self):
+        return self.to_montgomery_curve().cardinality()
+
     @staticmethod
     def hadamard(x,z):
         return (x+z, x-z)
