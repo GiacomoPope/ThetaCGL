@@ -1,7 +1,8 @@
 #![allow(non_snake_case)]
 
+use theta_cgl_rust::thp254::ThetaPoint;
 use theta_cgl_rust::params::p254::{Fp, Fp2};
-use num_bigint::{BigInt, Sign, ToBigInt};
+use num_bigint::{BigInt, Sign};
 
 fn pretty_print_Fp(v: &Fp) -> String{
     // Very stupid function, but it works...
@@ -27,14 +28,11 @@ fn pretty_print_Fp2(v: &Fp2) -> String{
 fn main() {
     println!("Hello, world!");
     
-    let a = Fp::from_i64(-2);
-    let b = Fp::from_i64(3);
-    let v = a * b;
-
-    println!("{}", pretty_print_Fp(&v));
-
+    let a = Fp::from_i64(1);
+    let b = Fp::from_i64(2);
     let c = Fp2::new(&a, &b);
-    let d = c + c;
+
+
 
     println!("{}", pretty_print_Fp2(&d));
 
