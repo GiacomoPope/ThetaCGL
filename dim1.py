@@ -1,5 +1,6 @@
 from collections import namedtuple
 
+from sage.all import EllipticCurve
 from sage.schemes.elliptic_curves.ell_generic import EllipticCurve_generic
 
 from utilities import montgomery_coefficient
@@ -21,7 +22,7 @@ class CGL:
             r = x.sqrt()
         else:
             r = self.sqrt_function(x)
-        
+
         # TODO:
         # This is stupid, but making the sqrt canonical 
         # helps with the comparison
@@ -86,6 +87,36 @@ class ThetaCGL(CGL):
         # (ab : b^2) as the theta null point
         O0 = ThetaNullPoint(ab, bb)
         return O0
+
+    def to_montgomery_curve(self):
+        """
+        Given a level 2 theta null point (a:b), compute a Montgomery curve equation.
+        We use the model where the 4-torsion point (1:0) above (a:-b) is sent
+        to (1:1) in Montgomery coordinates.
+        """
+
+        a,b = self.domain
+        
+        aa = a**2
+        bb = b**2
+
+        T1 = aa + bb
+        T2 = aa - bb
+
+        # Montgomery coefficient
+        A = -(T1**2 + T2**2) / (T1 * T2)
+
+        # Construct curve
+        F = b.parent()
+        E = EllipticCurve(F, [0, A, 0, 1, 0])
+        return E
+
+    def j_invariant(self):
+        """
+        Give the j-invariant of our current theta null point
+        """
+
+        return self.to_montgomery_curve().j_invariant()
 
     @staticmethod
     def hadamard(x,z):
