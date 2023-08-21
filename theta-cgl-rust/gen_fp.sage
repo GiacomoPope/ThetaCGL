@@ -88,6 +88,8 @@ while True:
     NQR_RE_VAL = randint(0, p)
     if not F([NQR_RE_VAL, 1]).is_square():
         break
+        
+assert not F([NQR_RE_VAL, 1]).is_square()
 NQR_RE_VAL = to_little_u64(NQR_RE_VAL)
 
 
