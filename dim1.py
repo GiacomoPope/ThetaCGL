@@ -26,7 +26,8 @@ class CGL:
         # TODO:
         # This is stupid, but making the sqrt canonical 
         # helps with the comparison
-        return min(r, -r)
+        # return min(r, -r)
+        return r
 
     def advance(self, bits=None):
         pass
@@ -54,6 +55,8 @@ class ThetaCGL(CGL):
         super().__init__(domain, **kwds)
         if isinstance(self.domain, EllipticCurve_generic):
             self.domain = self.montgomery_curve_to_theta_null_point(domain)
+        elif isinstance(domain, tuple):
+            self.domain = ThetaNullPoint(*domain)
 
     def montgomery_curve_to_theta_null_point(self, E):
         """

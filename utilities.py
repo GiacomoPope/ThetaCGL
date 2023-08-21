@@ -82,6 +82,7 @@ def new_sqrt_Fp2(a):
 
     return F([x0, x1])
 
+
 def sqrt_Fp2(a):
     """
     Efficiently computes the sqrt

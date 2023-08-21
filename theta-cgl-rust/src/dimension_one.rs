@@ -8,15 +8,15 @@ macro_rules! define_dim_one_theta_core{ () => {
         let X_new = X + Z;
         let Z_new = X - Z;
 
-        X_new, Z_new
+        (X_new, Z_new)
     }
 
     // Theta Point
     // The domain / codomain is described by a theta point
     #[derive(Clone, Copy, Debug)]
     pub struct ThetaPoint {
-        X : Fq,
-        Z : Fq
+        pub X : Fq,
+        pub Z : Fq
     }
 
     impl ThetaPoint {        
@@ -33,10 +33,9 @@ macro_rules! define_dim_one_theta_core{ () => {
 
         // Compute the two isogeny
         pub fn radical_two_isogeny(self, bit: u8) -> ThetaPoint {
-
             let (AA, BB) = self.squared_theta();
             let AABB = AA * BB; 
-            let AB = AABB.sqrt();
+            let (mut AB, _) = AABB.sqrt();
 
             // TODO: make constant time
             if (bit == 1) {
@@ -49,10 +48,19 @@ macro_rules! define_dim_one_theta_core{ () => {
                 Z : Z_new
             }
         }
+
+        pub fn to_hash(self) -> Fq{
+            self.Z / self.X
+        }
     }
 
-
-
+    pub fn cgl_hash(O0: ThetaPoint, msg: &[u8]) -> Fq{
+        let mut r = O0;
+        for bit in msg{
+            r = r.radical_two_isogeny(*bit)
+        }
+        r.to_hash()
+    }
 } } // End of macro: define_dim_one_theta_core
 
 pub(crate) use define_dim_one_theta_core;

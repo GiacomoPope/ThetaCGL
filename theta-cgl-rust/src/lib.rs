@@ -10,6 +10,6 @@ pub mod params;
 // ============================================================
 
 pub mod thp254 {
-    pub type Fp = crate::params::p254::Fp2;
+    pub type Fq = crate::params::p254::Fp2;
     crate::dimension_one::define_dim_one_theta_core!{}
 }
