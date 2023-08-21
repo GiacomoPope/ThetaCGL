@@ -129,7 +129,7 @@ pub mod p540 {{
         {TDEC_VAL}
     ];
     const SQRT_EH: [u8; {len(SQRT_EH)}] = [
-        {str(SQRT_EH).replace(']', '').replace(']', '')}
+        {str(SQRT_EH).replace('[', '').replace(']', '')}
     ];
     const SQRT_EL: usize = {SQRT_EL};
     const P1: u64 = {P1};
