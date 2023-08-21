@@ -1,7 +1,7 @@
 import time
 
 from sage.all import GF, EllipticCurve
-from dim1 import ThetaCGL
+from dim1 import ThetaCGL, ThetaCGLRadical4
 from dim2 import ThetaCGLDim2
 from utilities import sqrt_Fp2, new_sqrt_Fp2, print_info
 
@@ -45,6 +45,10 @@ O0 = ThetaCGL(E0, sqrt_function=new_sqrt_Fp2)
 print(f"Hashing test 1: {O0.hash(m1)}")
 print(f"Hashing test 2: {O0.hash(m2)}")
 
+print_info(f"Example of a 4-radical isogeny")
+O0 = ThetaCGLRadical4(E0, zeta=F.gen())
+print(f"Hashing test 1: {O0.hash(m1)}")
+print(f"Hashing test 2: {O0.hash(m2)}")
 
 print_info(f"Timings")
 O0 = ThetaCGL(E0)
