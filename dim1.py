@@ -82,6 +82,10 @@ class ThetaCGL(CGL):
         O0 = ThetaNullPoint(ab, bb)
         return O0
 
+    @staticmethod
+    def hadamard(x,z):
+        return (x+z, x-z)
+
     def radical_2isogeny(self, sign=1):
         """
         Given a level 2-theta null point, compute a 2-isogeneous theta null
@@ -91,21 +95,18 @@ class ThetaCGL(CGL):
         a, b = self.domain
         aa = a*a # a*a is faster than a**2 in SageMath
         bb = b*b
-        AA = aa + bb
-        BB = aa - bb
+        AA,BB = ThetaCGL.hadamard(a,b)
         AABB = AA * BB
         AB = self.sqrt(AABB)
         
-        # Swapping the sign of AB is the same as 
+        # Swapping the sign of AB is the same as
         # picking (a', b') = (b', a')
-        # NOTE: 1*a costs the same as a*b, so multiplying 
+        # NOTE: 1*a costs the same as a*b, so multiplying
         # by the sign is expensive!
         if sign == 1:
-            anew = AA + AB
-            bnew = AA - AB
+            anew, bnew = ThetaCGL.hadamard(AA, AB)
         else:
-            bnew = AA + AB
-            anew = AA - AB
+            anew, bnew = ThetaCGL.hadamard(AB, AA)
         O1 = ThetaNullPoint(anew, bnew)
         return O1
 
