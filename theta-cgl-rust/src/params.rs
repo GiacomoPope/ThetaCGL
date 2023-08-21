@@ -1,0 +1,54 @@
+#![allow(non_snake_case)]
+#![allow(non_upper_case_globals)]
+
+// 79*2**247 - 1
+pub mod p254 {
+    const BITLEN: usize = 254;
+    const MODULUS: [u64; N] = [
+        0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0x277FFFFFFFFFFFFF
+    ];
+    const HALF_MODULUS: [u64; N] = [
+        0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x13C0000000000000
+    ];
+    const R_VAL: [u64; N] = [
+        0x0000000000000006, 0x0000000000000000, 0x0000000000000000, 0x1300000000000000
+    ];
+    const MINUS_R_VAL: [u64; N] = [
+        0xFFFFFFFFFFFFFFF9, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0x147FFFFFFFFFFFFF
+    ];
+    const DR_VAL: [u64; N] = [
+        0x000000000000000C, 0x0000000000000000, 0x0000000000000000, 0x2600000000000000
+    ];
+    const TR_VAL: [u64; N] = [
+        0x0000000000000013, 0x0000000000000000, 0x0000000000000000, 0x1180000000000000
+    ];
+    const QR_VAL: [u64; N] = [
+        0x0000000000000019, 0x0000000000000000, 0x0000000000000000, 0x2480000000000000
+    ];
+    const R2_VAL: [u64; N] = [
+        0xCF6474A8819EC913, 0x1D2A2067B23A5440, 0x8819EC8E951033D9, 0x0CA3A5440CF6474A
+    ];
+    const P0I: u64 = 1;
+    const TFIXDIV_VAL: [u64; N] = [
+        0xC55EA6D998EC13EE, 0xF1FCF3BEA10D1E49, 0xF08483F5FFE96735, 0x1531789831319D25
+    ];
+    const TDEC_VAL: [u64; N] = [
+        0x1D2A2067B23A5440, 0x8819EC8E951033D9, 0x7B23A5440CF6474A, 0x2000000000000006
+    ];
+    const SQRT_EH: [u8; 2] = [
+        15, 2
+    ];
+    const SQRT_EL: usize = 49;
+    const P1: u64 = 2650800127;
+    const P1DIV_M: u64 = 11441651398765969958;
+    const NQR_RE_VAL: [u64; N] = [
+        0x3B935C6ACA4A4947, 0xD393F38ED49F6DC9, 0xE810DA570D111435, 0x19ABF04CACB6F72C
+    ];
+
+    crate::fpcore::define_fp_core!{}
+
+    #[cfg(test)]
+    mod tests {
+        crate::fpcore::define_fp_tests!{}
+    }
+}
