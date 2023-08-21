@@ -95,7 +95,7 @@ class ThetaCGL(CGL):
         a, b = self.domain
         aa = a*a # a*a is faster than a**2 in SageMath
         bb = b*b
-        AA,BB = ThetaCGL.hadamard(a,b)
+        AA,BB = ThetaCGL.hadamard(aa, bb)
         AABB = AA * BB
         AB = self.sqrt(AABB)
         
