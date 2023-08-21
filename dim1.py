@@ -103,15 +103,9 @@ class ThetaCGL(CGL):
         AA,BB = ThetaCGL.hadamard(aa, bb)
         AABB = AA * BB
         AB = self.sqrt(AABB)
-        
-        # Swapping the sign of AB is the same as
-        # picking (a', b') = (b', a')
-        # NOTE: 1*a costs the same as a*b, so multiplying
-        # by the sign is expensive!
-        if bits[0] == 0:
-            anew, bnew = ThetaCGL.hadamard(AA, AB)
-        else:
-            anew, bnew = ThetaCGL.hadamard(AB, AA)
+        if bits[0] == 1:
+            AB = - AB
+        anew, bnew = ThetaCGL.hadamard(AA, AB)
         O1 = ThetaNullPoint(anew, bnew)
         return O1
 
