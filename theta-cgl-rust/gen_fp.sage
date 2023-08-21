@@ -128,8 +128,8 @@ pub mod p540 {{
     const TDEC_VAL: [u64; N] = [
         {TDEC_VAL}
     ];
-    const SQRT_EH: [u8; 66] = [
-        {SQRT_EH}
+    const SQRT_EH: [u8; {len(SQRT_EH)}] = [
+        {str(SQRT_EH).replace(']', '').replace(']', '')}
     ];
     const SQRT_EL: usize = {SQRT_EL};
     const P1: u64 = {P1};
