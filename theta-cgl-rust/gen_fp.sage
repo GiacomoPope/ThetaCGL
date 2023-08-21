@@ -3,8 +3,10 @@
 //      MODULUS ([u64; N])        modulus p (little-endian)
 //      HALF_MODULUS ([u64; N])   (p + 1)/2 (little-endian)
 //      R_VAL ([u64; N])          2^(64*N) mod p
-//      DR_VAL ([u64; N])         2^(64*N+1) mod p
-//      R2_VAL ([u64; N])         2^(2*64*N) mod p
+//      DR_VAL ([u64; N])         2*R_VAL mod p = 2^(64*N+1) mod p
+//      TR_VAL ([u64; N])         3*R_VAL mod p = 3*2^(64*N) mod p
+//      QR_VAL ([u64; N])         4*R_VAL mod p = 2^(64*N+2) mod p
+//      R2_VAL ([u64; N])         R_VAL^2 mod p = 2^(2*64*N) mod p
 //      P0I (u64)                 -1/p mod 2^64
 //      TFIXDIV_VAL               corrective factor for division
 //      TDEC_VAL                  2^(64*(2*N-1)) mod p
