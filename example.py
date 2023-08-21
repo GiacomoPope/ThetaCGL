@@ -3,7 +3,7 @@ import time
 from sage.all import GF, EllipticCurve
 from dim1 import ThetaCGL
 from dim2 import ThetaCGLDim2
-from utilities import sqrt_Fp2, print_info
+from utilities import sqrt_Fp2, new_sqrt_Fp2, print_info
 
 def time_function_ns(f):
     t0 = time.process_time_ns()
@@ -31,6 +31,17 @@ O0 = ThetaCGL(E0, sqrt_function=sqrt_Fp2)
 print(f"Hashing test 1: {O0.hash(m1)}")
 print(f"Hashing test 2: {O0.hash(m2)}")
 
+print("New sqrt function")
+O0 = ThetaCGL(E0, sqrt_function=new_sqrt_Fp2)
+print(f"Hashing test 1: {O0.hash(m1)}")
+print(f"Hashing test 2: {O0.hash(m2)}")
+
+print_info(f"Example in dim 2")
+O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0)
+print(f"Hashing test 1: {O0.hash(m1)}")
+print(f"Hashing test 2: {O0.hash(m2)}")
+m3 = [0, 1, 1, 0, 1, 0, 1] #length non multiple of 3
+print(f"Hashing test 3: {O0.hash(m3)}")
 
 print_info(f"Timings")
 O0 = ThetaCGL(E0)
@@ -41,9 +52,11 @@ O0 = ThetaCGL(E0, sqrt_function=sqrt_Fp2)
 t_fast = time_ms("O0.hash(m1)")
 print(f"Fast Sqrt Hashing time took: {t_fast}ms")
 
-print_info(f"Example in dim 2")
-O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0)
-print(f"Hashing test 1: {O0.hash(m1)}")
-print(f"Hashing test 2: {O0.hash(m2)}")
-m3 = [0, 1, 1, 0, 1, 0, 1] #length non multiple of 3
-print(f"Hashing test 3: {O0.hash(m3)}")
+O0 = ThetaCGL(E0, sqrt_function=new_sqrt_Fp2)
+t_fast = time_ms("O0.hash(m1)")
+print(f"New Sqrt Hashing time took: {t_fast}ms")
+
+def bench(N):
+    for _ in range(N):
+        O0.hash(m1)
+    return
