@@ -21,6 +21,19 @@ class CGL:
     def advance(self, bit=0):
         pass
 
+    def bit_string(self, bits):
+        r=self
+        for bit in bits:
+            r=r.advance(bit)
+        return r
+
+    def to_hash():
+        pass
+
+    def hash(self, bits):
+        r=self.bit_string(bits)
+        return r.to_hash()
+
 def montgomery_coefficient(E):
     a_inv = E.a_invariants()
     A = a_inv[1]
@@ -85,8 +98,13 @@ class ThetaCGL(CGL):
         anew=AA+AB
         bnew=AA-AB
         O1=ThetaNullPoint(anew, bnew)
-        return ThetaCGL(O1, sqrt_function=self.sqrt_function)
+        return O1
 
     def advance(self, bit=0):
         sign=1 if bit == 1 else -1
-        return self.radical_2isogeny(sign)
+        O1=self.radical_2isogeny(sign)
+        return ThetaCGL(O1, sqrt_function=self.sqrt_function)
+
+    def to_hash(self):
+        a,b=self.domain
+        return b/a
