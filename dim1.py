@@ -189,9 +189,9 @@ class ThetaCGLRadical4(ThetaCGL):
             factor = - factor
         if bits[1] == 1:
             factor = self.zeta * factor
-        anew=a+b+factor
-        bnew=a+b-factor
-        anew, bnew = ThetaCGL.hadamard(anew, bnew) # I think we need an hadamard?
+        anew=a+factor
+        bnew=a-factor
+        #anew, bnew = ThetaCGL.hadamard(anew, bnew) # I think we need an hadamard?
         O1 = ThetaNullPoint(anew, bnew)
         return O1
 
