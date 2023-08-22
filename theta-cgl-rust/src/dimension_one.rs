@@ -28,6 +28,7 @@ macro_rules! define_dim_one_theta_core{ () => {
         pub fn coords(self) -> (Fq, Fq) {
             (self.X, self.Z)
         }
+        
         // Squared theta first squares the coords
         // then returns the hadamard transform. 
         // This gives the square of the dual coords

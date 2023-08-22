@@ -12,7 +12,15 @@ num-bigint = "0.4.3"
 sha2 = "0.10.2"
 sha3 = "0.10.6"
 
+[dev-dependencies]
+criterion = { version = "0.4", features = ["html_reports"] }
+
 [[bench]]
 name = "p254"
 path = "benches/p254.rs"
+harness = false
+
+[[bench]]
+name = "th254"
+path = "benches/th254.rs"
 harness = false

@@ -13,6 +13,19 @@ def montgomery_coefficient(E):
 #     Fast square root and quadratic roots     #
 # ============================================ #
 
+def canonical_root(a):
+    """
+    Very stupid and slow way, but it
+    makes the sqrt match rust for all
+    cases
+    """
+    a0, a1 = a.list()
+    if a0.is_zero() and (int(a1) % 2) == 1:
+        return -a
+    if (int(a0) % 2) == 1:
+        return -a
+    return a
+
 def new_sqrt_Fp(a, exp=None):
     """
     Shank's algorithm for sqrt

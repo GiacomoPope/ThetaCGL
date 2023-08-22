@@ -14,17 +14,29 @@ def time_ms(f):
     v = time_function_ns(f)
     return v / 1_000_000
 
+def to_hex_str(a):
+    p = a.parent().characteristic()
+    byte_len = (p.nbits() + 7) // 8
+    a0, a1 = a.list()
+    a0_bytes = int(a0).to_bytes(byte_len, byteorder="little")
+    a1_bytes = int(a1).to_bytes(byte_len, byteorder="little")
+
+    return (a0_bytes + a1_bytes).hex()
+
 
 p = 79*2**247 - 1
 F = GF(p**2, name="i", modulus=[1, 0, 1])
-# m1 = [1, 1, 1, 0, 1, 1, 1]
-m1 = [1]
+E0 = EllipticCurve(F, [1, 0])
 
-
+m1 = [1, 1, 1, 0, 1, 1, 1]
 
 print_info(f"Example in dim 1")
 
-null_coords = F([1,2]), F([2,1])
-O0 = ThetaCGL(null_coords, sqrt_function=new_sqrt_Fp2)
+O0 = ThetaCGL(E0, sqrt_function=new_sqrt_Fp2)
+
+a, b = O0.domain
+print(to_hex_str(a))
+print(to_hex_str(b))
+
 out = O0.hash(m1)
 print(out)

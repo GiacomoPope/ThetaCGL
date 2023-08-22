@@ -3,7 +3,7 @@ from collections import namedtuple
 from sage.all import EllipticCurve
 from sage.schemes.elliptic_curves.ell_generic import EllipticCurve_generic
 
-from utilities import montgomery_coefficient
+from utilities import montgomery_coefficient, canonical_root
 
 ThetaNullPoint = namedtuple("ThetaNullPoint_dim_1", "a b")
 
@@ -23,11 +23,7 @@ class CGL:
         else:
             r = self.sqrt_function(x)
 
-        # TODO:
-        # This is stupid, but making the sqrt canonical 
-        # helps with the comparison
-        # return min(r, -r)
-        return r
+        return canonical_root(r)
 
     def advance(self, bits=None):
         pass
