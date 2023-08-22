@@ -28,7 +28,7 @@ macro_rules! define_dim_one_theta_core{ () => {
         pub fn coords(self) -> (Fq, Fq) {
             (self.X, self.Z)
         }
-        
+
         // Squared theta first squares the coords
         // then returns the hadamard transform. 
         // This gives the square of the dual coords
@@ -47,9 +47,9 @@ macro_rules! define_dim_one_theta_core{ () => {
             let (mut AB, _) = AABB.sqrt();
 
             // TODO: make constant time
-            if (bit == 1) {
-                AB = - AB;
-            }
+            let ctl = ((bit as u32) & 1).wrapping_neg();
+            AB.set_condneg(ctl);
+
             let (X_new, Z_new) = to_hadamard(AA, AB);
 
             Self {
