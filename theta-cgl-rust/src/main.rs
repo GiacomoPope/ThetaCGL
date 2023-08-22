@@ -4,17 +4,16 @@ use theta_cgl_rust::thp127;
 use theta_cgl_rust::thp254;
 
 // sha256("Bristol 2023")
-// static MSG: [u8; 256] = [
-//     1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 
-//     0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 
-//     0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
-//     1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 
-//     0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 
-//     0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 
-//     0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 
-//     1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1
-// ];
-static  MSG: [u8; 3] = [1, 1, 1];
+static MSG: [u8; 256] = [
+    1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 
+    0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 
+    0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+    1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 
+    0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 
+    0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 
+    0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 
+    1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1
+];
 
 fn dimension_one_254_example(X: thp254::Fq, Z: thp254::Fq) {
     println!("CGL dimension 1");
@@ -25,30 +24,15 @@ fn dimension_one_254_example(X: thp254::Fq, Z: thp254::Fq) {
     println!("{}", hash);
 }
 
-fn dimension_one_127_example(X: thp127::Fq, Z: thp127::Fq) {
-    println!("CGL dimension 1");
-    let O0 = thp127::ThetaPoint::new(&X, &Z);
-    let cgl = thp127::CGL::new(O0);
-    let hash = cgl.hash(MSG.to_vec());
+fn dimension_two_127_example(X: thp127::Fq, Z: thp127::Fq, U: thp127::Fq, V: thp127::Fq) {
+    println!("CGL dimension 2");
+    let O0: thp127::ThetaPointDim2 = thp127::ThetaPointDim2::new(&X, &Z, &U, &V);
+    let cgl = thp127::CGL2::new(O0);
+    let (h1, h2, h3) = cgl.hash(MSG.to_vec(), 3);
 
-    println!("{}", hash);
+    println!("hash:");
+    println!("{0}\n{1}\n{2}", h1, h2, h3);
 }
-
-// fn dimension_two_example(X: thp127::Fq, Z: thp127::Fq, U: thp127::Fq, V: thp127::Fq) {
-//     println!("CGL dimension 2");
-//     let O0 = thp127::ThetaPointDim2::new(&(X * U), &(X * V), &(Z * U), &(Z * V));
-
-//     let msg: [u8; 7] = [1, 1, 1, 0, 1, 1, 1];
-//     let cgl = thp127::CGL2::new(O0);
-//     let hash: (thp127::Fq, thp127::Fq, thp127::Fq) = cgl.hash(msg.to_vec(), 3);
-//     // let hash = cgl_hash_dim2(O0, msg.to_vec());
-
-//     println!("hash:");
-//     println!("{0}, {1}, {2}", &hash.0, &hash.1, &hash.2);
-//     println!("");
-//     println!("{:?}, {:?}, {:?}", &hash.0, &hash.1, &hash.2);
-// }
-
 
 fn main() {
     // From sagemath
@@ -65,11 +49,15 @@ fn main() {
     
     dimension_one_254_example(X_254, Z_254);
 
+    let X_hex_127: &str = "fdffffffffffffffffffffffffffff6b00000000000000000000000000000000";
+    let Z_hex_127: &str = "1fc93e85eba36a2d4d49a011ce720f421fc93e85eba36a2d4d49a011ce720f42";
+    let U_hex_127: &str = "1fc93e85eba36a2d4d49a011ce720f421fc93e85eba36a2d4d49a011ce720f42";
+    let V_hex_127: &str = "00000000000000000000000000000000fdffffffffffffffffffffffffffff6b";
 
-    let X_hex_127: &str = "0000000000000000000000000000000000000000000000000100000000000000";
-    let Z_hex_127: &str = "feffffffffffffffffffffffffffff7f01000000000000000000000000000000";
     let (X_127, _) = thp127::Fq::decode(&hex::decode(X_hex_127).unwrap());
     let (Z_127, _) = thp127::Fq::decode(&hex::decode(Z_hex_127).unwrap());
+    let (U_127, _) = thp127::Fq::decode(&hex::decode(U_hex_127).unwrap());
+    let (V_127, _) = thp127::Fq::decode(&hex::decode(V_hex_127).unwrap());
 
-    dimension_one_127_example(X_127, Z_127);
+    dimension_two_127_example(X_127, Z_127, U_127, V_127);
 }
