@@ -16,7 +16,9 @@
 //      NQR_RE_VAL                NQR_RE + i is a non-square in GF(p^2)
 """
 
-p = 79*2**247 - 1
+# p = 79*2**247 - 1
+p = 2**127 - 1
+
 
 def to_little_u64(n):
     res = []

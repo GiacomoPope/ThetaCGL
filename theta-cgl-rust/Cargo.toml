@@ -16,8 +16,18 @@ sha3 = "0.10.6"
 criterion = { version = "0.4", features = ["html_reports"] }
 
 [[bench]]
+name = "p127"
+path = "benches/p127.rs"
+harness = false
+
+[[bench]]
 name = "p254"
 path = "benches/p254.rs"
+harness = false
+
+[[bench]]
+name = "th127"
+path = "benches/th127.rs"
 harness = false
 
 [[bench]]

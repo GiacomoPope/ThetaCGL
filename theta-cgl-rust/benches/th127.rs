@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use theta_cgl_rust::thp254::{Fq, ThetaPoint, cgl_hash};
+use theta_cgl_rust::thp127::{Fq, ThetaPoint, cgl_hash};
 
 
 
@@ -24,7 +24,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     ];
 
     c.bench_function(
-        "CGL Hash: using p254", 
+        "CGL Hash: 256-bits", 
         |b| b.iter(|| cgl_hash(
             black_box(O0), black_box(&msg)
         )
