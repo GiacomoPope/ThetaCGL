@@ -40,6 +40,7 @@ macro_rules! define_fp_core { () => {
     use core::convert::TryFrom;
     use rand_core::{CryptoRng, RngCore};
     use crate::utils64::{addcarry_u64, subborrow_u64, umull, umull_add, umull_add2, umull_x2, umull_x2_add, sgnw, lzcnt};
+    use num_bigint::{BigInt, Sign};
 
     // Number of limbs
     const N: usize = (BITLEN + 63) >> 6;
@@ -1562,6 +1563,18 @@ macro_rules! define_fp_core { () => {
 
         pub fn new(re: &Fp, im: &Fp) -> Self {
             Self { x0: *re, x1: *im, }
+        }
+
+        pub fn pretty_print(self) -> String{
+            let r = self.encode();
+
+            let x0_bytes = &r[..Fp::ENCODED_LENGTH];
+            let x1_bytes = &r[Fp::ENCODED_LENGTH..];
+
+            let x0_big = BigInt::from_bytes_le(Sign::Plus, x0_bytes);
+            let x1_big = BigInt::from_bytes_le(Sign::Plus, x1_bytes);
+
+            format!("i*{} + {}", x1_big, x0_big)
         }
 
         pub fn iszero(self) -> u32 {
