@@ -24,14 +24,25 @@ def to_hex_str(a):
     return (a0_bytes + a1_bytes).hex()
 
 
+
+
+# m1 = [
+#     1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 
+#     0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 
+#     0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+#     1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 
+#     0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 
+#     0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 
+#     0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 
+#     1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1
+# ]
+m1 = [1, 1, 1]
+
+print_info(f"Example in p254")
+
 p = 79*2**247 - 1
 F = GF(p**2, name="i", modulus=[1, 0, 1])
 E0 = EllipticCurve(F, [1, 0])
-
-m1 = [1, 1, 1, 0, 1, 1, 1]
-
-print_info(f"Example in dim 1")
-
 O0 = ThetaCGL(E0, sqrt_function=new_sqrt_Fp2)
 
 a, b = O0.domain
@@ -41,9 +52,30 @@ print(to_hex_str(b))
 out = O0.hash(m1)
 print(out)
 
-print_info(f"Example in dim 2")
-O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0)
+print_info(f"Example in p127")
+p = 2**127 - 1
+F = GF(p**2, name="i", modulus=[1, 0, 1])
+E0 = EllipticCurve(F, [1, 0])
+O0 = ThetaCGL(E0, sqrt_function=new_sqrt_Fp2)
 
-h = O0.hash(m1)
-print("hash:")
-print(h)
+a, b = O0.domain
+print(to_hex_str(a))
+print(to_hex_str(b))
+
+out = O0.hash(m1)
+print(out)
+
+
+
+# O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0, sqrt_function=new_sqrt_Fp2)
+
+# a,b,c,d = O0.domain
+# print(to_hex_str(a))
+# print(to_hex_str(b))
+# print(to_hex_str(c))
+# print(to_hex_str(d))
+
+
+# h = O0.hash(m1)
+# print("hash:")
+# print(h)
