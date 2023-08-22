@@ -1,14 +1,6 @@
 #![allow(non_snake_case)]
-use theta_cgl_rust::params::p254::{Fp, Fp2};
+use theta_cgl_rust::params::p254::Fp2;
 use theta_cgl_rust::thp254::{Fq, ThetaPoint, cgl_hash, ThetaPointDim2, cgl_hash_dim2};
-use num_bigint::{BigInt, Sign};
-
-fn pretty_print_Fp(v: &Fp) -> String{
-    // Very stupid function, but it works...
-    let v_bytes = v.encode();
-    let v_big = BigInt::from_bytes_le(Sign::Plus, &v_bytes);
-    v_big.to_string()
-}
 
 fn dim1(X: Fp2, Z: Fp2) {
     println!("CGL dimension 1");
@@ -27,7 +19,7 @@ fn dim1(X: Fp2, Z: Fp2) {
     ];
     let hash = cgl_hash(O0, &msg);
 
-    println!("{}", hash.pretty_print());
+    println!("{}", hash);
 }
 
 fn dim2(X: Fp2, Z: Fp2, U: Fp2, V: Fp2) {
@@ -38,7 +30,7 @@ fn dim2(X: Fp2, Z: Fp2, U: Fp2, V: Fp2) {
     let hash = cgl_hash_dim2(O0, msg.to_vec());
 
     println!("hash:");
-    println!("{0}, {1}, {2}", &hash.0.pretty_print(), &hash.1.pretty_print(), &hash.2.pretty_print());
+    println!("{0}, {1}, {2}", &hash.0, &hash.1, &hash.2);
     println!("");
     println!("{:?}, {:?}, {:?}", &hash.0, &hash.1, &hash.2);
 }
