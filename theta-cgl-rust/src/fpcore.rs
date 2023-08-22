@@ -2040,15 +2040,6 @@ macro_rules! define_fp_core { () => {
         pub fn hashcode(self) -> u64 {
             (self.x0.hashcode() << 1) | (self.x1.hashcode() & 1)
         }
-
-        /// Encode an integer into bytes. The full output slice is filled;
-        /// it is assumed that the source array of limbs is large enough.
-        /// Extra bits beyond the output size are ignored.
-        fn encode_int_le(src: &[u64], dst: &mut [u8]) {
-            for i in 0..dst.len() {
-                dst[i] = (src[i >> 3] >> ((i & 7) << 3)) as u8;
-            }
-        }
     }
 
     // ========================================================================

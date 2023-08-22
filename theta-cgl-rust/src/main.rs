@@ -17,27 +17,29 @@ fn pretty_print_Fp2(v: &Fp2) -> String{
     let x0_bytes = &r[..Fp::ENCODED_LENGTH];
     let x1_bytes = &r[Fp::ENCODED_LENGTH..];
 
-    let x0_big = BigInt::from_bytes_le(Sign::Plus, &x0_bytes);
-    let x1_big = BigInt::from_bytes_le(Sign::Plus, &x1_bytes);
+    let x0_big = BigInt::from_bytes_le(Sign::Plus, x0_bytes);
+    let x1_big = BigInt::from_bytes_le(Sign::Plus, x1_bytes);
 
-    format!("i*{} + {}", x1_big.to_string(), x0_big.to_string())
+    format!("i*{} + {}", x1_big, x0_big)
 }
 
 
 fn main() {
-    // TODO: get proper null point
-    let a = Fp::from_i64(1);
-    let b = Fp::from_i64(2);
-    let X: Fq = Fq::new(&a, &b);
-    let Z: Fq = Fq::new(&b, &a);
+    // From sagemath
+    // The corresponding theta null point for y^2 = x^3 + x
+    //
+    // a = i*12275542822304839524828636957574153606049258432202019246703196872283011715506 + 0
+    // b = i + 17866357519039022340746304327512392032047517165206258904525681907470971174910
+    //
+    // Encoding function from Fp^2 element to bytes is available in the sage code
+    let X_hex: &str = "0000000000000000000000000000000000000000000000000000000000000000b29164fbeafb402b03e1a2844c5f05e206d84f96f7287a2c76c92b6505b6231b";
+    let Z_hex: &str = "feffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f270100000000000000000000000000000000000000000000000000000000000000";
+    let (X, _) = Fq::decode(&hex::decode(X_hex).unwrap());
+    let (Z, _) = Fq::decode(&hex::decode(Z_hex).unwrap());
 
-    let O0 = ThetaPoint{
-        X, Z
-    };
+    let O0 = ThetaPoint::new(&X, &Z);
 
-    // let msg: [u8; 7] = [1, 1, 1, 0, 1, 1, 1];
-    let msg: [u8; 1] = [1];
-
+    let msg: [u8; 7] = [1, 1, 1, 0, 1, 1, 1];
     let hash = cgl_hash(O0, &msg);
 
     println!("{}", pretty_print_Fp2(&hash));
