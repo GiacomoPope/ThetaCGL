@@ -3,14 +3,6 @@
 // Macro expectations:
 // Fq      type of field element
 macro_rules! define_dim_one_theta_core{ () => {
-    // Compute the Hadamard transform
-    fn to_hadamard(X: Fq, Z: Fq) -> (Fq, Fq) {
-        let X_new = X + Z;
-        let Z_new = X - Z;
-
-        (X_new, Z_new)
-    }
-
     // Theta Point
     // The domain / codomain is described by a theta point
     #[derive(Clone, Copy, Debug)]
@@ -29,6 +21,14 @@ macro_rules! define_dim_one_theta_core{ () => {
             (self.X, self.Z)
         }
 
+        // Compute the Hadamard transform
+        fn to_hadamard(self, X: Fq, Z: Fq) -> (Fq, Fq) {
+            let X_new = X + Z;
+            let Z_new = X - Z;
+
+            (X_new, Z_new)
+        }
+
         // Squared theta first squares the coords
         // then returns the hadamard transform. 
         // This gives the square of the dual coords
@@ -36,7 +36,7 @@ macro_rules! define_dim_one_theta_core{ () => {
             let XX = self.X.square();
             let ZZ = self.Z.square();
 
-            to_hadamard(XX, ZZ)
+            self.to_hadamard(XX, ZZ)
 
         }
 
@@ -50,7 +50,7 @@ macro_rules! define_dim_one_theta_core{ () => {
             let ctl = ((bit as u32) & 1).wrapping_neg();
             AB.set_condneg(ctl);
 
-            let (X_new, Z_new) = to_hadamard(AA, AB);
+            let (X_new, Z_new) = self.to_hadamard(AA, AB);
 
             Self {
                 X : X_new,

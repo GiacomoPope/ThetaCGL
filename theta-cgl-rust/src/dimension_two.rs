@@ -3,11 +3,7 @@
 // Macro expectations:
 // Fq      type of field element
 macro_rules! define_dim_two_theta_core{ () => {
-    // Compute the Hadamard transform
-    fn to_hadamard_dim2(X: Fq, Z: Fq, U: Fq, V: Fq) -> (Fq, Fq, Fq, Fq) {
-        (X + Z + U + V,  X - Z + U - V, X + Z - U - V, X - Z - U + V)
-    }
-
+    
     // Theta Point
     // The domain / codomain is described by a theta point
     #[derive(Clone, Copy, Debug)]
@@ -27,6 +23,11 @@ macro_rules! define_dim_two_theta_core{ () => {
         pub fn coords(self) -> (Fq, Fq, Fq, Fq) {
             (self.X, self.Z, self.U, self.V)
         }
+
+        // Compute the Hadamard transform
+        fn to_hadamard(self, X: Fq, Z: Fq, U: Fq, V: Fq) -> (Fq, Fq, Fq, Fq) {
+            (X + Z + U + V,  X - Z + U - V, X + Z - U - V, X - Z - U + V)
+        }
         
         // Squared theta first squares the coords
         // then returns the hadamard transform. 
@@ -44,7 +45,7 @@ macro_rules! define_dim_two_theta_core{ () => {
         pub fn radical_two_isogeny(self, bits: Vec<u8>) -> ThetaPointDim2 {
             let (mut AA, mut BB, mut CC, mut DD) = self.squared_theta();
 
-            (AA, BB, CC, DD) = to_hadamard_dim2(AA, BB, CC, DD);
+            (AA, BB, CC, DD) = self.to_hadamard(AA, BB, CC, DD);
 
             let AABB = AA * BB;
             let AACC = AA * CC;
@@ -63,7 +64,7 @@ macro_rules! define_dim_two_theta_core{ () => {
                 AD = - AD
             }
 
-            let (anew, bnew, cnew, dnew) = to_hadamard_dim2(AA, AB, AC, AD);
+            let (anew, bnew, cnew, dnew) = self.to_hadamard(AA, AB, AC, AD);
             ThetaPointDim2::new(&anew, &bnew, &cnew, &dnew)
         }
 
