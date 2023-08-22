@@ -1,26 +1,42 @@
 #![allow(non_snake_case)]
-use theta_cgl_rust::params::p254::{Fp, Fp2};
-use theta_cgl_rust::thp254::{Fq, ThetaPoint, cgl_hash};
-use num_bigint::{BigInt, Sign};
+use theta_cgl_rust::params::p254::Fp2;
+use theta_cgl_rust::thp254::{Fq, ThetaPoint, CGL, ThetaPointDim2, CGL2};
 
-fn pretty_print_Fp(v: &Fp) -> String{
-    // Very stupid function, but it works...
-    let v_bytes = v.encode();
-    let v_big = BigInt::from_bytes_le(Sign::Plus, &v_bytes);
-    v_big.to_string()
+fn dim1(X: Fp2, Z: Fp2) {
+    println!("CGL dimension 1");
+    let O0 = ThetaPoint::new(&X, &Z);
+
+    // sha256("Bristol 2023")
+    let msg: [u8; 256] = [
+        1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 
+        0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 
+        0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+        1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 
+        0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 
+        0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 
+        0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 
+        1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1
+    ];
+
+    let cgl = CGL::new(O0);
+    let hash = cgl.hash(msg.to_vec());
+
+    println!("{}", hash);
 }
 
-fn pretty_print_Fp2(v: &Fp2) -> String{
-    // Very stupid function, but it works...
-    let r = v.encode();
+fn dim2(X: Fp2, Z: Fp2, U: Fp2, V: Fp2) {
+    println!("CGL dimension 2");
+    let O0 = ThetaPointDim2::new(&(X * U), &(X * V), &(Z * U), &(Z * V));
 
-    let x0_bytes = &r[..Fp::ENCODED_LENGTH];
-    let x1_bytes = &r[Fp::ENCODED_LENGTH..];
+    let msg: [u8; 7] = [1, 1, 1, 0, 1, 1, 1];
+    let cgl = CGL2::new(O0);
+    let hash = cgl.hash(msg.to_vec(), 3);
+    // let hash = cgl_hash_dim2(O0, msg.to_vec());
 
-    let x0_big = BigInt::from_bytes_le(Sign::Plus, x0_bytes);
-    let x1_big = BigInt::from_bytes_le(Sign::Plus, x1_bytes);
-
-    format!("i*{} + {}", x1_big, x0_big)
+    println!("hash:");
+    println!("{0}, {1}, {2}", &hash.0, &hash.1, &hash.2);
+    println!("");
+    println!("{:?}, {:?}, {:?}", &hash.0, &hash.1, &hash.2);
 }
 
 
@@ -36,23 +52,7 @@ fn main() {
     let Z_hex: &str = "feffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f270100000000000000000000000000000000000000000000000000000000000000";
     let (X, _) = Fq::decode(&hex::decode(X_hex).unwrap());
     let (Z, _) = Fq::decode(&hex::decode(Z_hex).unwrap());
-
-    let O0 = ThetaPoint::new(&X, &Z);
-
-    // sha256("Bristol 2023")
-    let msg: [u8; 256] = [
-        1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 
-        0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 
-        0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
-        1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 
-        0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 
-        0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 
-        0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 
-        1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1
-    ];
-    let hash = cgl_hash(O0, &msg);
-
-    println!("{}", pretty_print_Fp2(&hash));
-
-
+    
+    dim1(X, Z);
+    // dim2(X, Z, X, Z);
 }

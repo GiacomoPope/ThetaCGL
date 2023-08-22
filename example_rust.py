@@ -40,3 +40,10 @@ print(to_hex_str(b))
 
 out = O0.hash(m1)
 print(out)
+
+print_info(f"Example in dim 2")
+O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0)
+
+h = O0.hash(m1)
+print("hash:")
+print(h)

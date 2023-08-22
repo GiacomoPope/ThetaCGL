@@ -40,6 +40,8 @@ macro_rules! define_fp_core { () => {
     use core::convert::TryFrom;
     use rand_core::{CryptoRng, RngCore};
     use crate::utils64::{addcarry_u64, subborrow_u64, umull, umull_add, umull_add2, umull_x2, umull_x2_add, sgnw, lzcnt};
+    use num_bigint::{BigInt, Sign};
+    use std::fmt;
 
     // Number of limbs
     const N: usize = (BITLEN + 63) >> 6;
@@ -1283,6 +1285,15 @@ macro_rules! define_fp_core { () => {
 
     // ========================================================================
 
+    impl fmt::Display for Fp {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            let v_bytes = self.encode();
+            let v_big = BigInt::from_bytes_le(Sign::Plus, &v_bytes);
+    
+            write!(f, "{}", v_big.to_string())
+        }
+    }
+
     impl Add<Fp> for Fp {
         type Output = Fp;
 
@@ -2043,6 +2054,20 @@ macro_rules! define_fp_core { () => {
     }
 
     // ========================================================================
+
+    impl fmt::Display for Fp2 {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            let r = self.encode();
+
+            let x0_bytes = &r[..Fp::ENCODED_LENGTH];
+            let x1_bytes = &r[Fp::ENCODED_LENGTH..];
+
+            let x0_big = BigInt::from_bytes_le(Sign::Plus, x0_bytes);
+            let x1_big = BigInt::from_bytes_le(Sign::Plus, x1_bytes);
+
+            write!(f, "i*{} + {}", x1_big, x0_big)
+        }
+    }
 
     impl Add<Fp2> for Fp2 {
         type Output = Fp2;

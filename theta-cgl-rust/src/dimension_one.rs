@@ -3,14 +3,6 @@
 // Macro expectations:
 // Fq      type of field element
 macro_rules! define_dim_one_theta_core{ () => {
-    // Compute the Hadamard transform
-    fn to_hadamard(X: Fq, Z: Fq) -> (Fq, Fq) {
-        let X_new = X + Z;
-        let Z_new = X - Z;
-
-        (X_new, Z_new)
-    }
-
     // Theta Point
     // The domain / codomain is described by a theta point
     #[derive(Clone, Copy, Debug)]
@@ -29,6 +21,14 @@ macro_rules! define_dim_one_theta_core{ () => {
             (self.X, self.Z)
         }
 
+        // Compute the Hadamard transform
+        fn to_hadamard(self, X: Fq, Z: Fq) -> (Fq, Fq) {
+            let X_new = X + Z;
+            let Z_new = X - Z;
+
+            (X_new, Z_new)
+        }
+
         // Squared theta first squares the coords
         // then returns the hadamard transform. 
         // This gives the square of the dual coords
@@ -36,7 +36,7 @@ macro_rules! define_dim_one_theta_core{ () => {
             let XX = self.X.square();
             let ZZ = self.Z.square();
 
-            to_hadamard(XX, ZZ)
+            self.to_hadamard(XX, ZZ)
 
         }
 
@@ -46,11 +46,10 @@ macro_rules! define_dim_one_theta_core{ () => {
             let AABB = AA * BB; 
             let (mut AB, _) = AABB.sqrt();
 
-            // TODO: make constant time
             let ctl = ((bit as u32) & 1).wrapping_neg();
             AB.set_condneg(ctl);
 
-            let (X_new, Z_new) = to_hadamard(AA, AB);
+            let (X_new, Z_new) = self.to_hadamard(AA, AB);
 
             Self {
                 X : X_new,
@@ -63,13 +62,32 @@ macro_rules! define_dim_one_theta_core{ () => {
         }
     }
 
-    pub fn cgl_hash(O0: ThetaPoint, msg: &[u8]) -> Fq{
-        let mut r = O0;
-        for bit in msg{
-            r = r.radical_two_isogeny(*bit)
-        }
-        r.to_hash()
+    #[derive(Clone, Copy, Debug)]
+    pub struct CGL {
+        pub O0 : ThetaPoint,
     }
+
+    impl CGL {    
+
+        pub fn new(O0: ThetaPoint) -> CGL {
+            Self{O0: O0}
+        }
+
+        pub fn bit_string(self, mut T: ThetaPoint, msg: Vec<u8>) -> ThetaPoint {
+            for bit in msg {
+                T = T.radical_two_isogeny(bit)
+            }
+
+            T
+        }
+
+        pub fn hash(self, msg: Vec<u8>) -> Fq {
+            let T = self.bit_string(self.O0, msg);
+
+            T.to_hash()
+        }
+    }
+
 } } // End of macro: define_dim_one_theta_core
 
 pub(crate) use define_dim_one_theta_core;

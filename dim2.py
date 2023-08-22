@@ -25,13 +25,15 @@ class ThetaCGLDim2(CGL):
         Given a level 2-theta null point, compute a 2-isogeneous theta null
         point
         """
-
         a, b, c, d = self.domain
+
         aa = a*a # a*a is faster than a**2 in SageMath
         bb = b*b
         cc = c*c
         dd = d*d
-        AA, BB, CC, DD = ThetaCGLDim2.hadamard(a,b,c,d)
+
+        AA, BB, CC, DD = ThetaCGLDim2.hadamard(aa,bb,cc,dd)
+
         AABB = AA * BB
         AACC = AA * CC
         AADD = AA * DD
