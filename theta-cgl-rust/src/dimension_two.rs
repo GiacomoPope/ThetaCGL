@@ -75,26 +75,39 @@ macro_rules! define_dim_two_theta_core{ () => {
         } 
     }
 
-    pub fn bit_string(mut T: ThetaPointDim2, mut msg: Vec<u8>, chunk_len: usize) -> ThetaPointDim2 {
-        let m = msg.len() % chunk_len;
-        if m != 0 {
-            for _ in 0..(chunk_len - m) {
-                msg.push(0);
+    #[derive(Clone, Copy, Debug)]
+    pub struct CGL2 {
+        pub O0 : ThetaPointDim2,
+    }
+
+    impl CGL2 {    
+
+        pub fn new(O0: ThetaPointDim2) -> CGL2 {
+            Self{O0: O0}
+        }
+
+        pub fn bit_string(self, mut T: ThetaPointDim2, mut msg: Vec<u8>, chunk_len: usize) -> ThetaPointDim2 {
+            let m = msg.len() % chunk_len;
+            if m != 0 {
+                for _ in 0..(chunk_len - m) {
+                    msg.push(0);
+                }
             }
+            let iter = msg.chunks(chunk_len);
+            for i in iter {
+                T = T.radical_two_isogeny(i.to_vec());
+            }
+
+            T
         }
-        let iter = msg.chunks(chunk_len);
-        for i in iter {
-            T = T.radical_two_isogeny(i.to_vec());
+
+        pub fn hash(self, msg: Vec<u8>, chunk_len: usize) -> (Fq, Fq, Fq) {
+            let T = self.bit_string(self.O0, msg, chunk_len);
+
+            T.to_hash()
         }
-
-        T
     }
-
-    pub fn cgl_hash_dim2(O0: ThetaPointDim2, msg: Vec<u8>) -> (Fq, Fq, Fq) {
-        let T = bit_string(O0, msg, 3);
-
-        T.to_hash()
-    }
+    
 } } // End of macro: define_dim_two_theta_core
 
 pub(crate) use define_dim_two_theta_core;

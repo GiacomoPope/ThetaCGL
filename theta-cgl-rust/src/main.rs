@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 use theta_cgl_rust::params::p254::Fp2;
-use theta_cgl_rust::thp254::{Fq, ThetaPoint, cgl_hash, ThetaPointDim2, cgl_hash_dim2};
+use theta_cgl_rust::thp254::{Fq, ThetaPoint, CGL, ThetaPointDim2, CGL2};
 
 fn dim1(X: Fp2, Z: Fp2) {
     println!("CGL dimension 1");
@@ -17,7 +17,9 @@ fn dim1(X: Fp2, Z: Fp2) {
         0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 
         1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1
     ];
-    let hash = cgl_hash(O0, &msg);
+
+    let cgl = CGL::new(O0);
+    let hash = cgl.hash(msg.to_vec());
 
     println!("{}", hash);
 }
@@ -27,7 +29,9 @@ fn dim2(X: Fp2, Z: Fp2, U: Fp2, V: Fp2) {
     let O0 = ThetaPointDim2::new(&(X * U), &(X * V), &(Z * U), &(Z * V));
 
     let msg: [u8; 7] = [1, 1, 1, 0, 1, 1, 1];
-    let hash = cgl_hash_dim2(O0, msg.to_vec());
+    let cgl = CGL2::new(O0);
+    let hash = cgl.hash(msg.to_vec(), 3);
+    // let hash = cgl_hash_dim2(O0, msg.to_vec());
 
     println!("hash:");
     println!("{0}, {1}, {2}", &hash.0, &hash.1, &hash.2);
@@ -49,6 +53,6 @@ fn main() {
     let (X, _) = Fq::decode(&hex::decode(X_hex).unwrap());
     let (Z, _) = Fq::decode(&hex::decode(Z_hex).unwrap());
     
-    // dim1(X, Z);
-    dim2(X, Z, X, Z);
+    dim1(X, Z);
+    // dim2(X, Z, X, Z);
 }

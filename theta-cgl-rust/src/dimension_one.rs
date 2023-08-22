@@ -62,13 +62,32 @@ macro_rules! define_dim_one_theta_core{ () => {
         }
     }
 
-    pub fn cgl_hash(O0: ThetaPoint, msg: &[u8]) -> Fq{
-        let mut r = O0;
-        for bit in msg{
-            r = r.radical_two_isogeny(*bit)
-        }
-        r.to_hash()
+    #[derive(Clone, Copy, Debug)]
+    pub struct CGL {
+        pub O0 : ThetaPoint,
     }
+
+    impl CGL {    
+
+        pub fn new(O0: ThetaPoint) -> CGL {
+            Self{O0: O0}
+        }
+
+        pub fn bit_string(self, mut T: ThetaPoint, msg: Vec<u8>) -> ThetaPoint {
+            for bit in msg {
+                T = T.radical_two_isogeny(bit)
+            }
+
+            T
+        }
+
+        pub fn hash(self, msg: Vec<u8>) -> Fq {
+            let T = self.bit_string(self.O0, msg);
+
+            T.to_hash()
+        }
+    }
+
 } } // End of macro: define_dim_one_theta_core
 
 pub(crate) use define_dim_one_theta_core;
