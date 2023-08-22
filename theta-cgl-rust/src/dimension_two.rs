@@ -53,16 +53,15 @@ macro_rules! define_dim_two_theta_core{ () => {
             let mut AB = AABB.sqrt().0;
             let mut AC = AACC.sqrt().0;
             let mut AD = AADD.sqrt().0;
+
+            let ctl1 = ((bits[0] as u32) & 1).wrapping_neg();
+            AB.set_condneg(ctl1);
             
-            if (bits[0] == 1) {
-                AB = - AB
-            }
-            if (bits[1] == 1){
-                AC = - AC
-            }
-            if (bits[2] == 1){
-                AD = - AD
-            }
+            let ctl2 = ((bits[1] as u32) & 1).wrapping_neg();
+            AC.set_condneg(ctl2);
+            
+            let ctl3 = ((bits[2] as u32) & 1).wrapping_neg();
+            AD.set_condneg(ctl3);
 
             let (anew, bnew, cnew, dnew) = self.to_hadamard(AA, AB, AC, AD);
             ThetaPointDim2::new(&anew, &bnew, &cnew, &dnew)

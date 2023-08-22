@@ -46,7 +46,6 @@ macro_rules! define_dim_one_theta_core{ () => {
             let AABB = AA * BB; 
             let (mut AB, _) = AABB.sqrt();
 
-            // TODO: make constant time
             let ctl = ((bit as u32) & 1).wrapping_neg();
             AB.set_condneg(ctl);
 
