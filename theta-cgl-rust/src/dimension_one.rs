@@ -60,44 +60,21 @@ macro_rules! define_dim_one_theta_core{ () => {
         }
 
         pub fn radical_four_isogeny(self, bits: Vec<u8>, zeta: Fq) -> ThetaPoint {
-            println!("================");
-
             let (AA, BB) = self.squared_theta();
-            println!("{}", self.X);
-            println!("{}", self.Z);
             let AABB = AA * BB; 
             let AB = AABB.sqrt().0;
             let mut factor = AB.sqrt().0;
 
-            // let ctl0 = ((1 as u32) & 1).wrapping_neg();
-            // factor.set_condneg(ctl0);
-
-            factor = factor * zeta; // different sqrt is returned is in Sage
-
-            println!("factor 0:");
-            println!("{}", factor);
-
             let ctl1 = ((bits[0] as u32) & 1).wrapping_neg();
             factor.set_condneg(ctl1);
-
-            println!("factor 1:");
-            println!("{}", factor);
 
             // TODO: constant time
             if (bits[1] == 1) {
                 factor = zeta * factor;
             }
 
-            println!("factor 2:");
-            println!("{}", factor);
-
             let X_new = self.X + factor;
             let Z_new = self.X - factor;
-
-            println!("new:");
-            println!("{}", X_new);
-            println!("{}", Z_new);
-
 
             // TODO: currently no hadamard call - as in Python code
             // anew, bnew = ThetaCGL.hadamard(anew, bnew) # I think we need an hadamard?

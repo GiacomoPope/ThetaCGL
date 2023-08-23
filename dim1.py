@@ -1,4 +1,5 @@
 from collections import namedtuple
+from computing_roots import fourth_Fp2
 
 from sage.all import EllipticCurve
 from sage.schemes.elliptic_curves.ell_generic import EllipticCurve_generic
@@ -171,9 +172,7 @@ class ThetaCGLRadical4(ThetaCGL):
         else:
             r = self.sqrt4_function(x)
 
-        zeta = self.zeta
-        # normalize the fourth root
-        return min(r, zeta*r, -r, -zeta*r)
+        return r
 
     def radical_4isogeny(self, bits=[0,0]):
         """
@@ -188,28 +187,15 @@ class ThetaCGLRadical4(ThetaCGL):
         AABB = AA * BB
         factor = self.sqrt4(AABB) #fourth root
 
-        print("===============")
-        print(a)
-        print(b)
-        print("factor:")
-        print(factor)
-
         if bits[0] == 1:
             factor = - factor
-
-        print(factor)
 
         if bits[1] == 1:
             factor = self.zeta * factor
 
-        print(factor)
-
         anew=a+factor
         bnew=a-factor
 
-        print("new:")
-        print(anew)
-        print(bnew)
         #anew, bnew = ThetaCGL.hadamard(anew, bnew) # I think we need an hadamard?
         O1 = ThetaNullPoint(anew, bnew)
         return O1

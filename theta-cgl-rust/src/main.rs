@@ -30,6 +30,7 @@ fn dimension_one_rad_4_254_example(X: thp254::Fq, Z: thp254::Fq) {
     let cgl = thp254::CGL_1_4::new(O0, thp254::Fq::new(&thp254::Fp::from_i32(0), &thp254::Fp::from_i32(1)));
     let hash = cgl.hash(MSG.to_vec());
 
+    println!("hash:");
     println!("{}", hash);
 }
 
