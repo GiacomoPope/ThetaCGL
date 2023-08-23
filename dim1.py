@@ -187,16 +187,33 @@ class ThetaCGLRadical4(ThetaCGL):
         AA,BB = ThetaCGL.hadamard(aa, bb)
         AABB = AA * BB
         factor = self.sqrt4(AABB) #fourth root
+
+        print("===============")
+        print(a)
+        print(b)
+        print("factor:")
+        print(factor)
+
         if bits[0] == 1:
             factor = - factor
+
+        print(factor)
+
         if bits[1] == 1:
             factor = self.zeta * factor
+
+        print(factor)
+
         anew=a+factor
         bnew=a-factor
+
+        print("new:")
+        print(anew)
+        print(bnew)
         #anew, bnew = ThetaCGL.hadamard(anew, bnew) # I think we need an hadamard?
         O1 = ThetaNullPoint(anew, bnew)
         return O1
 
     def advance(self, bits=[0, 0]):
         O1 = self.radical_4isogeny(bits=bits)
-        return ThetaCGL(O1, sqrt_function=self.sqrt_function)
+        return ThetaCGLRadical4(O1, sqrt_function=self.sqrt_function, zeta=self.zeta)

@@ -5,6 +5,7 @@ mod utils64;
 mod fpcore;
 mod dimension_one;
 mod dimension_two;
+mod util;
 
 pub mod params;
 
@@ -16,6 +17,7 @@ pub mod thp127 {
 }
 
 pub mod thp254 {
+    pub type Fp = crate::params::p254::Fp;
     pub type Fq = crate::params::p254::Fp2;
     crate::dimension_one::define_dim_one_theta_core!{}
 }

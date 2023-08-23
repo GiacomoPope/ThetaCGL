@@ -3,6 +3,7 @@
 // Macro expectations:
 // Fq      type of field element
 macro_rules! define_dim_two_theta_core{ () => {
+    use crate::util::pad_msg;
     
     // Theta Point
     // The domain / codomain is described by a theta point
@@ -76,23 +77,18 @@ macro_rules! define_dim_two_theta_core{ () => {
     }
 
     #[derive(Clone, Copy, Debug)]
-    pub struct CGL2 {
+    pub struct CGL_2_2 {
         pub O0 : ThetaPointDim2,
     }
 
-    impl CGL2 {    
+    impl CGL_2_2 {    
 
-        pub fn new(O0: ThetaPointDim2) -> CGL2 {
+        pub fn new(O0: ThetaPointDim2) -> CGL_2_2 {
             Self{O0: O0}
         }
 
         pub fn bit_string(self, mut T: ThetaPointDim2, mut msg: Vec<u8>, chunk_len: usize) -> ThetaPointDim2 {
-            let m = msg.len() % chunk_len;
-            if m != 0 {
-                for _ in 0..(chunk_len - m) {
-                    msg.push(0);
-                }
-            }
+            msg = pad_msg(msg, chunk_len); 
             let iter = msg.chunks(chunk_len);
             for i in iter {
                 T = T.radical_two_isogeny(i.to_vec());

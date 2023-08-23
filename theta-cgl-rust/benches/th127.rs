@@ -16,7 +16,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     let (V_127, _) = thp127::Fq::decode(&hex::decode(V_hex_127).unwrap());
 
     let O0: thp127::ThetaPointDim2 = thp127::ThetaPointDim2::new(&X_127, &Z_127, &U_127, &V_127);
-    let cgl = thp127::CGL2::new(O0);
+    let cgl = thp127::CGL_2_2::new(O0);
 
     // sha256("Bristol 2023")
     let msg: [u8; 256] = [
