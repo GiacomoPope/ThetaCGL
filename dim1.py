@@ -241,20 +241,7 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
         #print(f"Radical 8 isogeny, bits={bits}")
         a, b = self.domain
         r, s = self.torsion
-        mu1 = (r**4+s**4)/a**2
-        mu2 = 2*r**2*s**2/b**2
-        assert mu1 == mu2
-        print(f"mu1: {mu1}")
-        mu = self.sqrt4(mu1)
-        r = r/mu
-        s = s/mu
-        mu1 = (r**4+s**4)/a**2
-        mu2 = 2*r**2*s**2/b**2
-        assert mu1==1
-        assert mu2==1
-        assert a*a+(r**8-s**8)/(a*a) == 2*r**4
         factor = self.sqrt8(r**8-s**8)
-        assert factor**8 == r**8-s**8
 
         if bits[0] == 1:
             factor = - factor
@@ -269,17 +256,17 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
 
         a4 = r*r + factor*factor
         b4 = r*r - factor*factor
-        a4b = a*a+factor**8/(a*a) + 2 * factor **2 * r**2
-        b4b = a*a+factor**8/(a*a) - 2 * factor **2 * r**2
-        print(f"Ratio of the two ways to compute the theta null point: {a4b/a4}")
-        print(b4b/b4)
-        assert b4b * a4 == a4b * b4
-        r4 = self.sqrt2 * a * (r*r - factor * factor)
-        s4 = a*a + factor**4 -2*factor*a*r
+        # a4b = a*a+factor**8/(a*a) + 2 * factor **2 * r**2
+        # b4b = a*a+factor**8/(a*a) - 2 * factor **2 * r**2
+        # print(f"Ratio of the two ways to compute the theta null point: {a4b/a4}")
+        # print(b4b/b4)
+        # assert b4b * a4 == a4b * b4
+        
+        r4 = a * b * (r*r - factor * factor)/(r*s)
+        s4 = a*a + factor**4*b*b/(2*r*r*s*s) -2*factor*a*b*r / (self.sqrt2 *r*s)
 
         mu3 = (r4**4+s4**4)/a4**2
         mu4 = 2*r4**2*s4**2/b4**2
-        print("------------")
         print(f"mu3: {mu3}")
         print(f"mu4: {mu4}")
         assert mu3 == mu4
