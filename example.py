@@ -1,7 +1,7 @@
 import time
 
 from sage.all import GF, EllipticCurve
-from dim1 import ThetaCGL, ThetaCGLRadical4
+from dim1 import ThetaCGL, ThetaCGLRadical4, ThetaCGLRadical8
 from dim2 import ThetaCGLDim2
 from utilities import sqrt_Fp2, new_sqrt_Fp2, print_info
 
@@ -29,6 +29,7 @@ O2 = O0.bit_string(m2)
 print(f"First message gives {O1} which hashes to {O1.to_hash()}")
 print(f"Second message gives {O2} which hashes to {O2.to_hash()}")
 print(f"Are the isogeneous curve the same? {O1.j_invariant() == O2.j_invariant()}")
+# print(f"Are the isogeneous curve isogeneous? {O1.cardinality() == O2.cardinality()}")
 
 print("- SageMath only")
 O0 = ThetaCGL(E0)
@@ -46,12 +47,24 @@ print(f"Hashing test 1: {O0.hash(m1)}")
 print(f"Hashing test 2: {O0.hash(m2)}")
 
 print_info(f"Example of a 4-radical isogeny")
-O0 = ThetaCGLRadical4(E0, zeta=F.gen())
+O0 = ThetaCGLRadical4(E0, zeta4=F.gen())
+
+print("- Sanity checks")
+O1 = O0.bit_string(m1)
+O2 = O0.bit_string(m2)
+print(f"Are the isogeneous curve the same? {O1.j_invariant() == O2.j_invariant()}")
+# print(f"Are the isogeneous curve isogeneous? {O1.cardinality() == O2.cardinality()}")
+
 print(f"Hashing test 1: {O0.hash(m1)}")
 print(f"Hashing test 2: {O0.hash(m2)}")
 
+print_info(f"Example of a 8-radical isogeny")
+i = F.gen()
+zeta = i.sqrt()
+sqrt2 = F(2).sqrt()
+O0 = ThetaCGLRadical8(E0, zeta8=zeta, zeta4 = i, sqrt2 = sqrt2)
+
 print("- Sanity checks")
-O0 = ThetaCGL(E0)
 O1 = O0.bit_string(m1)
 O2 = O0.bit_string(m2)
 print(f"Are the isogeneous curve the same? {O1.j_invariant() == O2.j_invariant()}")
