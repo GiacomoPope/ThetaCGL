@@ -244,7 +244,7 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
         mu1 = (r**4+s**4)/a**2
         mu2 = 2*r**2*s**2/b**2
         assert mu1 == mu2
-        print(mu1)
+        print(f"mu1: {mu1}")
         mu = self.sqrt4(mu1)
         r = r/mu
         s = s/mu
@@ -271,7 +271,7 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
         b4 = r*r - factor*factor
         a4b = a*a+factor**8/(a*a) + 2 * factor **2 * r**2
         b4b = a*a+factor**8/(a*a) - 2 * factor **2 * r**2
-        print(a4b/a4)
+        print(f"Ratio of the two ways to compute the theta null point: {a4b/a4}")
         print(b4b/b4)
         assert b4b * a4 == a4b * b4
         r4 = self.sqrt2 * a * (r*r - factor * factor)
@@ -280,9 +280,8 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
         mu3 = (r4**4+s4**4)/a4**2
         mu4 = 2*r4**2*s4**2/b4**2
         print("------------")
-        print(mu3)
-        print(mu4)
-        print(mu3/mu4)
+        print(f"mu3: {mu3}")
+        print(f"mu4: {mu4}")
         assert mu3 == mu4
 
         O1 = ThetaNullPoint(a4, b4)

@@ -65,10 +65,12 @@ sqrt2 = F(2).sqrt()
 O0 = ThetaCGLRadical8(E0, zeta8=zeta, zeta4 = i, sqrt2 = sqrt2)
 
 print("- Sanity checks")
+m1 = [1, 1, 1]
+m2 = [0, 1, 1]
 O1 = O0.bit_string(m1)
 O2 = O0.bit_string(m2)
-print(f"Are the isogeneous curve the same? {O1.j_invariant() == O2.j_invariant()}")
-print(f"Are the isogeneous curve isogeneous? {O1.cardinality() == O2.cardinality()}")
+print(f"Are the isogeneous curve isogeneous? {O1.cardinality() == O2.cardinality()}, {O0.cardinality() == O1.cardinality()}")
+print(f"Are the isogeneous curve the same? {O1.j_invariant() == O2.j_invariant()}, {O0.j_invariant(), O1.j_invariant(), O2.j_invariant()}")
 
 print_info(f"Timings")
 O0 = ThetaCGL(E0)
