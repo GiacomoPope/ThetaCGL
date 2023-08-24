@@ -11,14 +11,15 @@
 //      TFIXDIV_VAL               corrective factor for division
 //      TDEC_VAL                  2^(64*(2*N-1)) mod p
 //      SQRT_EH, SQRT_EL          encoding of (p + 1)/4
+//      FOURTH_ROOT_EH, FOURTH_ROOT_EL          encoding of (p + 1)/8
 //      P1 (u64)                  floor(p / 2^(BITLEN - 32))
 //      P1DIV_M (u64)             1 + floor((2^32 - P1)*2^64 / P1)
 //      NQR_RE_VAL                NQR_RE + i is a non-square in GF(p^2)
 """
 
-# p = 79*2**247 - 1
+p = 79*2**247 - 1
 # p = 2**127 - 1
-p = 27*2**122 - 1
+# p = 27*2**122 - 1
 
 
 def to_little_u64(n):
@@ -83,6 +84,17 @@ while True:
 SQRT_EH = e // 2^(5*SQRT_EL)
 SQRT_EH = SQRT_EH.digits(2**5)
 
+e = (p + 1)//8
+FOURTH_ROOT_EL = BITLEN
+while True:
+    mod = 2**(5*FOURTH_ROOT_EL)
+    if e % mod == 0:
+        break
+    FOURTH_ROOT_EL -= 1
+
+FOURTH_ROOT_EH = e // 2^(5*FOURTH_ROOT_EL)
+FOURTH_ROOT_EH = FOURTH_ROOT_EH.digits(2**5)
+
 P1 = floor(p // 2**(BITLEN - 32))
 # P1DIV_M = 1 + floor((2**32 - P1)*2**64 / P1)
 P1DIV_M = floor((2**32 - P1)*2**64 / P1)
@@ -137,6 +149,10 @@ pub mod p540 {{
         {str(SQRT_EH).replace('[', '').replace(']', '')}
     ];
     const SQRT_EL: usize = {SQRT_EL};
+    const FOURTH_ROOT_EH: [u8; {len(FOURTH_ROOT_EH)}] = [
+        {str(FOURTH_ROOT_EH).replace('[', '').replace(']', '')}
+    ];
+    const FOURTH_ROOT_EL: usize = {FOURTH_ROOT_EL};
     const P1: u64 = {P1};
     const P1DIV_M: u64 = {P1DIV_M};
     const NQR_RE_VAL: [u64; N] = [

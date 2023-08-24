@@ -942,6 +942,58 @@ macro_rules! define_fp_core { () => {
             r
         }
 
+        /// Set this value to its fourth root. Returned value is 0xFFFFFFFF if
+        /// the operation succeeded (value was indeed some element to the power of four), or
+        /// 0x00000000 otherwise. On success, the chosen root is the one whose
+        /// least significant bit (as an integer in [0..p-1]) is zero. On
+        /// failure, this value is set to 0.
+        pub fn set_fourth_root(&mut self) -> u32 {
+            const WIN_LEN: usize = 5;
+            // Make a window.
+            let mut ww = [*self; (1usize << WIN_LEN) - 1];
+            for i in 1..ww.len() {
+                if ((i + 1) & 1) == 0 {
+                    ww[i] = ww[i >> 1].square();
+                } else {
+                    let z = &ww[i] * &ww[i - 1];
+                    ww[i] = z;
+                }
+            }
+
+            // Square and multiply algorithm, with exponent e = (p + 1)/4.
+            // The exponent is not secret; we can do non-constant-time
+            // lookups in the window, and omit multiplications for null digits.
+            *self = ww[(FOURTH_ROOT_EH[FOURTH_ROOT_EH.len() - 1] as usize) - 1];
+            for i in (0..(FOURTH_ROOT_EH.len() - 1)).rev() {
+                for _ in 0..WIN_LEN {
+                    self.set_square();
+                }
+                if FOURTH_ROOT_EH[i] != 0 {
+                    self.set_mul(&ww[(FOURTH_ROOT_EH[i] as usize) - 1]);
+                }
+            }
+            // Low 126 digits are all zero.
+            for _ in 0..(WIN_LEN * FOURTH_ROOT_EL) {
+                self.set_square();
+            }
+
+            // Check that the obtained value is indeed a fourth root of the
+            // source value (which is still in ww[0]); if not, clear this
+            // value.
+            let r = self.square().square().equals(&ww[0]);
+            let rw = (r as u64) | ((r as u64) << 32);
+            for i in 0..N {
+                self.0[i] &= rw;
+            }
+
+            // Conditionally negate this value, so that the chosen root
+            // follows the expected convention.
+            let ctl = ((self.encode()[0] as u32) & 1).wrapping_neg();
+            self.set_condneg(ctl);
+
+            r
+        }
+
         /// Compute the square root of this value. If this value is indeed a
         /// quadratic residue, then this returns (x, 0xFFFFFFFF), with x being
         /// the (unique) square root of this value whose least significant bit
@@ -950,6 +1002,17 @@ macro_rules! define_fp_core { () => {
         pub fn sqrt(self) -> (Self, u32) {
             let mut x = self;
             let r = x.set_sqrt();
+            (x, r)
+        }
+
+        /// Compute the fourth root of this value. If this value is indeed some
+        /// element to the power of four, then this returns (x, 0xFFFFFFFF), with x being
+        /// the (unique) fourth root of this value whose least significant bit
+        /// is zero (when normalized to an integer in [0..p-1]). If this value
+        /// is not some element to the power of four, then this returns (zero, 0x00000000).
+        pub fn fourth_root(self) -> (Self, u32) {
+            let mut x = self;
+            let r = x.set_fourth_root();
             (x, r)
         }
 
@@ -1851,6 +1914,61 @@ macro_rules! define_fp_core { () => {
         pub fn sqrt(self) -> (Self, u32) {
             let mut y = self;
             let r = y.set_sqrt();
+            (y, r)
+        }
+
+        /// Set this value to its fourth root. Returned value is 0xFFFFFFFF if
+        /// the operation succeeded (value was indeed a quadratic residue), or
+        /// 0x00000000 otherwise. On success, the chosen root is the one whose
+        /// sign is 0 (i.e. if the "real part" is non-zero, then it is an even
+        /// integer; if the "real part" is zero, then the "imaginary part" is
+        /// an even integer). On failure, this value is set to 0.
+        pub fn set_fourth_root(&mut self) -> u32 {
+            // TODO: constant time
+            
+            let delta = self.x0.square() + self.x1.square();
+
+            // TODO: error handling
+            let mut n = delta.fourth_root().0;
+            let disc = (n.square() + self.x0).half();
+
+            // TODO: error handling
+            let disc_sqrt = disc.sqrt().0;
+
+            // TODO: we do not know which of n or -n is correct, test with legendre
+            let mut y02 = (n + disc_sqrt).half();
+
+            // is_square
+            if !y02.legendre() >= 0 {
+                y02 = -n;
+                n = -n;
+            }
+
+            // TODO: error handling
+            let y0 = y02.sqrt().0;
+
+            // When we have (y02 + y02 - n) = 0
+            // Then we have y0^2 = y1^2
+
+            let gamma = y02 + y02 - n;
+
+            if gamma.equals(&Fp::from_u32(0)) == 1 {
+                self.x0 = y0;
+                self.x1 = y0;
+            }
+
+            let y1 = self.x1 / (Fp::from_u32(4) * y0 * gamma);
+
+            self.x0 = y0;
+            self.x1 = y1;
+
+            // TODO: fix return value
+            return 1
+        }
+
+        pub fn fourth_root(self) -> (Self, u32) {
+            let mut y = self;
+            let r = y.set_fourth_root();
             (y, r)
         }
 

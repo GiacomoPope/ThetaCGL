@@ -38,6 +38,10 @@ pub mod p127 {
         27
     ];
     const SQRT_EL: usize = 24;
+    const FOURTH_ROOT_EH: [u8; 2] = [
+        16, 13
+    ];
+    const FOURTH_ROOT_EL: usize = 23;
     const P1: u64 = 3623878655;
     const P1DIV_M: u64 = 3416063723386606283;
     const NQR_RE_VAL: [u64; N] = [
@@ -90,6 +94,10 @@ pub mod p254 {
         15, 2
     ];
     const SQRT_EL: usize = 49;
+    const FOURTH_ROOT_EH: [u8; 3] = [
+        16, 7, 1
+    ];
+    const FOURTH_ROOT_EL: usize = 48;
     const P1: u64 = 2650800127;
     const P1DIV_M: u64 = 11441651398765969958;
     const NQR_RE_VAL: [u64; N] = [
