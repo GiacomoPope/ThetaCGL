@@ -948,6 +948,10 @@ macro_rules! define_fp_core { () => {
         /// least significant bit (as an integer in [0..p-1]) is zero. On
         /// failure, this value is set to 0.
         pub fn set_fourth_root(&mut self) -> u32 {
+
+            // TODO: make it to return the right root (as promised in the description)
+
+            // TODO: move into a function and reuse in set_sqrt
             const WIN_LEN: usize = 5;
             // Make a window.
             let mut ww = [*self; (1usize << WIN_LEN) - 1];
@@ -1940,7 +1944,7 @@ macro_rules! define_fp_core { () => {
 
             // is_square
             if !y02.legendre() >= 0 {
-                y02 = -n;
+                y02 -= n;
                 n = -n;
             }
 
