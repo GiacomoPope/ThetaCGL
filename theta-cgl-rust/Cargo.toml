@@ -1,0 +1,36 @@
+[package]
+name = "theta-cgl-rust"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand_core = "0.6"
+hex = "0.4.3"
+num-bigint = "0.4.3"
+sha2 = "0.10.2"
+sha3 = "0.10.6"
+
+[dev-dependencies]
+criterion = { version = "0.4", features = ["html_reports"] }
+
+[[bench]]
+name = "p127"
+path = "benches/p127.rs"
+harness = false
+
+[[bench]]
+name = "p254"
+path = "benches/p254.rs"
+harness = false
+
+[[bench]]
+name = "th127"
+path = "benches/th127.rs"
+harness = false
+
+[[bench]]
+name = "th254"
+path = "benches/th254.rs"
+harness = false

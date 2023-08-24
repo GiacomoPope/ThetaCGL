@@ -1,9 +1,10 @@
 from collections import namedtuple
+from computing_roots import fourth_Fp2
 
 from sage.all import EllipticCurve
 from sage.schemes.elliptic_curves.ell_generic import EllipticCurve_generic
 
-from utilities import montgomery_coefficient
+from utilities import montgomery_coefficient, canonical_root
 
 ThetaNullPoint = namedtuple("ThetaNullPoint_dim_1", "a b")
 
@@ -23,10 +24,7 @@ class CGL:
         else:
             r = self.sqrt_function(x)
 
-        # TODO:
-        # This is stupid, but making the sqrt canonical 
-        # helps with the comparison
-        return min(r, -r)
+        return canonical_root(r)
 
     def advance(self, bits=None):
         pass
@@ -54,6 +52,8 @@ class ThetaCGL(CGL):
         super().__init__(domain, **kwds)
         if isinstance(self.domain, EllipticCurve_generic):
             self.domain = self.montgomery_curve_to_theta_null_point(domain)
+        elif isinstance(domain, tuple):
+            self.domain = ThetaNullPoint(*domain)
 
     def montgomery_curve_to_theta_null_point(self, E):
         """
@@ -172,9 +172,7 @@ class ThetaCGLRadical4(ThetaCGL):
         else:
             r = self.sqrt4_function(x)
 
-        zeta = self.zeta
-        # normalize the fourth root
-        return min(r, zeta*r, -r, -zeta*r)
+        return r
 
     def radical_4isogeny(self, bits=[0,0]):
         """
@@ -188,16 +186,20 @@ class ThetaCGLRadical4(ThetaCGL):
         AA,BB = ThetaCGL.hadamard(aa, bb)
         AABB = AA * BB
         factor = self.sqrt4(AABB) #fourth root
+
         if bits[0] == 1:
             factor = - factor
+
         if bits[1] == 1:
             factor = self.zeta * factor
+
         anew=a+factor
         bnew=a-factor
+
         #anew, bnew = ThetaCGL.hadamard(anew, bnew) # I think we need an hadamard?
         O1 = ThetaNullPoint(anew, bnew)
         return O1
 
     def advance(self, bits=[0, 0]):
         O1 = self.radical_4isogeny(bits=bits)
-        return ThetaCGL(O1, sqrt_function=self.sqrt_function)
+        return ThetaCGLRadical4(O1, sqrt_function=self.sqrt_function, zeta=self.zeta)
