@@ -241,7 +241,6 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
         #print(f"Radical 8 isogeny, bits={bits}")
         a, b = self.domain
         r, s = self.torsion
-        factor = self.sqrt8(r**8-s**8)
         mu1 = (r**4+s**4)/a**2
         mu2 = 2*r**2*s**2/b**2
         assert mu1 == mu2
@@ -253,6 +252,9 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
         mu2 = 2*r**2*s**2/b**2
         assert mu1==1
         assert mu2==1
+        assert a*a+(r**8-s**8)/(a*a) == 2*r**4
+        factor = self.sqrt8(r**8-s**8)
+        assert factor**8 == r**8-s**8
 
         if bits[0] == 1:
             factor = - factor
@@ -263,13 +265,21 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
         if bits[2] == 1:
             factor = self.zeta8 * factor
 
+        assert factor**8 == r**8-s**8
+
         a4 = r*r + factor*factor
         b4 = r*r - factor*factor
+        a4b = a*a+factor**8/(a*a) + 2 * factor **2 * r**2
+        b4b = a*a+factor**8/(a*a) - 2 * factor **2 * r**2
+        print(a4b/a4)
+        print(b4b/b4)
+        assert b4b * a4 == a4b * b4
         r4 = self.sqrt2 * a * (r*r - factor * factor)
         s4 = a*a + factor**4 -2*factor*a*r
 
         mu3 = (r4**4+s4**4)/a4**2
         mu4 = 2*r4**2*s4**2/b4**2
+        print("------------")
         print(mu3)
         print(mu4)
         print(mu3/mu4)
