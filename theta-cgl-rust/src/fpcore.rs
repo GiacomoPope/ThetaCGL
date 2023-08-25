@@ -964,7 +964,7 @@ macro_rules! define_fp_core { () => {
                 }
             }
 
-            // Square and multiply algorithm, with exponent e = (p + 1)/4.
+            // Square and multiply algorithm, with exponent e = (p + 1)/8.
             // The exponent is not secret; we can do non-constant-time
             // lookups in the window, and omit multiplications for null digits.
             *self = ww[(FOURTH_ROOT_EH[FOURTH_ROOT_EH.len() - 1] as usize) - 1];
@@ -1934,10 +1934,15 @@ macro_rules! define_fp_core { () => {
 
             // TODO: error handling
             let mut n = delta.fourth_root().0;
+
+            // n = -n; // TODO: remove, just debugging
+
             let disc = (n.square() + self.x0).half();
 
             // TODO: error handling
             let disc_sqrt = disc.sqrt().0;
+
+            // disc_sqrt = -disc_sqrt; // TODO: remove, just devbuggign
 
             // TODO: we do not know which of n or -n is correct, test with legendre
             let mut y02 = (n + disc_sqrt).half();
@@ -1947,7 +1952,14 @@ macro_rules! define_fp_core { () => {
                 y02 -= n;
                 n = -n;
             }
-
+            let mut is_y02_zero = false;
+            if y02.equals(&Fp::from_i32(0)) != 0 {
+                // This occurs when y02 = n, try for example to compute the fourth root
+                // of 8 + i*0. In that case y02 is returned 0 without handling this special case.
+                y02 = (n - disc_sqrt).half();
+                is_y02_zero = true;
+            }
+            
             // TODO: error handling
             let y0 = y02.sqrt().0;
 
@@ -1956,15 +1968,20 @@ macro_rules! define_fp_core { () => {
 
             let gamma = y02 + y02 - n;
 
-            if gamma.equals(&Fp::from_u32(0)) == 1 {
+            if gamma.equals(&Fp::from_u32(0)) != 0 {
                 self.x0 = y0;
                 self.x1 = y0;
             }
 
             let y1 = self.x1 / (Fp::from_u32(4) * y0 * gamma);
 
-            self.x0 = y0;
-            self.x1 = y1;
+            if is_y02_zero {
+                self.x0 = y1;
+                self.x1 = y0;
+            } else {
+                self.x0 = y0;
+                self.x1 = y1;
+            }
 
             // TODO: fix return value
             return 1

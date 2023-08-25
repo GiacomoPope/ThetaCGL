@@ -62,11 +62,11 @@ macro_rules! define_dim_one_theta_core{ () => {
         pub fn radical_four_isogeny(self, bits: Vec<u8>, zeta: Fq) -> ThetaPoint {
             let (AA, BB) = self.squared_theta();
             let AABB = AA * BB; 
-            let AB = AABB.sqrt().0;
-            let mut factor = AB.sqrt().0;
 
+            let mut factor = AABB.fourth_root().0;
+           
             let ctl1 = ((bits[0] as u32) & 1).wrapping_neg();
-            factor.set_condneg(ctl1);
+            factor.set_condneg(ctl1); 
 
             // TODO: constant time
             if (bits[1] == 1) {
