@@ -948,9 +948,6 @@ macro_rules! define_fp_core { () => {
         /// least significant bit (as an integer in [0..p-1]) is zero. On
         /// failure, this value is set to 0.
         pub fn set_fourth_root(&mut self) -> u32 {
-
-            // TODO: make it to return the right root (as promised in the description)
-
             // TODO: move into a function and reuse in set_sqrt
             const WIN_LEN: usize = 5;
             // Make a window.
@@ -1944,7 +1941,6 @@ macro_rules! define_fp_core { () => {
 
             // disc_sqrt = -disc_sqrt; // TODO: remove, just devbuggign
 
-            // TODO: we do not know which of n or -n is correct, test with legendre
             let mut y02 = (n + disc_sqrt).half();
 
             // is_square
@@ -1952,36 +1948,34 @@ macro_rules! define_fp_core { () => {
                 y02 -= n;
                 n = -n;
             }
-            let mut is_y02_zero = false;
-            if y02.equals(&Fp::from_i32(0)) != 0 {
-                // This occurs when y02 = n, try for example to compute the fourth root
-                // of 8 + i*0. In that case y02 is returned 0 without handling this special case.
+            let mut is_x1_zero = false;
+            if self.x1.equals(&Fp::from_i32(0)) != 0 {
+                // We need to avoid having (n - n) / 2. This happens when self.x1 = 0, which means
+                // n^2 = self.x0.
+                // We set y02 = n.
                 y02 = (n - disc_sqrt).half();
-                is_y02_zero = true;
+                is_x1_zero = true;
             }
             
             // TODO: error handling
             let y0 = y02.sqrt().0;
-
-            // When we have (y02 + y02 - n) = 0
-            // Then we have y0^2 = y1^2
 
             let gamma = y02 + y02 - n;
 
             if gamma.equals(&Fp::from_u32(0)) != 0 {
                 self.x0 = y0;
                 self.x1 = y0;
-            }
-
-            let y1 = self.x1 / (Fp::from_u32(4) * y0 * gamma);
-
-            if is_y02_zero {
-                self.x0 = y1;
-                self.x1 = y0;
             } else {
-                self.x0 = y0;
-                self.x1 = y1;
-            }
+                let y1 = self.x1 / (Fp::from_u32(4) * y0 * gamma);
+
+                if is_x1_zero {
+                    self.x0 = y1;
+                    self.x1 = y0;
+                } else {
+                    self.x0 = y0;
+                    self.x1 = y1;
+                }
+            } 
 
             // TODO: fix return value
             return 1
