@@ -948,7 +948,6 @@ macro_rules! define_fp_core { () => {
         /// least significant bit (as an integer in [0..p-1]) is zero. On
         /// failure, this value is set to 0.
         pub fn set_fourth_root(&mut self) -> u32 {
-            // TODO: move into a function and reuse in set_sqrt
             const WIN_LEN: usize = 5;
             // Make a window.
             let mut ww = [*self; (1usize << WIN_LEN) - 1];
@@ -960,7 +959,7 @@ macro_rules! define_fp_core { () => {
                     ww[i] = z;
                 }
             }
-
+            
             // Square and multiply algorithm, with exponent e = (p + 1)/8.
             // The exponent is not secret; we can do non-constant-time
             // lookups in the window, and omit multiplications for null digits.
@@ -1929,17 +1928,11 @@ macro_rules! define_fp_core { () => {
             
             let delta = self.x0.square() + self.x1.square();
 
-            // TODO: error handling
-            let mut n = delta.fourth_root().0;
-
-            // n = -n; // TODO: remove, just debugging
+            let (mut n, r1) = delta.fourth_root();
 
             let disc = (n.square() + self.x0).half();
 
-            // TODO: error handling
-            let disc_sqrt = disc.sqrt().0;
-
-            // disc_sqrt = -disc_sqrt; // TODO: remove, just devbuggign
+            let (disc_sqrt, r2) = disc.sqrt();
 
             let mut y02 = (n + disc_sqrt).half();
 
@@ -1957,28 +1950,28 @@ macro_rules! define_fp_core { () => {
                 is_x1_zero = true;
             }
             
-            // TODO: error handling
-            let y0 = y02.sqrt().0;
+            let (y0, r3) = y02.sqrt();
 
             let gamma = y02 + y02 - n;
-
+            let r = r1 & r2 & r3;
+ 
             if gamma.equals(&Fp::from_u32(0)) != 0 {
-                self.x0 = y0;
-                self.x1 = y0;
+                // Result goes into this object. If there was a failure (r == 0),
+                // then we must clear both x0 and x1.
+                self.x0.set_select(&Fp::ZERO, &y0, r);
+                self.x1.set_select(&Fp::ZERO, &y0, r);
             } else {
                 let y1 = self.x1 / (Fp::from_u32(4) * y0 * gamma);
-
                 if is_x1_zero {
-                    self.x0 = y1;
-                    self.x1 = y0;
+                    self.x0.set_select(&Fp::ZERO, &y1, r);
+                    self.x1.set_select(&Fp::ZERO, &y0, r);
                 } else {
-                    self.x0 = y0;
-                    self.x1 = y1;
+                    self.x0.set_select(&Fp::ZERO, &y0, r);
+                    self.x1.set_select(&Fp::ZERO, &y1, r);
                 }
             } 
 
-            // TODO: fix return value
-            return 1
+            return r
         }
 
         pub fn fourth_root(self) -> (Self, u32) {
@@ -2470,7 +2463,7 @@ macro_rules! define_fp_tests { () => {
     use num_bigint::{BigInt, Sign, ToBigInt};
     use sha2::{Sha256, Digest};
 
-    fn check_fp_ops(va: &[u8], vb: &[u8], with_sqrt: bool) {
+    fn check_fp_ops(va: &[u8], vb: &[u8], with_sqrt_and_fourth_root: bool) {
         let mut zpww = [0u32; super::N * 2];
         for i in 0..super::N {
             zpww[2 * i] = super::MODULUS[i] as u32;
@@ -2598,7 +2591,7 @@ macro_rules! define_fp_tests { () => {
             assert!(c.legendre() == -1);
         }
 
-        if with_sqrt {
+        if with_sqrt_and_fourth_root {
             let (c, r) = (a * a).sqrt();
             assert!(r == 0xFFFFFFFF);
             let vc = c.encode();
@@ -2609,6 +2602,20 @@ macro_rules! define_fp_tests { () => {
             assert!(zc == zd);
             if a.iszero() == 0 {
                 let (c, r) = (-(a * a)).sqrt();
+                assert!(c.iszero() == 0xFFFFFFFF);
+                assert!(r == 0x00000000);
+            }
+
+            let (c, r) = (a * a * a * a).fourth_root();
+            assert!(r == 0xFFFFFFFF);
+            let vc = c.encode();
+            let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
+            assert!(zc.bit(0) == false);
+            let zc = (&zc * &zc * &zc * &zc) % &zp;
+            let zd = (&za * &za * &za * &za) % &zp;
+            assert!(zc == zd);
+            if a.iszero() == 0 {
+                let (c, r) = (-(a * a * a * a)).sqrt();
                 assert!(c.iszero() == 0xFFFFFFFF);
                 assert!(r == 0x00000000);
             }
@@ -2639,7 +2646,7 @@ macro_rules! define_fp_tests { () => {
         }
     }
 
-    fn check_fp2_ops(va: &[u8], vb: &[u8], with_sqrt: bool) {
+    fn check_fp2_ops(va: &[u8], vb: &[u8], with_sqrt_and_fourth_root: bool) {
         let mut zpww = [0u32; super::N * 2];
         for i in 0..super::N {
             zpww[2 * i] = super::MODULUS[i] as u32;
@@ -2712,7 +2719,7 @@ macro_rules! define_fp_tests { () => {
             assert!(c.equals(&Fp2::ONE) == 0xFFFFFFFF);
         }
 
-        if with_sqrt {
+        if with_sqrt_and_fourth_root {
             let e = a * a;
             let (c, r) = e.sqrt();
             assert!(r == 0xFFFFFFFF);
@@ -2731,6 +2738,8 @@ macro_rules! define_fp_tests { () => {
                 let (c, r) = e.sqrt();
                 assert!(r == 0);
                 assert!(c.iszero() == 0xFFFFFFFF);
+                let (_, r) = e.fourth_root();
+                assert!(r == 0);
             } else {
                 assert!(e.legendre() == 0);
             }
@@ -2745,6 +2754,11 @@ macro_rules! define_fp_tests { () => {
                 assert!(r == 0xFFFFFFFF);
                 assert!((c * c).equals(&g) == 0xFFFFFFFF);
             }
+
+            let e = a * a * a * a;
+            let (c, r) = e.fourth_root();
+            assert!(r == 0xFFFFFFFF);
+            assert!((c * c * c * c).equals(&e) == 0xFFFFFFFF);
         }
     }
 
