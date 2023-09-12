@@ -3,6 +3,8 @@ import time
 from sage.all import GF, EllipticCurve
 from dim1 import ThetaCGL, ThetaCGLRadical4, ThetaCGLRadical8
 from dim2 import ThetaCGLDim2
+from dim3 import ThetaCGLDim3
+
 from utilities import sqrt_Fp2, new_sqrt_Fp2, print_info
 
 def time_function_ns(f):
