@@ -68,9 +68,16 @@ class ThetaCGLDim3(CGL):
         R1 = a0*a1*a2*a3
         R3 = a4*a5*a6*a7
 
-        term = 16 * (c0**2*c4**2 - 2*c0*c1*c4*c5 + c1**2*c5**2 - 2*c0*c2*c4*c6 - 2*c1*c2*c5*c6 + c2**2*c6**2 - 2*c0*c3*c4*c7 - 2*c1*c3*c5*c7 - 2*c2*c3*c6*c7 + c3**2*c7**2)
+        c04 = c0*c4
+        c15 = c1*c5
+        c26 = c2*c6
+        c37 = c3*c7
+        c0246 = c04*c26
+        c1357 = c15*c37
 
-        num = (R1 + R3 - term)**2 + 128**2*c0*c1*c2*c3*c4*c5*c6*c7  - 4*R1*R3
+        term = 16 * (c04 - c15 + c26 - c37)**2 - 64 * (c0246 + c1357)
+
+        num = (R1 + R3 - term)**2 + 16384*c0246*c1357  - 4*R1*R3
         den =  256*(R1 + R3 - term)*x0*x1*x2*x3*x4*x5*x6
 
         if den == 0:
