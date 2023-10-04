@@ -1,13 +1,25 @@
-from sage.all import GF, proof, randint
+from sage.all import GF, proof
 
 proof.all(False)
 
+
+def invert_or_zero(x):
+    if x == 0:
+        return 0
+    return ~x
+
+
 def sqrt_Fp(x):
     p = x.parent().characteristic()
-    exp = (p+1) // 4
+    exp = (p + 1) // 4
 
-    assert x.is_square()
-    return x ** exp
+    r = x**exp
+    if r * r != x:
+        return 0
+    if int(r) % 2 != 0:
+        return -r
+    return r
+
 
 def sqrt_Fp2(x):
     F = x.parent()
@@ -34,11 +46,19 @@ def sqrt_Fp2(x):
 
     return F([y0, y1])
 
+
 def fourth_Fp(x):
     p = x.parent().characteristic()
-    exp = (p+1) // 8
+    exp = (p + 1) // 8
 
-    return x ** exp
+    r = x**exp
+    if r * r * r * r != x:
+        return 0
+
+    if int(r) % 2 != 0:
+        return -r
+    return r
+
 
 def fourth_Fp2(x):
     """
@@ -50,11 +70,11 @@ def fourth_Fp2(x):
     one fourth root in Fp we have (y0^2 + y1^2)
 
     Expanding out the fourth power, we have
-    
+
     x0 = y0^4 - 6y0^2y1^2 + y1^4
     x1 = 4y0y1(y0^2 - y1^2)
 
-    Which together with 
+    Which together with
 
     n = y0^2 - y1^2
 
@@ -63,9 +83,9 @@ def fourth_Fp2(x):
     8y0^4 - 8ny0^2 + n^2 - x0 = 0
 
     We can find the roots of this with on square-root
-    in Fp to find 
+    in Fp to find
 
-    y0^2 = [8n + sqrt(32(n^2 + x0))] / 16 
+    y0^2 = [8n + sqrt(32(n^2 + x0))] / 16
 
     y0 is recovered by one last sqrt in Fp and y1 from
     an inversion
@@ -76,30 +96,40 @@ def fourth_Fp2(x):
     x0, x1 = x.list()
 
     delta = x0**2 + x1**2
-    n = fourth_Fp(delta)  
+    n = fourth_Fp(delta)
+    assert n * n * n * n == delta, "Fourth root didnt work"
 
     disc = (n**2 + x0) / 2
     disc_sqrt = sqrt_Fp(disc)
+    assert disc_sqrt * disc_sqrt == disc, "disc_sqrt didnt work"
 
     # We do not know which of n or -n
     # is correct, test with legendre
-    y02 = ( n + disc_sqrt) / 2
+    y02 = (n + disc_sqrt) / 2
 
     if not y02.is_square():
         y02 -= n
         n = -n
 
-    y0 = sqrt_Fp(y02)
+    if y02 == 0:
+        y0 = sqrt_Fp(n)
+    else:
+        y0 = sqrt_Fp(y02)
+        assert y0 * y0 == y02, "y0^2 sqrt didnt work"
 
-    # When we have
-    # (y02 + y02 - n) = 0
-    # Then we have y0^2 = y1^2
-    gamma = y02 + y02 - n
-    if gamma.is_zero():
-        return F([y0, y0])
+    y1 = x1 * invert_or_zero(4 * y0 * disc_sqrt)
 
-    y1 = x1 / (4*y0*gamma)
-    return F([y0, y1])
+    # Handle case with x1 = 0
+    if x1 == 0:
+        if x0.is_square():
+            r = F([y0, 0])
+        else:
+            r = F([y0, y0])
+    else:
+        r = F([y0, y1])
+    assert r**4 == x, "Whole thing is broken??"
+    return r
+
 
 if __name__ == "__main__":
     # p = 79*2**247 - 1
@@ -119,5 +149,6 @@ if __name__ == "__main__":
             except Exception as e:
                 print(e)
                 print(f"{a = }")
-                pass
+                print(f"{b = }")
+                continue
             assert x**4 == a, f"{a = }, {b = }"
