@@ -45,6 +45,10 @@ macro_rules! define_fp2_core {
                 x0: Fp::MINUS_ONE,
                 x1: Fp::ZERO,
             };
+            pub const ZETA: Self = Self {
+                x0: Fp::ZERO,
+                x1: Fp::ONE,
+            };
 
             pub const ENCODED_LENGTH: usize = 2 * Fp::ENCODED_LENGTH;
 
@@ -341,106 +345,116 @@ macro_rules! define_fp2_core {
                 (y, r)
             }
 
-            // /// Set this value to its fourth root. Returned value is 0xFFFFFFFF if
-            // /// the operation succeeded (value was indeed a fourth root), or
-            // /// 0x00000000 otherwise. On success, the chosen root is the one whose
-            // /// sign is 0 (i.e. if the "real part" is non-zero, then it is an even
-            // /// integer; if the "real part" is zero, then the "imaginary part" is
-            // /// an even integer). On failure, this value is set to 0.
-            // pub fn set_fourth_root(&mut self) -> u32 {
-            //     // TODO: constant time
-
-            //     let delta = self.x0.square() + self.x1.square();
-            //     let (mut n, r1) = delta.fourth_root();
-            //     let disc = (n.square() + self.x0).half();
-            //     let (disc_sqrt, r2) = disc.sqrt();
-            //     let mut y02 = (n + disc_sqrt).half();
-
-            //     // if y0^2 is not a square, negate both
-            //     // y0^2 and n before taking sqrt
-            //     let ls = y02.legendre();
-            //     let nqr = (ls >> 1) as u32;
-            //     y02.set_condneg(nqr);
-            //     n.set_condneg(nqr);
-
-            //     let mut is_x1_zero = false;
-            //     if self.x1.iszero() != 0 {
-            //         // if self.x1.equals(&Fp::from_i32(0)) != 0 {
-            //         // We need to avoid having (n - n) / 2. This happens when self.x1 = 0, which means
-            //         // n^2 = self.x0.
-            //         // We set y02 = n.
-            //         y02 = (n - disc_sqrt).half();
-            //         is_x1_zero = true;
-            //     }
-
-            //     let (y0, r3) = y02.sqrt();
-
-            //     let gamma = y02 + y02 - n;
-            //     let r = r1 & r2 & r3;
-
-            //     // When gamma is zero, we want to return
-            //     // Self(y0, y0), so set the computed y1
-            //     // value to be y0
-            //     let mut y1 = self.x1 / (y0 * gamma.mul4());
-            //     y1 = Fp::select(&y1, &y0, gamma.iszero());
-
-            //     if is_x1_zero {
-            //         self.x0.set_select(&Fp::ZERO, &y1, r);
-            //         self.x1.set_select(&Fp::ZERO, &y0, r);
-            //     } else {
-            //         self.x0.set_select(&Fp::ZERO, &y0, r);
-            //         self.x1.set_select(&Fp::ZERO, &y1, r);
-            //     }
-
-            //     return r;
-            // }
             pub fn set_fourth_root(&mut self) -> u32 {
-                // TODO: constant time
+                // TODO: constant time??
 
-                let delta = self.x0.square() + self.x1.square();
+                // Deal with the case of x1 = 0, when we take the
+                // fourth root of F(a, 0) then we have three options
+                // for y0, y1. Either y0 = 0, y1 = 0 or y0 = y1.
+                // We can determine which of these is our case through
+                // computing legendre symbols
+                if self.x1.iszero() != 0 {
+                    // x1 is a square so we have that either
+                    // y0 = 0 or y1 = 0
+                    // If w0 = sqrt(x0) is a square, then we
+                    // return F(y0, 0) else F(0, y1)
+                    if self.x0.legendre() >= 0 {
+                        let (mut w0, r1) = self.x0.sqrt();
 
-                let (mut n, r1) = delta.fourth_root();
+                        // Determine whethe w0 is a QR
+                        let lsw0 = w0.legendre();
+                        let nqr = (lsw0 >> 1) as u32;
 
-                let disc = (n.square() + self.x0).half();
+                        // If w0 is not a QR, flip the sign
+                        // to ensure the square root is successful
+                        w0.set_condneg(nqr);
+                        let (mut y0, r2) = w0.sqrt();
+                        let mut y1 = Fp::ZERO;
 
-                let (disc_sqrt, r2) = disc.sqrt();
+                        // If w0 was not a square, then we need to
+                        // switch y0 and y1
+                        Fp::condswap(&mut y0, &mut y1, nqr);
 
-                let mut y02 = (n + disc_sqrt).half();
-
-                // is_square
-                if !y02.legendre() >= 0 {
-                    y02 -= n;
-                    n = -n;
-                }
-                let mut is_x1_zero = false;
-                if self.x1.equals(&Fp::from_i32(0)) != 0 {
-                    // We need to avoid having (n - n) / 2. This happens when self.x1 = 0, which means
-                    // n^2 = self.x0.
-                    // We set y02 = n.
-                    y02 = (n - disc_sqrt).half();
-                    is_x1_zero = true;
-                }
-
-                let (y0, r3) = y02.sqrt();
-
-                let gamma = y02 + y02 - n;
-                let r = r1 & r2 & r3;
-
-                if gamma.equals(&Fp::from_u32(0)) != 0 {
-                    // Result goes into this object. If there was a failure (r == 0),
-                    // then we must clear both x0 and x1.
-                    self.x0.set_select(&Fp::ZERO, &y0, r);
-                    self.x1.set_select(&Fp::ZERO, &y0, r);
-                } else {
-                    let y1 = self.x1 / (Fp::from_u32(4) * y0 * gamma);
-                    if is_x1_zero {
-                        self.x0.set_select(&Fp::ZERO, &y1, r);
-                        self.x1.set_select(&Fp::ZERO, &y0, r);
-                    } else {
+                        // Finally set the values and pick zero if
+                        // anything has gone wrong along the way
+                        let r = r1 & r2;
                         self.x0.set_select(&Fp::ZERO, &y0, r);
                         self.x1.set_select(&Fp::ZERO, &y1, r);
+
+                        return r;
+                    // Otherwise, we are in the case where x0 itself
+                    // is not a square. We negate it, then we need to
+                    // find the square-root of F(0, w1)
+                    // In this case, we have that the fourth-root is
+                    // F(x0, 0)^(1/4) = F(y, y)
+                    // With x0 = 4y^4
+                    // As w1 = sqrt(x0) = 2y^2 we have that
+                    // y = (w1 / 2).sqrt()
+                    } else {
+                        let (w1, r1) = (-self.x0).sqrt();
+                        let mut z = w1.half();
+
+                        // Determine whethe w0 is a QR
+                        let lsz = z.legendre();
+                        let nqr = (lsz >> 1) as u32;
+                        z.set_condneg(nqr);
+                        let (y, r2) = z.sqrt();
+
+                        let r = r1 & r2;
+                        self.x0.set_select(&Fp::ZERO, &y, r);
+                        self.x1.set_select(&Fp::ZERO, &y, r);
                     }
                 }
+
+                // When x1 != 0 we can use the following general algorithm
+                //
+                // Using that the norm is multiplicative, we want to find y0,y1
+                // such that
+                // (x0 + ix1) = (y0 + iy1)^4
+                // (x0^2 + x1^2) = (y0^2 + y1^2)^4
+                //
+                // norm(x) = (x0^2 + x1^2)
+                // norm(y) = n = (x0^2 + x1^2)^(1/4) = (y0^2 + y1^2)
+
+                let norm = self.x0.square() + self.x1.square();
+                let (mut n, r1) = norm.fourth_root();
+
+                // Now we need to solve a quadratic equation for y0
+                // 8y0^4 - 8ny0^2 + n^2 - x0 = 0
+                // The disc of this polynomial is given as
+                // y0^2 = [8n + sqrt(32(n^2 + x0))] / 16
+                // disc = 32(n^2 + x0)
+                let disc = (n.square() + self.x0).half();
+
+                // This has a solution, so we can always take a sqrt
+                let (disc_sqrt, r2) = disc.sqrt();
+
+                // Solving this polynomial gives y0^2
+                let mut y02 = (disc_sqrt + n).half();
+                let mut y02_alt = (disc_sqrt - n).half();
+
+                // Computing y0 means taking a sqrt. First, we
+                // need to check if the sqrt is rational in Fp
+                // If y0^2 is not a square, we use y0^2 - n
+                // and also flip the sign of n
+                let lsy02 = y02.legendre();
+                let nqr = (lsy02 >> 1) as u32;
+                Fp::condswap(&mut y02, &mut y02_alt, nqr);
+                n.set_condneg(nqr);
+
+                // Now we can take the sqrt no problem
+                let (y0, r3) = y02.sqrt();
+
+                // y1 is computed from y0 with an inversion
+                let gamma = y02 + y02 - n;
+                let y1 = self.x1 / (Fp::from_u32(4) * y0 * gamma);
+
+                // As long has nothing bad has happened, we can
+                // now return the fourth root. If any of the r are
+                // falsey, we return 0
+                let r = r1 & r2 & r3;
+                self.x0.set_select(&Fp::ZERO, &y0, r);
+                self.x1.set_select(&Fp::ZERO, &y1, r);
 
                 return r;
             }
@@ -1054,20 +1068,20 @@ macro_rules! define_fp2_tests {
                 assert!((c_check * c_check * c_check * c_check).equals(&e_check) == 0xFFFFFFFF);
 
                 // TODO: not working!!
-                
-                // // With x1 = 0
-                // let a_check = Fp2::new(&a0, &Fp::ZERO);
-                // let e_check = a_check * a_check * a_check * a_check;
-                // let (c_check, r_check) = e_check.fourth_root();
-                // assert!(r_check == 0xFFFFFFFF);
-                // assert!((c_check * c_check * c_check * c_check).equals(&e_check) == 0xFFFFFFFF);
 
-                // // With x0 = 0
-                // let a_check = Fp2::new(&Fp::ZERO, &a1);
-                // let e_check = a_check * a_check * a_check * a_check;
-                // let (c_check, r_check) = e_check.fourth_root();
-                // assert!(r_check == 0xFFFFFFFF);
-                // assert!((c_check * c_check * c_check * c_check).equals(&e_check) == 0xFFFFFFFF);
+                // With x1 = 0
+                let a_check = Fp2::new(&a0, &Fp::ZERO);
+                let e_check = a_check * a_check * a_check * a_check;
+                let (c_check, r_check) = e_check.fourth_root();
+                assert!(r_check == 0xFFFFFFFF);
+                assert!((c_check * c_check * c_check * c_check).equals(&e_check) == 0xFFFFFFFF);
+
+                // With x0 = 0
+                let a_check = Fp2::new(&Fp::ZERO, &a1);
+                let e_check = a_check * a_check * a_check * a_check;
+                let (c_check, r_check) = e_check.fourth_root();
+                assert!(r_check == 0xFFFFFFFF);
+                assert!((c_check * c_check * c_check * c_check).equals(&e_check) == 0xFFFFFFFF);
             }
         }
 
