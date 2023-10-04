@@ -3,6 +3,8 @@ import time
 from sage.all import GF, EllipticCurve
 from dim1 import ThetaCGL, ThetaCGLRadical4, ThetaCGLRadical8
 from dim2 import ThetaCGLDim2
+from dim3 import ThetaCGLDim3
+
 from utilities import sqrt_Fp2, new_sqrt_Fp2, print_info
 
 def time_function_ns(f):
@@ -112,6 +114,18 @@ print(f"Fast Sqrt Hashing time took: {t_fast}ms")
 O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0, sqrt_function=new_sqrt_Fp2)
 t_fast = time_ms("O0.hash(m1)")
 print(f"New Sqrt Hashing time took: {t_fast}ms")
+
+
+
+print_info(f"Example in dim 3")
+m1 = [1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1]
+m2 = [0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1]
+O0 = ThetaCGLDim3.from_elliptic_curves(E0, E0, E0)
+print(f"Hashing test 1: {O0.hash(m1)}")
+print(f"Hashing test 2: {O0.hash(m2)}")
+
+
+
 
 def bench(N):
     for _ in range(N):
