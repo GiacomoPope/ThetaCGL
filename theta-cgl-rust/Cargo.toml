@@ -26,6 +26,11 @@ path = "benches/p254.rs"
 harness = false
 
 [[bench]]
+name = "p921"
+path = "benches/p921.rs"
+harness = false
+
+[[bench]]
 name = "th127"
 path = "benches/th127.rs"
 harness = false
@@ -33,4 +38,9 @@ harness = false
 [[bench]]
 name = "th254"
 path = "benches/th254.rs"
+harness = false
+
+[[bench]]
+name = "th921"
+path = "benches/th921.rs"
 harness = false

@@ -8,14 +8,14 @@ macro_rules! define_dim_one_theta_core{ () => {
     // Theta Point
     // The domain / codomain is described by a theta point
     #[derive(Clone, Copy, Debug)]
-    pub struct ThetaPoint {
+    pub struct ThetaPointDim1 {
         pub X : Fq,
         pub Z : Fq
     }
 
-    impl ThetaPoint {    
+    impl ThetaPointDim1 {    
 
-        pub fn new(X: &Fq, Z: &Fq) -> ThetaPoint {
+        pub fn new(X: &Fq, Z: &Fq) -> ThetaPointDim1 {
             Self{X: *X, Z: *Z}
         }  
 
@@ -43,7 +43,7 @@ macro_rules! define_dim_one_theta_core{ () => {
         }
 
         // Compute the two isogeny
-        pub fn radical_two_isogeny(self, bit: u8) -> ThetaPoint {
+        pub fn radical_two_isogeny(self, bit: u8) -> ThetaPointDim1 {
             let (AA, BB) = self.squared_theta();
             let AABB = AA * BB; 
             let (mut AB, _) = AABB.sqrt();
@@ -59,7 +59,7 @@ macro_rules! define_dim_one_theta_core{ () => {
             }
         }
 
-        pub fn radical_four_isogeny(self, bits: Vec<u8>, zeta: Fq) -> ThetaPoint {
+        pub fn radical_four_isogeny(self, bits: Vec<u8>, zeta: Fq) -> ThetaPointDim1 {
             let (AA, BB) = self.squared_theta();
             let AABB = AA * BB; 
 
@@ -92,19 +92,19 @@ macro_rules! define_dim_one_theta_core{ () => {
     }
 
     #[derive(Clone, Copy, Debug)]
-    pub struct CGL_1_2 {
-        pub O0 : ThetaPoint,
+    pub struct CGLDim1Rad2 {
+        pub O0 : ThetaPointDim1,
     }
 
-    impl CGL_1_2 {    
+    impl CGLDim1Rad2 {    
 
-        pub fn new(O0: ThetaPoint) -> CGL_1_2 {
+        pub fn new(O0: ThetaPointDim1) -> CGLDim1Rad2 {
             Self{
                 O0: O0,
             }
         }
 
-        pub fn bit_string(&self, mut T: ThetaPoint, msg: Vec<u8>) -> ThetaPoint {
+        pub fn bit_string(&self, mut T: ThetaPointDim1, msg: Vec<u8>) -> ThetaPointDim1 {
             for bit in msg {
                 T = T.radical_two_isogeny(bit)
             }
@@ -120,21 +120,21 @@ macro_rules! define_dim_one_theta_core{ () => {
     }
 
     #[derive(Clone, Copy, Debug)]
-    pub struct CGL_1_4 {
-        pub O0 : ThetaPoint,
+    pub struct CGLDim1Rad4 {
+        pub O0 : ThetaPointDim1,
         pub zeta: Fq,
     }
 
-    impl CGL_1_4 {
+    impl CGLDim1Rad4 {
 
-        pub fn new(O0: ThetaPoint, zeta: Fq) -> CGL_1_4 {
+        pub fn new(O0: ThetaPointDim1, zeta: Fq) -> CGLDim1Rad4 {
             Self{
                 O0: O0,
                 zeta: zeta,
             }
         }
 
-        pub fn bit_string(self, mut T: ThetaPoint, mut msg: Vec<u8>) -> ThetaPoint {
+        pub fn bit_string(self, mut T: ThetaPointDim1, mut msg: Vec<u8>) -> ThetaPointDim1 {
             let chunk_len = 2;
             msg = pad_msg(msg, chunk_len); 
             let iter = msg.chunks(chunk_len);

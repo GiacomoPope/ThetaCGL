@@ -56,7 +56,30 @@ print_info(f"Example dimension 1 radical 4 in p254")
 zeta = F.gen()
 print("zeta:")
 print(zeta)
-O0 = ThetaCGLRadical4(E0, zeta=zeta)
+O0 = ThetaCGLRadical4(E0, zeta4=zeta)
+out = O0.hash(m1)
+print("hash:")
+print(out)
+
+p = 2**255 - 921
+F = GF(p**2, name="i", modulus=[1, 0, 1])
+E0 = EllipticCurve(F, [1, 0])
+O0 = ThetaCGL(E0, sqrt_function=new_sqrt_Fp2)
+
+print_info(f"Example dimension 1 radical 2 in p921")
+
+a, b = O0.domain
+print(to_hex_str(a))
+print(to_hex_str(b))
+
+out = O0.hash(m1)
+print(out)
+
+print_info(f"Example dimension 1 radical 4 in p921")
+zeta = F.gen()
+print("zeta:")
+print(zeta)
+O0 = ThetaCGLRadical4(E0, zeta4=zeta)
 out = O0.hash(m1)
 print("hash:")
 print(out)

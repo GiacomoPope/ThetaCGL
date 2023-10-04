@@ -10,8 +10,8 @@ fn criterion_benchmark(c: &mut Criterion) {
     let Z_hex: &str = "feffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f270100000000000000000000000000000000000000000000000000000000000000";
     let (X, _) = thp254::Fq::decode(&hex::decode(X_hex).unwrap());
     let (Z, _) = thp254::Fq::decode(&hex::decode(Z_hex).unwrap());
-    let O0 = thp254::ThetaPoint::new(&X, &Z);
-    let cgl = thp254::CGL_1_2::new(O0);
+    let O0 = thp254::ThetaPointDim1::new(&X, &Z);
+    let cgl = thp254::CGLDim1Rad2::new(O0);
     
     // sha256("Bristol 2023")
     let msg: [u8; 256] = [

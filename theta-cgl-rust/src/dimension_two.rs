@@ -77,13 +77,13 @@ macro_rules! define_dim_two_theta_core{ () => {
     }
 
     #[derive(Clone, Copy, Debug)]
-    pub struct CGL_2_2 {
+    pub struct CGLDim2Rad2 {
         pub O0 : ThetaPointDim2,
     }
 
-    impl CGL_2_2 {    
+    impl CGLDim2Rad2 {    
 
-        pub fn new(O0: ThetaPointDim2) -> CGL_2_2 {
+        pub fn new(O0: ThetaPointDim2) -> CGLDim2Rad2 {
             Self{O0: O0}
         }
 
