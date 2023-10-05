@@ -58,7 +58,7 @@ macro_rules! define_fp2_core {
                 x1: Fp::ONE,
             };
 
-            pub fn new(re: &Fp, im: &Fp) -> Self {
+            pub const fn new(re: &Fp, im: &Fp) -> Self {
                 Self { x0: *re, x1: *im }
             }
 
@@ -345,7 +345,12 @@ macro_rules! define_fp2_core {
                 (y, r)
             }
 
-            /// TODO: docstring
+            /// Set this value to its fourth root. Returned value is 0xFFFFFFFF if
+            /// the operation succeeded (value was indeed a fourth root), or
+            /// 0x00000000 otherwise. On success, the chosen root is the one whose
+            /// sign is 0 (i.e. if the "real part" is non-zero, then it is an even
+            /// integer; if the "real part" is zero, then the "imaginary part" is
+            /// an even integer). On failure, this value is set to 0.
             pub fn set_fourth_root(&mut self) -> u32 {
                 // Using that the norm is multiplicative, we want to find y0,y1
                 // such that
@@ -356,7 +361,6 @@ macro_rules! define_fp2_core {
                 // norm(y) = n = (x0^2 + x1^2)^(1/4) = (y0^2 + y1^2)
                 let norm = self.x0.square() + self.x1.square();
                 let (mut n, r1) = norm.fourth_root();
-
                 // Now we need to solve a quadratic equation for y0
                 // 8y0^4 - 8ny0^2 + n^2 - x0 = 0
                 // The disc of this polynomial is given as
@@ -371,7 +375,7 @@ macro_rules! define_fp2_core {
                 // will be one of these two, which we pick by ensuring
                 // y0^2 has a rational sqrt
                 let mut y02 = (disc_sqrt + n).half();
-                let mut y02_alt = (disc_sqrt - n).half();
+                let mut y02_alt = y02 - n;
 
                 // Computing y0 means taking a sqrt. First, we
                 // need to check if the sqrt is rational in Fp
@@ -385,8 +389,11 @@ macro_rules! define_fp2_core {
                 // When y0^2 is zero, the correct value
                 // is insead n, so we can do a conditional
                 // swap
-                let y02_iszero = y02.iszero();
-                Fp::condswap(&mut y02, &mut n, y02_iszero);
+                // let y02_iszero = y02.iszero();
+                // Fp::condswap(&mut y02, &mut n, y02_iszero);
+                if y02.iszero() != 0 {
+                    y02 = n
+                }
 
                 // Now we can take the sqrt no problem, for all
                 // cases!
@@ -396,23 +403,35 @@ macro_rules! define_fp2_core {
                 // all cases, except when x1 = 0 (see below)
                 let y1 = self.x1 / (y0 * disc_sqrt.mul4());
 
-                // The final check is based on whether x0 is zero
-                // and whether x0 is a square.
-                // If x1 == 0 and x1 is a square, y1 = 0
-                // If x1 == 0 and x1 is not a square, y1 = y0
-                let lsx0 = self.x0.legendre();
-                let nqr = (lsx0 >> 1) as u32;
-                // if x1 is zero then y1 = 0 or y0
-                self.x1.set_select(&y1, &Fp::ZERO, self.x1.iszero());
-                // if x1 is zero and x0 is not a square y1 = y0
-                self.x1.set_select(&y1, &y0, self.x1.iszero() & nqr);
+                // The final check comes from the case when x1 = 0
+                // Generally, we have that:
+                //     If x1 == 0 and x0 is a square, y1 = 0
+                //     If x1 == 0 and x0 is not a square, y1 = y0
+                //
+                // However, when x1 == 0 then y1 is already zero, so
+                // all we need to account for is the case when we need
+                // to set y1 = y0.
+                //
+                // if x1 is zero and x0 is a NQR then we want to return
+                // F(y0, y0) so we conditionally set y1 = y0
+                // Rather than check whether x0 is a square, we can instead
+                // check whether the discrim. is zero in this case
+                let mut z1 = y1;
+                z1.set_select(&y1, &y0, self.x1.iszero() & disc.iszero());
 
                 // As long has nothing bad has happened, we can
                 // now return the fourth root. If any of the r are
                 // falsey, we return 0
                 let r = r1 & r2 & r3;
+
                 self.x0.set_select(&Fp::ZERO, &y0, r);
-                self.x1.set_select(&Fp::ZERO, &y1, r);
+                self.x1.set_select(&Fp::ZERO, &z1, r);
+
+                // Sign mangement: negate the result if needed.
+                let x0odd = ((self.x0.encode()[0] as u32) & 1).wrapping_neg();
+                let x1odd = ((self.x1.encode()[0] as u32) & 1).wrapping_neg();
+                let x0z = self.x0.iszero();
+                self.set_condneg(x0odd | (x0z & x1odd));
 
                 return r;
             }
@@ -1024,8 +1043,6 @@ macro_rules! define_fp2_tests {
                 let (c_check, r_check) = e_check.fourth_root();
                 assert!(r_check == 0xFFFFFFFF);
                 assert!((c_check * c_check * c_check * c_check).equals(&e_check) == 0xFFFFFFFF);
-
-                // TODO: not working!!
 
                 // With x1 = 0
                 let a_check = Fp2::new(&a0, &Fp::ZERO);
