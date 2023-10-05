@@ -5,12 +5,7 @@ use std::time::Duration;
 use theta_cgl_rust::thp921;
 
 fn two_radical_921(c: &mut Criterion) {
-    let X_hex: &str = "0000000000000000000000000000000000000000000000000000000000000000c4c0c9cff0aa2eff0b84b935338c4131d4260a06e1fe83fcfb118559864c7a50";
-    let Z_hex: &str = "66fcffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f0100000000000000000000000000000000000000000000000000000000000000";
-    let (X, _) = thp921::Fq::decode(&hex::decode(X_hex).unwrap());
-    let (Z, _) = thp921::Fq::decode(&hex::decode(Z_hex).unwrap());
-    let O0 = thp921::ThetaPointDim1::new(&X, &Z);
-    let cgl = thp921::CGLDim1Rad2::new(O0);
+    let cgl = thp921::CGLDim1Rad2::new();
 
     // sha256("Bristol 2023")
     let msg: [u8; 256] = [
@@ -31,12 +26,7 @@ fn two_radical_921(c: &mut Criterion) {
 }
 
 fn four_radical_921(c: &mut Criterion) {
-    let X_hex: &str = "0000000000000000000000000000000000000000000000000000000000000000c4c0c9cff0aa2eff0b84b935338c4131d4260a06e1fe83fcfb118559864c7a50";
-    let Z_hex: &str = "66fcffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f0100000000000000000000000000000000000000000000000000000000000000";
-    let (X, _) = thp921::Fq::decode(&hex::decode(X_hex).unwrap());
-    let (Z, _) = thp921::Fq::decode(&hex::decode(Z_hex).unwrap());
-    let O0 = thp921::ThetaPointDim1::new(&X, &Z);
-    let cgl = thp921::CGLDim1Rad4::new(O0);
+    let cgl = thp921::CGLDim1Rad4::new();
 
     // sha256("Bristol 2023")
     let msg: [u8; 256] = [
@@ -58,7 +48,7 @@ fn four_radical_921(c: &mut Criterion) {
 
 criterion_group! {
     name = benches;
-    config = Criterion::default().measurement_time(Duration::from_secs(10));
+    config = Criterion::default().measurement_time(Duration::from_secs(15));
     targets = two_radical_921, four_radical_921
 }
 criterion_main!(benches);
