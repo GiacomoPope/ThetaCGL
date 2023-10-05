@@ -16,10 +16,9 @@ static MSG: [u8; 256] = [
     1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1,
 ];
 
-fn dimension_one_rad_2_254_example(X: thp254::Fq, Z: thp254::Fq) {
+fn dimension_one_rad_2_254_example() {
     println!("Computing using 2-radical isogenies...");
-    let O0 = thp254::ThetaPointDim1::new(&X, &Z);
-    let cgl = thp254::CGLDim1Rad2::new(O0);
+    let cgl = thp254::CGLDim1Rad2::new();
     let hash = cgl.hash(MSG.to_vec());
 
     println!("Rust:     {}", hash);
@@ -28,46 +27,41 @@ fn dimension_one_rad_2_254_example(X: thp254::Fq, Z: thp254::Fq) {
     println!("SageMath: {}", expected);
 }
 
-fn dimension_one_rad_4_254_example(X: thp254::Fq, Z: thp254::Fq) {
+fn dimension_one_rad_4_254_example() {
     println!("Computing using 4-radical isogenies...");
-    let O0 = thp254::ThetaPointDim1::new(&X, &Z);
-    let cgl = thp254::CGLDim1Rad4::new(O0);
+    let cgl = thp254::CGLDim1Rad4::new();
     let hash = cgl.hash(MSG.to_vec());
 
     println!("Rust:     {}", hash);
 
-    let expected = "i*17632232527346586858516803369370617443794677771378157522072067056904912338941 + 10075930966783318325990846713272328106171814976421617495054657906335886232969";
+    let expected = "i*11728586107886602578331985848725315229022887949105249281174083471329465317158 + 11728586107886602578331985848725315229022887949105249281174083471329465317158";
     println!("SageMath: {}", expected);
 }
 
-fn dimension_one_rad_2_921_example(X: thp921::Fq, Z: thp921::Fq) {
+fn dimension_one_rad_2_921_example() {
     println!("Computing using 2-radical isogenies...");
-    let O0 = thp921::ThetaPointDim1::new(&X, &Z);
-    let cgl = thp921::CGLDim1Rad2::new(O0);
+    let cgl = thp921::CGLDim1Rad2::new();
     let hash = cgl.hash(MSG.to_vec());
-
     println!("Rust:     {}", hash);
 
     let expected: &str = "i*39230057073311561979904713106661291660670794873352665774512435740425423658735 + 28281974817376390026165203588145415349405195023788259912005133424119065028093";
     println!("SageMath: {}", expected);
 }
 
-fn dimension_one_rad_4_921_example(X: thp921::Fq, Z: thp921::Fq) {
+fn dimension_one_rad_4_921_example() {
     println!("Computing using 4-radical isogenies...");
-    let O0 = thp921::ThetaPointDim1::new(&X, &Z);
-    let cgl = thp921::CGLDim1Rad4::new(O0);
+    let cgl = thp921::CGLDim1Rad4::new();
     let hash = cgl.hash(MSG.to_vec());
 
     println!("Rust:     {}", hash);
 
-    let expected = "i*44254100953703562411049248400500098463853458943478030726661718620302339064539 + 539165798661926336559847596085035641527652935389270773552568291982882834598";
+    let expected = "i*39695488926984588049869419990040957434879773680406733879881117127139183500293 + 39695488926984588049869419990040957434879773680406733879881117127139183500293";
     println!("SageMath: {}", expected);
 }
 
-fn dimension_two_rad_2_127_example(X: thp127::Fq, Z: thp127::Fq, U: thp127::Fq, V: thp127::Fq) {
+fn dimension_two_rad_2_127_example() {
     println!("Computing using 2-radical isogenies...");
-    let O0: thp127::ThetaPointDim2 = thp127::ThetaPointDim2::new(&X, &Z, &U, &V);
-    let cgl = thp127::CGLDim2Rad2::new(O0);
+    let cgl = thp127::CGLDim2Rad2::new();
     let (h1, h2, h3) = cgl.hash(MSG.to_vec(), 3);
 
     println!("Rust hash: {}", h1);
@@ -87,39 +81,25 @@ fn main() {
     println!("                  Dimension One CGL with p = 79*2^247 - 1");
     println!("================================================================================");
 
-    let X_hex_254: &str = "0000000000000000000000000000000000000000000000000000000000000000b29164fbeafb402b03e1a2844c5f05e206d84f96f7287a2c76c92b6505b6231b";
-    let Z_hex_254: &str = "feffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f270100000000000000000000000000000000000000000000000000000000000000";
-    let (X_254, _) = thp254::Fq::decode(&hex::decode(X_hex_254).unwrap());
-    let (Z_254, _) = thp254::Fq::decode(&hex::decode(Z_hex_254).unwrap());
-
-    dimension_one_rad_2_254_example(X_254, Z_254);
-    dimension_one_rad_4_254_example(X_254, Z_254);
+    dimension_one_rad_2_254_example();
+    println!();
+    dimension_one_rad_4_254_example();
+    println!("\n");
 
     println!("================================================================================");
     println!("                  Dimension One CGL with p = 2^255 - 921");
     println!("================================================================================");
 
-    let X_hex_921: &str = "0000000000000000000000000000000000000000000000000000000000000000c4c0c9cff0aa2eff0b84b935338c4131d4260a06e1fe83fcfb118559864c7a50";
-    let Z_hex_921: &str = "66fcffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f0100000000000000000000000000000000000000000000000000000000000000";
-    let (X_921, _) = thp921::Fq::decode(&hex::decode(X_hex_921).unwrap());
-    let (Z_921, _) = thp921::Fq::decode(&hex::decode(Z_hex_921).unwrap());
-
-    dimension_one_rad_2_921_example(X_921, Z_921);
-    dimension_one_rad_4_921_example(X_921, Z_921);
+    dimension_one_rad_2_921_example();
+    println!();
+    dimension_one_rad_4_921_example();
+    println!("\n");
 
     println!("================================================================================");
-    println!("                  Dimension One CGL with p = 27*2^122 - 1");
+    println!("                  Dimension Two CGL with p = 27*2^122 - 1");
     println!("================================================================================");
 
-    let X_hex_127: &str = "fdffffffffffffffffffffffffffff6b00000000000000000000000000000000";
-    let Z_hex_127: &str = "1fc93e85eba36a2d4d49a011ce720f421fc93e85eba36a2d4d49a011ce720f42";
-    let U_hex_127: &str = "1fc93e85eba36a2d4d49a011ce720f421fc93e85eba36a2d4d49a011ce720f42";
-    let V_hex_127: &str = "00000000000000000000000000000000fdffffffffffffffffffffffffffff6b";
+    dimension_two_rad_2_127_example();
+    println!("\n");
 
-    let (X_127, _) = thp127::Fq::decode(&hex::decode(X_hex_127).unwrap());
-    let (Z_127, _) = thp127::Fq::decode(&hex::decode(Z_hex_127).unwrap());
-    let (U_127, _) = thp127::Fq::decode(&hex::decode(U_hex_127).unwrap());
-    let (V_127, _) = thp127::Fq::decode(&hex::decode(V_hex_127).unwrap());
-
-    dimension_two_rad_2_127_example(X_127, Z_127, U_127, V_127);
 }

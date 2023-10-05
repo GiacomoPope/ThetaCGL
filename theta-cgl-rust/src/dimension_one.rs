@@ -2,6 +2,7 @@
 
 // Macro expectations:
 // Fq      type of field element
+// X0, Z0, U0, V0, type Fq, coordinates of theta null point
 macro_rules! define_dim_one_theta_core {
     () => {
         use crate::util::pad_msg;
@@ -15,7 +16,7 @@ macro_rules! define_dim_one_theta_core {
         }
 
         impl ThetaPointDim1 {
-            pub fn new(X: &Fq, Z: &Fq) -> ThetaPointDim1 {
+            pub const fn new(X: &Fq, Z: &Fq) -> ThetaPointDim1 {
                 Self { X: *X, Z: *Z }
             }
 
@@ -58,23 +59,23 @@ macro_rules! define_dim_one_theta_core {
             pub fn radical_four_isogeny(self, bits: Vec<u8>) -> ThetaPointDim1 {
                 let (AA, BB) = self.squared_theta();
                 let AABB = AA * BB;
+                let (mut factor, check) = AABB.fourth_root();
+                if check == 0{
+                    panic!("Something has gone wrong with the isogeny chain.")
+                }
+                let mut factor_zeta = Fq::ZETA * factor;
 
-                let mut factor = AABB.fourth_root().0;
-
+                // if the second bit is zero, we multiply by zeta
+                let ctl2 = ((bits[1] as u32) & 1).wrapping_neg();
+                Fq::condswap(&mut factor, &mut factor_zeta, ctl2);
+                
+                // if the first bit is zero, we negate the result
                 let ctl1 = ((bits[0] as u32) & 1).wrapping_neg();
                 factor.set_condneg(ctl1);
 
-                // TODO: constant time
-                if (bits[1] == 1) {
-                    factor = Fq::ZETA * factor;
-                }
-
                 let X_new = self.X + factor;
                 let Z_new = self.X - factor;
-
-                // TODO: currently no hadamard call - as in Python code
-                // anew, bnew = ThetaCGL.hadamard(anew, bnew) # I think we need an hadamard?
-                // let (X_new, Z_new) = self.to_hadamard(X_new, Z_new);
+                let (X_new, Z_new) = self.to_hadamard(X_new, Z_new);
 
                 Self { X: X_new, Z: Z_new }
             }
@@ -85,13 +86,14 @@ macro_rules! define_dim_one_theta_core {
         }
 
         #[derive(Clone, Copy, Debug)]
-        pub struct CGLDim1Rad2 {
-            pub O0: ThetaPointDim1,
-        }
+        pub struct CGLDim1Rad2 { }
 
         impl CGLDim1Rad2 {
-            pub fn new(O0: ThetaPointDim1) -> CGLDim1Rad2 {
-                Self { O0: O0 }
+
+            const O0: ThetaPointDim1 = ThetaPointDim1::new(&X0, &Z0);
+
+            pub fn new() -> CGLDim1Rad2 {
+                Self {  }
             }
 
             pub fn bit_string(&self, mut T: ThetaPointDim1, msg: Vec<u8>) -> ThetaPointDim1 {
@@ -103,20 +105,21 @@ macro_rules! define_dim_one_theta_core {
             }
 
             pub fn hash(&self, msg: Vec<u8>) -> Fq {
-                let T = self.bit_string(self.O0, msg);
+                let T = self.bit_string(Self::O0, msg);
 
                 T.to_hash()
             }
         }
 
         #[derive(Clone, Copy, Debug)]
-        pub struct CGLDim1Rad4 {
-            pub O0: ThetaPointDim1,
-        }
+        pub struct CGLDim1Rad4 { }
 
         impl CGLDim1Rad4 {
-            pub fn new(O0: ThetaPointDim1) -> CGLDim1Rad4 {
-                Self { O0: O0 }
+
+            const O0: ThetaPointDim1 = ThetaPointDim1::new(&X0, &Z0);
+
+            pub fn new() -> CGLDim1Rad4 {
+                Self {  }
             }
 
             pub fn bit_string(self, mut T: ThetaPointDim1, mut msg: Vec<u8>) -> ThetaPointDim1 {
@@ -131,7 +134,7 @@ macro_rules! define_dim_one_theta_core {
             }
 
             pub fn hash(&self, msg: Vec<u8>) -> Fq {
-                let T = self.bit_string(self.O0, msg);
+                let T = self.bit_string(Self::O0, msg);
 
                 T.to_hash()
             }
