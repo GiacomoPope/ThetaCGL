@@ -6,7 +6,7 @@ proof.all(False)
 def invert_or_zero(x):
     if x == 0:
         return 0
-    return ~x
+    return 1 / x
 
 
 def sqrt_Fp(x):
@@ -113,6 +113,7 @@ def fourth_Fp2(x):
 
     if y02 == 0:
         y0 = sqrt_Fp(n)
+        assert y0 * y0 == n, "n sqrt didnt work"
     else:
         y0 = sqrt_Fp(y02)
         assert y0 * y0 == y02, "y0^2 sqrt didnt work"
@@ -120,20 +121,17 @@ def fourth_Fp2(x):
     y1 = x1 * invert_or_zero(4 * y0 * disc_sqrt)
 
     # Handle case with x1 = 0
-    if x1 == 0:
-        if x0.is_square():
-            r = F([y0, 0])
-        else:
-            r = F([y0, y0])
-    else:
-        r = F([y0, y1])
+    if x1 == 0 and disc == 0:
+        y1 = y0
+
+    r = F([y0, y1])
     assert r**4 == x, "Whole thing is broken??"
     return r
 
 
 if __name__ == "__main__":
-    # p = 79*2**247 - 1
-
+    # p = 79 * 2**247 - 1
+    # p = 199
     p = 167
     assert p % 8 == 7
     F = GF(p**2, name="i", modulus=[1, 0, 1])
