@@ -345,7 +345,7 @@ macro_rules! define_fp2_core {
                 (y, r)
             }
 
-            /// Set this value to its fourth root. Returned value is 0xFFFFFFFF if
+                        /// Set this value to its fourth root. Returned value is 0xFFFFFFFF if
             /// the operation succeeded (value was indeed a fourth root), or
             /// 0x00000000 otherwise. On success, the chosen root is the one whose
             /// sign is 0 (i.e. if the "real part" is non-zero, then it is an even
@@ -415,7 +415,6 @@ macro_rules! define_fp2_core {
                 // will be one of these two, which we pick by ensuring
                 // y0^2 has a rational sqrt
                 let mut y02 = (disc_sqrt + n).half();
-                let mut y02_alt = y02 - n;
 
                 // Computing y0 means taking a sqrt. First, we
                 // need to check if the sqrt is rational in Fp
@@ -423,17 +422,13 @@ macro_rules! define_fp2_core {
                 // and also flip the sign of n
                 let lsy02 = y02.legendre();
                 let nqr = (lsy02 >> 1) as u32;
-                Fp::condswap(&mut y02, &mut y02_alt, nqr);
+                y02.set_cond(&(y02 - n), nqr);
                 n.set_condneg(nqr);
 
                 // When y0^2 is zero, the correct value
                 // is insead n, so we can do a conditional
                 // swap
-                // let y02_iszero = y02.iszero();
-                // Fp::condswap(&mut y02, &mut n, y02_iszero);
-                if y02.iszero() != 0 {
-                    y02 = n
-                }
+                y02.set_cond(&n, y02.iszero());
 
                 // Now we can take the sqrt no problem, for all
                 // cases!
@@ -441,7 +436,7 @@ macro_rules! define_fp2_core {
 
                 // y1 is computed from y0 with an inversion for
                 // all cases, except when x1 = 0 (see below)
-                let y1 = self.x1 / (y0 * disc_sqrt.mul4());
+                let mut y1 = self.x1 / (y0 * disc_sqrt.mul4());
 
                 // The final check comes from the case when x1 = 0
                 // Generally, we have that:
@@ -456,16 +451,14 @@ macro_rules! define_fp2_core {
                 // F(y0, y0) so we conditionally set y1 = y0
                 // Rather than check whether x0 is a square, we can instead
                 // check whether the discrim. is zero in this case
-                let mut z1 = y1;
-                z1.set_select(&y1, &y0, self.x1.iszero() & disc.iszero());
+                y1.set_cond(&y0, self.x1.iszero() & disc.iszero());
 
                 // As long has nothing bad has happened, we can
                 // now return the fourth root. If any of the r are
                 // falsey, we return 0
                 let r = r1 & r2 & r3;
-
                 self.x0.set_select(&Fp::ZERO, &y0, r);
-                self.x1.set_select(&Fp::ZERO, &z1, r);
+                self.x1.set_select(&Fp::ZERO, &y1, r);
 
                 // Sign mangement: negate the result if needed.
                 let x0odd = ((self.x0.encode()[0] as u32) & 1).wrapping_neg();
