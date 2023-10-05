@@ -352,13 +352,53 @@ macro_rules! define_fp2_core {
             /// integer; if the "real part" is zero, then the "imaginary part" is
             /// an even integer). On failure, this value is set to 0.
             pub fn set_fourth_root(&mut self) -> u32 {
-                // Using that the norm is multiplicative, we want to find y0,y1
-                // such that
-                // (x0 + ix1) = (y0 + iy1)^4
-                // (x0^2 + x1^2) = (y0^2 + y1^2)^4
+                // The aim of this function is to generalise set_sqrt by finding 
+                // an element of Fp^2, y = y0 + i*y1 such that x = x0 + i x1 = y^4
                 //
-                // norm(x) = (x0^2 + x1^2)
-                // norm(y) = n = (x0^2 + x1^2)^(1/4) = (y0^2 + y1^2)
+                // Ultimately, this is done by writing out relationships between
+                // xi and yi to solve a quadratic equation.
+                //
+                // If we have y^4 = (y0 + i*y1)^4 = x0 + i*x1 then:
+                //     x0 = y0^4 - 6*y0^2*y1^2 + y1^4
+                //     x1 = 4*y0*y1*(y0^2 - y1^2)
+                // Additionally, using that the norm is multiplicative, 
+                // we have that
+                //
+                //     norm(x) = (x0^2 + x1^2)
+                //     norm(y) = n = (y0^2 + y1^2) = norm(x)^4
+                //
+                // We can compute n = y0^2 + y1^2 with only a fourth-root
+                // in Fp: n = (x0^2 + x1^2)^((p+1) / 8)
+                // where we use p = 7 mod 8
+                //
+                // Combining the expanded result and the norm equation
+                // gives a quartic polynomial in y0 which only appears
+                // with even powers:
+                //
+                //    8*y0^4 - 8*n*y0^2 + n^2 - x0 = 0
+                //    y0^4 - n*y0^2 + (n^2 - x0) / 8 = 0
+                //
+                // We can write this as a quadratic equation in y0^2
+                // and solve for y0^2 as:
+                //
+                //    y0^2 = (n ± sqrt(n^2 - (n^2 - x0)/2)) / 2
+                //
+                // and so y0^2 is recovered from the sqrt of the disc.
+                //    disc = n^2 - (n^2 - x0)/2 = (n^2 + x0)/2
+                //
+                // To recover y0 itself we require one last sqrt in Fp
+                // which one of the two values
+                //    
+                //    y0^2 = sqrt(n ± sqrt_disc) / 2
+                //
+                // We can tell which value to pick by looking at the
+                // legendre symbol of y0^2 and flipping the sign of n
+                // when a QNR is found.
+                // 
+                // Finally, we can compute y1 from the above using that
+                //     y1 = x1 / (4 * y0 * sqrt_disc)
+                //
+                // TODO: explain edge cases carefully.
                 let norm = self.x0.square() + self.x1.square();
                 let (mut n, r1) = norm.fourth_root();
                 // Now we need to solve a quadratic equation for y0
