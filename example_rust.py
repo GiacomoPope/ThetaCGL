@@ -4,15 +4,19 @@ from sage.all import GF, EllipticCurve
 from dim1 import ThetaCGL, ThetaCGLRadical4
 from dim2 import ThetaCGLDim2
 from utilities import sqrt_Fp2, new_sqrt_Fp2, print_info
+from computing_roots import fourth_Fp2
+
 
 def time_function_ns(f):
     t0 = time.process_time_ns()
     eval(f)
-    return (time.process_time_ns() - t0)
+    return time.process_time_ns() - t0
+
 
 def time_ms(f):
     v = time_function_ns(f)
     return v / 1_000_000
+
 
 def to_hex_str(a):
     p = a.parent().characteristic()
@@ -23,7 +27,45 @@ def to_hex_str(a):
 
     return (a0_bytes + a1_bytes).hex()
 
+def to_little_u64(x):
+    y = int(x)
+    res = []
+    while y:
+        tmp = y % 2**64
+        res.append(hex(tmp))
+        y >>= 64
+    l = fmt_little_u64(res)
+    return fmt_list(l)
 
+def to_little_u64_mont(x, n):
+    x = 2 ** (64 * n) * x
+    y = int(x)
+    res = []
+    while y:
+        tmp = y % 2**64
+        res.append(hex(tmp))
+        y >>= 64
+    l = fmt_little_u64(res)
+    return fmt_list(l)
+
+
+def fmt_little_u64(res):
+    out = []
+    for r in res:
+        num = r[2:]
+        new_num = num.zfill(16)
+        new_num = new_num.upper()
+        new_num = "0x" + new_num
+        out.append(new_num)
+    return out
+
+
+def fmt_list(l):
+    l = str(l)
+    l = l.replace("[", "")
+    l = l.replace("]", "")
+    l = l.replace("'", "")
+    return l
 
 
 m1 = [
@@ -38,7 +80,7 @@ m1 = [
 ]
 
 
-p = 79*2**247 - 1
+p = 79 * 2**247 - 1
 F = GF(p**2, name="i", modulus=[1, 0, 1])
 E0 = EllipticCurve(F, [1, 0])
 O0 = ThetaCGL(E0, sqrt_function=new_sqrt_Fp2)
@@ -46,8 +88,16 @@ O0 = ThetaCGL(E0, sqrt_function=new_sqrt_Fp2)
 print_info(f"Example dimension 1 radical 2 in p254")
 
 a, b = O0.domain
+
+print(f"Theta coordinates as hex strings: ")
 print(to_hex_str(a))
 print(to_hex_str(b))
+
+print(f"Theta coordinates as u64 arrays (MONTGOMERY FORM): ")
+print(to_little_u64_mont(a[0], 4))
+print(to_little_u64_mont(a[1], 4))
+print(to_little_u64_mont(b[0], 4))
+print(to_little_u64_mont(b[1], 4))
 
 out = O0.hash(m1)
 print(out)
@@ -56,7 +106,7 @@ print_info(f"Example dimension 1 radical 4 in p254")
 zeta = F.gen()
 print("zeta:")
 print(zeta)
-O0 = ThetaCGLRadical4(E0, zeta4=zeta)
+O0 = ThetaCGLRadical4(E0, zeta4=zeta, sqrt4_function=fourth_Fp2)
 out = O0.hash(m1)
 print("hash:")
 print(out)
@@ -69,49 +119,54 @@ O0 = ThetaCGL(E0, sqrt_function=new_sqrt_Fp2)
 print_info(f"Example dimension 1 radical 2 in p921")
 
 a, b = O0.domain
+
+print(f"Theta coordinates as hex strings: ")
 print(to_hex_str(a))
 print(to_hex_str(b))
+
+print(f"Theta coordinates as u64 arrays: ")
+print(to_little_u64(a[0]))
+print(to_little_u64(a[1]))
+print(to_little_u64(b[0]))
+print(to_little_u64(b[1]))
 
 out = O0.hash(m1)
 print(out)
 
 print_info(f"Example dimension 1 radical 4 in p921")
 zeta = F.gen()
-print("zeta:")
-print(zeta)
-O0 = ThetaCGLRadical4(E0, zeta4=zeta)
+print(f"{zeta = }")
+O0 = ThetaCGLRadical4(E0, zeta4=zeta, sqrt4_function=fourth_Fp2)
 out = O0.hash(m1)
 print("hash:")
 print(out)
 
 print_info(f"Example in p127")
-# p = 2**127 - 1
-p = 27*2**122 - 1
+
+p = 27 * 2**122 - 1
 
 F = GF(p**2, name="i", modulus=[1, 0, 1])
 E0 = EllipticCurve(F, [1, 0])
 O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0, sqrt_function=new_sqrt_Fp2)
 
 a, b, c, d = O0.domain
+
+print(f"Theta coordinates as hex strings: ")
 print(to_hex_str(a))
 print(to_hex_str(b))
 print(to_hex_str(c))
 print(to_hex_str(d))
 
+print(f"Theta coordinates as u64 arrays (MONTGOMERY FORM): ")
+print(to_little_u64_mont(a[0], 2))
+print(to_little_u64_mont(a[1], 2))
+print(to_little_u64_mont(b[0], 2))
+print(to_little_u64_mont(b[1], 2))
+print(to_little_u64_mont(c[0], 2))
+print(to_little_u64_mont(c[1], 2))
+print(to_little_u64_mont(d[0], 2))
+print(to_little_u64_mont(d[1], 2))
+
 out = O0.hash(m1)
 for h in out:
     print(h)
-
-
-# O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0, sqrt_function=new_sqrt_Fp2)
-
-# a,b,c,d = O0.domain
-# print(to_hex_str(a))
-# print(to_hex_str(b))
-# print(to_hex_str(c))
-# print(to_hex_str(d))
-
-
-# h = O0.hash(m1)
-# print("hash:")
-# print(h)

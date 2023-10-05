@@ -33,10 +33,10 @@ class CGL:
     def bit_string(self, message):
         r = self
         for x in range(0, len(message), self.chunk):
-            bits=message[x:x+self.chunk]
+            bits = message[x : x + self.chunk]
             if len(bits) < self.chunk:
                 # pad bits if too short
-                bits += [0]*(self.chunk - len(bits))
+                bits += [0] * (self.chunk - len(bits))
             r = r.advance(bits)
         return r
 
@@ -96,8 +96,8 @@ class ThetaCGL(CGL):
         to (1:1) in Montgomery coordinates.
         """
 
-        a,b = self.domain
-        
+        a, b = self.domain
+
         aa = a**2
         bb = b**2
 
@@ -123,8 +123,8 @@ class ThetaCGL(CGL):
         return self.to_montgomery_curve().cardinality()
 
     @staticmethod
-    def hadamard(x,z):
-        return (x+z, x-z)
+    def hadamard(x, z):
+        return (x + z, x - z)
 
     def radical_2isogeny(self, bits=[0]):
         """
@@ -132,15 +132,15 @@ class ThetaCGL(CGL):
         point
         """
 
-        #print(f"Radical 2 isogeny, bits={bits}")
+        # print(f"Radical 2 isogeny, bits={bits}")
         a, b = self.domain
-        aa = a*a # a*a is faster than a**2 in SageMath
-        bb = b*b
-        AA,BB = ThetaCGL.hadamard(aa, bb)
+        aa = a * a  # a*a is faster than a**2 in SageMath
+        bb = b * b
+        AA, BB = ThetaCGL.hadamard(aa, bb)
         AABB = AA * BB
         AB = self.sqrt(AABB)
         if bits[0] == 1:
-            AB = - AB
+            AB = -AB
         anew, bnew = ThetaCGL.hadamard(AA, AB)
         O1 = ThetaNullPoint(anew, bnew)
         return O1
@@ -153,16 +153,17 @@ class ThetaCGL(CGL):
         a, b = self.domain
         return b / a
 
+
 # Experimental formula for 4-radical isogeny
 class ThetaCGLRadical4(ThetaCGL):
-    def __init__(self, domain, sqrt4_function = None, zeta4 = None, chunk = 2, **kwds):
+    def __init__(self, domain, sqrt4_function=None, zeta4=None, chunk=2, **kwds):
         super().__init__(domain, chunk=chunk, **kwds)
 
         if zeta4 is None:
-            a,b=self.domain
+            a, b = self.domain
             zeta4 = a.base_ring().gen()
         assert zeta4 * zeta4 == -1
-        self.zeta4=zeta4
+        self.zeta4 = zeta4
         self.sqrt4_function = sqrt4_function
 
     # Here sqrt is the fourth root power
@@ -172,46 +173,62 @@ class ThetaCGLRadical4(ThetaCGL):
         else:
             r = self.sqrt4_function(x)
 
-        return r
+        return canonical_root(r)
 
-    def radical_4isogeny(self, bits=[0,0]):
+    def radical_4isogeny(self, bits=[0, 0]):
         """
         Given a level 2-theta null point, compute a 4-isogeneous theta null
         point
         """
 
-        #print(f"Radical 4 isogeny, bits={bits}")
+        # print(f"Radical 4 isogeny, bits={bits}")
         a, b = self.domain
-        aa = a*a # a*a is faster than a**2 in SageMath
-        bb = b*b
-        AA,BB = ThetaCGL.hadamard(aa, bb)
+
+        aa = a * a  # a*a is faster than a**2 in SageMath
+        bb = b * b
+        AA, BB = ThetaCGL.hadamard(aa, bb)
         AABB = AA * BB
-        factor = self.sqrt4(AABB) #fourth root
+        factor = self.sqrt4(AABB)  # fourth root
 
         if bits[0] == 1:
-            factor = - factor
+            factor = -factor
 
         if bits[1] == 1:
             factor = self.zeta4 * factor
 
-        anew=a+factor
-        bnew=a-factor
+        anew = a + factor
+        bnew = a - factor
 
-        #anew, bnew = ThetaCGL.hadamard(anew, bnew) # I think we need an hadamard?
-        O1 = ThetaNullPoint(anew, bnew)
-        return O1
+        anew, bnew = ThetaCGL.hadamard(anew, bnew)  # I think we need an hadamard?
+
+        return ThetaNullPoint(anew, bnew)
 
     def advance(self, bits=[0, 0]):
         O1 = self.radical_4isogeny(bits=bits)
-        return ThetaCGLRadical4(O1, sqrt4_function=self.sqrt4_function, sqrt_function=self.sqrt_function, zeta4=self.zeta4)
+        return ThetaCGLRadical4(
+            O1,
+            sqrt4_function=self.sqrt4_function,
+            sqrt_function=self.sqrt_function,
+            zeta4=self.zeta4,
+        )
+
 
 # Experimental formula for 8-radical isogeny
 class ThetaCGLRadical8(ThetaCGLRadical4):
-    def __init__(self, domain, torsion = None, chunk = 3, sqrt8_function = None, sqrt2 = None, zeta8 = None, **kwds):
+    def __init__(
+        self,
+        domain,
+        torsion=None,
+        chunk=3,
+        sqrt8_function=None,
+        sqrt2=None,
+        zeta8=None,
+        **kwds,
+    ):
         super().__init__(domain, chunk=chunk, **kwds)
 
         self.zeta8 = zeta8
-        assert self.zeta8 ** 4 == -1
+        assert self.zeta8**4 == -1
         self.sqrt8_function = sqrt8_function
         self.sqrt2 = sqrt2
 
@@ -219,7 +236,7 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
             a2, b2 = self.radical_2isogeny()
             r = self.sqrt(a2)
             s = self.sqrt(b2)
-            torsion = ThetaPoint(r,s)
+            torsion = ThetaPoint(r, s)
 
         self.torsion = torsion
 
@@ -232,19 +249,19 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
 
         return r
 
-    def radical_8isogeny(self, bits=[0,0,0]):
+    def radical_8isogeny(self, bits=[0, 0, 0]):
         """
         Given a level 2-theta null point, compute a 4-isogeneous theta null
         point
         """
 
-        #print(f"Radical 8 isogeny, bits={bits}")
+        # print(f"Radical 8 isogeny, bits={bits}")
         a, b = self.domain
         r, s = self.torsion
-        factor = self.sqrt8(r**8-s**8)
+        factor = self.sqrt8(r**8 - s**8)
 
         if bits[0] == 1:
-            factor = - factor
+            factor = -factor
 
         if bits[1] == 1:
             factor = self.zeta8**2 * factor
@@ -252,21 +269,25 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
         if bits[2] == 1:
             factor = self.zeta8 * factor
 
-        assert factor**8 == r**8-s**8
+        assert factor**8 == r**8 - s**8
 
-        a4 = r*r + factor*factor
-        b4 = r*r - factor*factor
+        a4 = r * r + factor * factor
+        b4 = r * r - factor * factor
         # a4b = a*a+factor**8/(a*a) + 2 * factor **2 * r**2
         # b4b = a*a+factor**8/(a*a) - 2 * factor **2 * r**2
         # print(f"Ratio of the two ways to compute the theta null point: {a4b/a4}")
         # print(b4b/b4)
         # assert b4b * a4 == a4b * b4
-        
-        r4 = a*b*(r*r-factor*factor)
-        s4 = a*a*r*s + factor**4*b*b/(2*r*s) -self.sqrt2*factor*a*b*r
 
-        mu3 = (r4**4+s4**4)/a4**2
-        mu4 = 2*r4**2*s4**2/b4**2
+        r4 = a * b * (r * r - factor * factor)
+        s4 = (
+            a * a * r * s
+            + factor**4 * b * b / (2 * r * s)
+            - self.sqrt2 * factor * a * b * r
+        )
+
+        mu3 = (r4**4 + s4**4) / a4**2
+        mu4 = 2 * r4**2 * s4**2 / b4**2
         # print(f"mu3: {mu3}")
         # print(f"mu4: {mu4}")
         assert mu3 == mu4
@@ -277,4 +298,13 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
 
     def advance(self, bits=[0, 0, 0]):
         O1, P1 = self.radical_8isogeny(bits=bits)
-        return ThetaCGLRadical8(O1, P1, sqrt8_function=self.sqrt8_function, zeta8=self.zeta8, sqrt2 = self.sqrt2, sqrt4_function=self.sqrt4_function, sqrt_function=self.sqrt_function, zeta4=self.zeta4)
+        return ThetaCGLRadical8(
+            O1,
+            P1,
+            sqrt8_function=self.sqrt8_function,
+            zeta8=self.zeta8,
+            sqrt2=self.sqrt2,
+            sqrt4_function=self.sqrt4_function,
+            sqrt_function=self.sqrt_function,
+            zeta4=self.zeta4,
+        )
