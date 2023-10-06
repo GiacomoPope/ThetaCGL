@@ -345,14 +345,14 @@ macro_rules! define_fp2_core {
                 (y, r)
             }
 
-                        /// Set this value to its fourth root. Returned value is 0xFFFFFFFF if
+            /// Set this value to its fourth root. Returned value is 0xFFFFFFFF if
             /// the operation succeeded (value was indeed a fourth root), or
             /// 0x00000000 otherwise. On success, the chosen root is the one whose
             /// sign is 0 (i.e. if the "real part" is non-zero, then it is an even
             /// integer; if the "real part" is zero, then the "imaginary part" is
             /// an even integer). On failure, this value is set to 0.
             pub fn set_fourth_root(&mut self) -> u32 {
-                // The aim of this function is to generalise set_sqrt by finding 
+                // The aim of this function is to generalise set_sqrt by finding
                 // an element of Fp^2, y = y0 + i*y1 such that x = x0 + i x1 = y^4
                 //
                 // Ultimately, this is done by writing out relationships between
@@ -361,7 +361,7 @@ macro_rules! define_fp2_core {
                 // If we have y^4 = (y0 + i*y1)^4 = x0 + i*x1 then:
                 //     x0 = y0^4 - 6*y0^2*y1^2 + y1^4
                 //     x1 = 4*y0*y1*(y0^2 - y1^2)
-                // Additionally, using that the norm is multiplicative, 
+                // Additionally, using that the norm is multiplicative,
                 // we have that
                 //
                 //     norm(x) = (x0^2 + x1^2)
@@ -388,13 +388,13 @@ macro_rules! define_fp2_core {
                 //
                 // To recover y0 itself we require one last sqrt in Fp
                 // which one of the two values
-                //    
+                //
                 //    y0^2 = sqrt(n ± sqrt_disc) / 2
                 //
                 // We can tell which value to pick by looking at the
                 // legendre symbol of y0^2 and flipping the sign of n
                 // when a QNR is found.
-                // 
+                //
                 // Finally, we can compute y1 from the above using that
                 //     y1 = x1 / (4 * y0 * sqrt_disc)
                 //
@@ -1069,6 +1069,27 @@ macro_rules! define_fp2_tests {
 
                 assert!(r == 0xFFFFFFFF);
                 assert!((c * c * c * c).equals(&e) == 0xFFFFFFFF);
+
+                // With neither zero
+                let a_check = Fp2::new(&a0, &a1);
+                let e_check = a_check * a_check;
+                let (c_check, r_check) = e_check.sqrt();
+                assert!(r_check == 0xFFFFFFFF);
+                assert!((c_check * c_check).equals(&e_check) == 0xFFFFFFFF);
+
+                // With x1 = 0
+                let a_check = Fp2::new(&a0, &Fp::ZERO);
+                let e_check = a_check * a_check;
+                let (c_check, r_check) = e_check.sqrt();
+                assert!(r_check == 0xFFFFFFFF);
+                assert!((c_check * c_check).equals(&e_check) == 0xFFFFFFFF);
+
+                // With x0 = 0
+                let a_check = Fp2::new(&Fp::ZERO, &a1);
+                let e_check = a_check * a_check;
+                let (c_check, r_check) = e_check.sqrt();
+                assert!(r_check == 0xFFFFFFFF);
+                assert!((c_check * c_check).equals(&e_check) == 0xFFFFFFFF);
 
                 // With neither zero
                 let a_check = Fp2::new(&a0, &a1);

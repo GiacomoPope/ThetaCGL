@@ -139,7 +139,7 @@ macro_rules! define_fp_core {
 
             /// Return 0xFFFFFFFF if this value is zero, or 0x00000000 otherwise.
             pub fn iszero(self) -> u32 {
-                let mut x = 0;
+                let mut x = self.0[0];
                 for i in 1..N {
                     x |= self.0[i];
                 }
@@ -945,6 +945,17 @@ macro_rules! define_fp_core {
                 r
             }
 
+            /// Compute the square root of this value. If this value is indeed a
+            /// quadratic residue, then this returns (x, 0xFFFFFFFF), with x being
+            /// the (unique) square root of this value whose least significant bit
+            /// is zero (when normalized to an integer in [0..p-1]). If this value
+            /// is not a quadratic residue, then this returns (zero, 0x00000000).
+            pub fn sqrt(self) -> (Self, u32) {
+                let mut x = self;
+                let r = x.set_sqrt();
+                (x, r)
+            }
+
             /// Set this value to its fourth root. Returned value is 0xFFFFFFFF if
             /// the operation succeeded (value was indeed some element to the power of four), or
             /// 0x00000000 otherwise. On success, the chosen root is the one whose
@@ -995,17 +1006,6 @@ macro_rules! define_fp_core {
                 self.set_condneg(ctl);
 
                 r
-            }
-
-            /// Compute the square root of this value. If this value is indeed a
-            /// quadratic residue, then this returns (x, 0xFFFFFFFF), with x being
-            /// the (unique) square root of this value whose least significant bit
-            /// is zero (when normalized to an integer in [0..p-1]). If this value
-            /// is not a quadratic residue, then this returns (zero, 0x00000000).
-            pub fn sqrt(self) -> (Self, u32) {
-                let mut x = self;
-                let r = x.set_sqrt();
-                (x, r)
             }
 
             /// Compute the fourth root of this value. If this value is indeed some

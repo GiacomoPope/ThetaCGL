@@ -2382,5 +2382,4 @@ mod tests {
     fn gf921_ops() {
         test_gf::<921>(5);
     }
-
 }

@@ -4,23 +4,23 @@
 pub mod Fp127 {
     const N: usize = 2;
     const BITLEN: usize = 127;
-    const MODULUS: [u64; N] = [0xFFFFFFFFFFFFFFFF, 0x6BFFFFFFFFFFFFFF];
-    const HALF_MODULUS: [u64; N] = [0x0000000000000000, 0x3600000000000000];
-    const R_VAL: [u64; N] = [0x0000000000000002, 0x2800000000000000];
-    const MINUS_R_VAL: [u64; N] = [0xFFFFFFFFFFFFFFFD, 0x43FFFFFFFFFFFFFF];
-    const DR_VAL: [u64; N] = [0x0000000000000004, 0x5000000000000000];
-    const TR_VAL: [u64; N] = [0x0000000000000007, 0x0C00000000000000];
-    const QR_VAL: [u64; N] = [0x0000000000000009, 0x3400000000000000];
-    const R2_VAL: [u64; N] = [0x425ED097B425ED0F, 0x0AD097B425ED097B];
+    const MODULUS: [u64; N] = [0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF];
+    const HALF_MODULUS: [u64; N] = [0x0000000000000000, 0x4000000000000000];
+    const R_VAL: [u64; N] = [0x0000000000000002, 0x0000000000000000];
+    const MINUS_R_VAL: [u64; N] = [0xFFFFFFFFFFFFFFFD, 0x7FFFFFFFFFFFFFFF];
+    const DR_VAL: [u64; N] = [0x0000000000000004, 0x0000000000000000];
+    const TR_VAL: [u64; N] = [0x0000000000000006, 0x0000000000000000];
+    const QR_VAL: [u64; N] = [0x0000000000000008, 0x0000000000000000];
+    const R2_VAL: [u64; N] = [0x0000000000000004, 0x0000000000000000];
     const P0I: u64 = 1;
-    const TFIXDIV_VAL: [u64; N] = [0x936CB7E82C388EF5, 0x4A4F426C22137BB3];
-    const TDEC_VAL: [u64; N] = [0x5ED097B425ED097B, 0x1C00000000000002];
-    const SQRT_EH: [u8; 1] = [27];
-    const SQRT_EL: usize = 24;
-    const FOURTH_ROOT_EH: [u8; 2] = [16, 13];
-    const FOURTH_ROOT_EL: usize = 23;
-    const P1: u64 = 3623878655;
-    const P1DIV_M: u64 = 3416063723386606283;
+    const TFIXDIV_VAL: [u64; N] = [0x0000000000000100, 0x0000000000000000];
+    const TDEC_VAL: [u64; N] = [0x0000000000000000, 0x0000000000000002];
+    const SQRT_EH: [u8; 1] = [1];
+    const SQRT_EL: usize = 25;
+    const FOURTH_ROOT_EH: [u8; 1] = [16];
+    const FOURTH_ROOT_EL: usize = 24;
+    const P1: u64 = 4294967295;
+    const P1DIV_M: u64 = 1;
 
     crate::finitefield::fp_gen::define_fp_core! {}
 
@@ -117,6 +117,8 @@ pub mod Fp921 {
 
 pub mod Fp127Ext {
     use super::Fp127::Fp;
+    // const NQR_RE: Fp = Fp::new([0xE1F195E63EF9998E, 0x025681E8E25E14E8]);
+    // const NQR_RE_VAL: [u64; N] = [0x799DF9C6637E0F20, 0x746D5D9F70C148C7];
     const NQR_RE: Fp = Fp::new([0xE1F195E63EF9998E, 0x025681E8E25E14E8]);
 
     crate::finitefield::fp2_gen::define_fp2_core! {}

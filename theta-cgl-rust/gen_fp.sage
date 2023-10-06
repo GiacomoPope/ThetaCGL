@@ -17,10 +17,8 @@
 //      NQR_RE_VAL                NQR_RE + i is a non-square in GF(p^2)
 """
 
-p = 79*2**247 - 1
-# p = 2**127 - 1
-# p = 27*2**122 - 1
-
+# p = 79*2**247 - 1
+p = 2**127 - 1
 
 def to_little_u64(n):
     res = []
@@ -97,7 +95,7 @@ FOURTH_ROOT_EH = FOURTH_ROOT_EH.digits(2**5)
 
 P1 = floor(p // 2**(BITLEN - 32))
 # P1DIV_M = 1 + floor((2**32 - P1)*2**64 / P1)
-P1DIV_M = floor((2**32 - P1)*2**64 / P1)
+P1DIV_M = 1 + ((2**32 - P1)*2**64 // P1)
 
 
 F.<i> = GF(p**2, modulus=[1,0,1])

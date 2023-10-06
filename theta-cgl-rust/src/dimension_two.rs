@@ -57,6 +57,7 @@ macro_rules! define_dim_two_theta_core {
                 let AABB = AA * BB;
                 let AACC = AA * CC;
                 let AADD = AA * DD;
+
                 let mut AB = AABB.sqrt().0;
                 let mut AC = AACC.sqrt().0;
                 let mut AD = AADD.sqrt().0;
@@ -71,6 +72,7 @@ macro_rules! define_dim_two_theta_core {
                 AD.set_condneg(ctl3);
 
                 let (anew, bnew, cnew, dnew) = self.to_hadamard(AA, AB, AC, AD);
+
                 ThetaPointDim2::new(&anew, &bnew, &cnew, &dnew)
             }
 
