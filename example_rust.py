@@ -27,6 +27,7 @@ def to_hex_str(a):
 
     return (a0_bytes + a1_bytes).hex()
 
+
 def to_little_u64(x):
     y = int(x)
     res = []
@@ -36,6 +37,7 @@ def to_little_u64(x):
         y >>= 64
     l = fmt_little_u64(res)
     return fmt_list(l)
+
 
 def to_little_u64_mont(x, n):
     x = 2 ** (64 * n) * x
@@ -68,6 +70,7 @@ def fmt_list(l):
     return l
 
 
+# fmt: off
 m1 = [
     1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 
     0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 
@@ -143,7 +146,8 @@ print(out)
 
 print_info(f"Example in p127")
 
-p = 27 * 2**122 - 1
+p = 2**127 - 1
+
 
 F = GF(p**2, name="i", modulus=[1, 0, 1])
 E0 = EllipticCurve(F, [1, 0])
@@ -166,6 +170,7 @@ print(to_little_u64_mont(c[0], 2))
 print(to_little_u64_mont(c[1], 2))
 print(to_little_u64_mont(d[0], 2))
 print(to_little_u64_mont(d[1], 2))
+
 
 out = O0.hash(m1)
 for h in out:
