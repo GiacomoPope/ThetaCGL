@@ -15,10 +15,18 @@ pub mod Fp127 {
     const P0I: u64 = 1;
     const TFIXDIV_VAL: [u64; N] = [0x0000000000000100, 0x0000000000000000];
     const TDEC_VAL: [u64; N] = [0x0000000000000000, 0x0000000000000002];
-    const SQRT_EH: [u8; 1] = [1];
-    const SQRT_EL: usize = 25;
-    const FOURTH_ROOT_EH: [u8; 1] = [16];
-    const FOURTH_ROOT_EL: usize = 24;
+    // Old window
+    // const WIN_LEN: usize = 5;
+    // const SQRT_EH: [u8; 1] = [1];
+    // const SQRT_EL: usize = 25;
+    // const FOURTH_ROOT_EH: [u8; 1] = [16];
+    // const FOURTH_ROOT_EL: usize = 24;
+    // New window
+    const WIN_LEN: usize = 4;
+    const SQRT_EH: [u8; 1] = [2];
+    const SQRT_EL: usize = 31;
+    const FOURTH_ROOT_EH: [u8; 1] = [1];
+    const FOURTH_ROOT_EL: usize = 31;
     const P1: u64 = 4294967295;
     const P1DIV_M: u64 = 1;
 
@@ -95,10 +103,17 @@ pub mod Fp254 {
         0x7B23A5440CF6474A,
         0x2000000000000006,
     ];
-    const SQRT_EH: [u8; 2] = [15, 2];
-    const SQRT_EL: usize = 49;
-    const FOURTH_ROOT_EH: [u8; 3] = [16, 7, 1];
-    const FOURTH_ROOT_EL: usize = 48;
+    // const WIN_LEN: usize = 5;
+    // const SQRT_EH: [u8; 2] = [15, 2];
+    // const SQRT_EL: usize = 49;
+    // const FOURTH_ROOT_EH: [u8; 3] = [16, 7, 1];
+    // const FOURTH_ROOT_EL: usize = 48;
+    const WIN_LEN: usize = 4;
+    const SQRT_EH: [u8; 2] = [14, 9];
+    const SQRT_EL: usize = 61;
+    const FOURTH_ROOT_EH: [u8; 2] = [15, 4];
+    const FOURTH_ROOT_EL: usize = 61;
+
     const P1: u64 = 2650800127;
     const P1DIV_M: u64 = 11441651398765969958;
 
@@ -117,8 +132,6 @@ pub mod Fp921 {
 
 pub mod Fp127Ext {
     use super::Fp127::Fp;
-    // const NQR_RE: Fp = Fp::new([0xE1F195E63EF9998E, 0x025681E8E25E14E8]);
-    // const NQR_RE_VAL: [u64; N] = [0x799DF9C6637E0F20, 0x746D5D9F70C148C7];
     const NQR_RE: Fp = Fp::new([0xE1F195E63EF9998E, 0x025681E8E25E14E8]);
 
     crate::finitefield::fp2_gen::define_fp2_core! {}

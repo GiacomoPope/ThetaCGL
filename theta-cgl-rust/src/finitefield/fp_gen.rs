@@ -898,8 +898,6 @@ macro_rules! define_fp_core {
             /// least significant bit (as an integer in [0..p-1]) is zero. On
             /// failure, this value is set to 0.
             pub fn set_sqrt(&mut self) -> u32 {
-                const WIN_LEN: usize = 5;
-
                 // Make a window.
                 let mut ww = [*self; (1usize << WIN_LEN) - 1];
                 for i in 1..ww.len() {
@@ -962,7 +960,6 @@ macro_rules! define_fp_core {
             /// least significant bit (as an integer in [0..p-1]) is zero. On
             /// failure, this value is set to 0.
             pub fn set_fourth_root(&mut self) -> u32 {
-                const WIN_LEN: usize = 5;
                 // Make a window.
                 let mut ww = [*self; (1usize << WIN_LEN) - 1];
                 for i in 1..ww.len() {

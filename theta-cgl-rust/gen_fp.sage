@@ -20,6 +20,41 @@
 # p = 79*2**247 - 1
 p = 2**127 - 1
 
+BITLEN = p.nbits()
+N = ceil(BITLEN / 64)
+
+for w in range(3, 8):
+    e = (p + 1)//4
+    SQRT_EL = BITLEN
+    while True:
+        mod = 2**(w*SQRT_EL)
+        if e % mod == 0:
+            break
+        SQRT_EL -= 1
+
+    SQRT_EH = e // 2^(w*SQRT_EL)
+    SQRT_EH = SQRT_EH.digits(2**w)
+
+    e = (p + 1)//8
+    FOURTH_ROOT_EL = BITLEN
+    while True:
+        mod = 2**(w*FOURTH_ROOT_EL)
+        if e % mod == 0:
+            break
+        FOURTH_ROOT_EL -= 1
+
+    FOURTH_ROOT_EH = e // 2^(w*FOURTH_ROOT_EL)
+    FOURTH_ROOT_EH = FOURTH_ROOT_EH.digits(2**w)
+
+    print(f"{w = }")
+    print(f"{SQRT_EL = }")
+    print(f"{SQRT_EH = }")
+    print(f"{FOURTH_ROOT_EL = }")
+    print(f"{FOURTH_ROOT_EH = }")
+    print()
+
+exit()
+
 def to_little_u64(n):
     res = []
     while n:

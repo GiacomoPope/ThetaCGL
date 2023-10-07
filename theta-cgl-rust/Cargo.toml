@@ -15,6 +15,11 @@ sha3 = "0.10.6"
 [dev-dependencies]
 criterion = { version = "0.4", features = ["html_reports"] }
 
+# [[bench]]
+# name = "roots"
+# path = "benches/roots.rs"
+# harness = false
+
 [[bench]]
 name = "p127"
 path = "benches/p127.rs"
