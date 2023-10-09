@@ -180,4 +180,6 @@ class ThetaCGLDim3(CGL):
         a_inv = 1/a
         return (b * a_inv, c * a_inv, d * a_inv, e * a_inv, f * a_inv, g * a_inv, h * a_inv)
 
+    
+
 
