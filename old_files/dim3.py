@@ -15,9 +15,7 @@ class ThetaCGLDim3(CGL):
         a,b = O1.domain
         c,d = O2.domain
         e,f = O3.domain
-        #We changed the ordering to be compatible with our notes.
-        #OO = ThetaNullPointDim3(a*c*e, a*d*e, b*c*e, b*d*e, a*c*f, a*d*f, b*c*f, b*d*f)
-        OO = ThetaNullPointDim3(a*c*e, b*c*e, a*d*e, b*d*e, a*c*f, b*c*f, b*d*f, b*d*f)
+        OO = ThetaNullPointDim3(a*c*e, a*d*e, b*c*e, b*d*e, a*c*f, a*d*f, b*c*f, b*d*f)
         return ThetaCGLDim3(OO, sqrt_function=sqrt_function)
 
     @staticmethod
@@ -179,5 +177,3 @@ class ThetaCGLDim3(CGL):
         a, b, c, d, e, f, g, h = self.domain
         a_inv = 1/a
         return (b * a_inv, c * a_inv, d * a_inv, e * a_inv, f * a_inv, g * a_inv, h * a_inv)
-
-
