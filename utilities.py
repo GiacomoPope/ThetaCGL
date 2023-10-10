@@ -2,6 +2,7 @@
 #     Montgomery Helpers     #
 # ========================== #
 
+
 def montgomery_coefficient(E):
     a_inv = E.a_invariants()
     A = a_inv[1]
@@ -9,9 +10,11 @@ def montgomery_coefficient(E):
         raise ValueError("The elliptic curve E is not in the Montgomery model.")
     return A
 
+
 # ============================================ #
 #     Fast square root and quadratic roots     #
 # ============================================ #
+
 
 def canonical_root(a):
     """
@@ -26,104 +29,131 @@ def canonical_root(a):
         return -a
     return a
 
-def new_sqrt_Fp(a, exp=None):
+
+def invert_or_zero(x):
+    if x == 0:
+        return 0
+    return 1 / x
+
+
+def sqrt_Fp(x):
+    p = x.parent().characteristic()
+    exp = (p + 1) // 4
+
+    r = x**exp
+    if r * r != x:
+        return 0
+    if int(r) % 2 != 0:
+        return -r
+    return r
+
+
+def sqrt_Fp2(x):
+    F = x.parent()
+    x0, x1 = x.list()
+
+    if x1 == 0:
+        lx0 = x0.is_square()
+        if lx0:
+            y0 = sqrt_Fp(x0)
+            return F([y0, 0])
+        else:
+            y1 = sqrt_Fp(-x0)
+            return F([0, y1])
+
+    delta = x0**2 + x1**2
+    sqrt_delta = sqrt_Fp(delta)
+
+    y02 = (x0 + sqrt_delta) / 2
+    if not y02.is_square():
+        y02 -= sqrt_delta
+
+    y0 = sqrt_Fp(y02)
+    y1 = x1 / (y0 + y0)
+
+    return F([y0, y1])
+
+
+def fourth_Fp(x):
+    p = x.parent().characteristic()
+    exp = (p + 1) // 8
+
+    r = x**exp
+    if r * r * r * r != x:
+        return 0
+
+    if int(r) % 2 != 0:
+        return -r
+    return r
+
+
+def fourth_Fp2(x):
     """
-    Shank's algorithm for sqrt
-    Alg 2 in ia.cr/2012/685
+    The goal is to find elements y0, y1 in Fp
+    such that x = x0 + ix1 = (y0 + iy1)^4
+
+    As the norm is multiplicative, we have that
+    (x0^2 + x1^2) = (y0^2 + y1^2)^4 and so with
+    one fourth root in Fp we have (y0^2 + y1^2)
+
+    Expanding out the fourth power, we have
+
+    x0 = y0^4 - 6y0^2y1^2 + y1^4
+    x1 = 4y0y1(y0^2 - y1^2)
+
+    Which together with
+
+    n = y0^2 - y1^2
+
+    Allows us to find a quadratic equation in y0^2
+
+    8y0^4 - 8ny0^2 + n^2 - x0 = 0
+
+    We can find the roots of this with on square-root
+    in Fp to find
+
+    y0^2 = [8n + sqrt(32(n^2 + x0))] / 16
+
+    y0 is recovered by one last sqrt in Fp and y1 from
+    an inversion
+
+    y1 = x1 / 4y0(2y0^2 - n)
     """
-    if exp is None:
-        p = a.base().characteristic()
-        exp = (p - 3) // 4
+    F = x.parent()
+    x0, x1 = x.list()
 
-    a1 = a**exp
-    return a * a1
+    delta = x0**2 + x1**2
+    n = fourth_Fp(delta)
+    assert n * n * n * n == delta, "Fourth root didnt work"
 
-def new_sqrt_Fp_irrational(a, exp=None):
-    """
-    When we have an element a in Fp2 which 
-    is of the form a + i*0 then the root of
-    a in Fp may be irrational, so we need
-    to account for this
+    disc = (n**2 + x0) / 2
+    disc_sqrt = sqrt_Fp(disc)
+    assert disc_sqrt * disc_sqrt == disc, "disc_sqrt didnt work"
 
-    Modification of alg 2 in ia.cr/2012/685
-    """
-    if exp is None:
-        p = a.base().characteristic()
-        exp = (p - 3) // 4
+    # We do not know which of n or -n
+    # is correct, test with legendre
+    y02 = (n + disc_sqrt) / 2
 
-    a1 = a**exp
-    x = a * a1
-    a0 = a1 * x
-    if a0 == -1:
-        return 0, x
-    return x, 0
+    if not y02.is_square():
+        y02 -= n
+        n = -n
 
-def new_sqrt_Fp2(a):
-    """
-    Complex method for roots
-
-    Algorithm 8 in ia.cr/2012/685
-    """
-    F = a.parent()
-    p = F.characteristic()
-    exp = (p - 3) // 4
-
-    assert a.is_square(), "Bad from the beginning!"
-
-    # Extract out Fp coeffs
-    a0, a1 = a.list()
-
-    # Easy case, we're already in Fp
-    if a1 == 0:
-        x0, x1 = new_sqrt_Fp_irrational(a0, exp=exp)
-        return F([x0, x1])
-
-    # Otherwise
-    a0a0 = a0*a0
-    a1a1 = a1*a1
-
-    alpha = a0a0 + a1a1
-
-    alpha = new_sqrt_Fp(alpha, exp=exp)
-
-    delta = (a0 + alpha) / 2
-    if not delta.is_square():
-        delta -= alpha
-
-    x0 = new_sqrt_Fp(delta, exp=exp)
-    x1 = a1 / (x0 + x0)
-
-    return F([x0, x1])
-
-
-def sqrt_Fp2(a):
-    """
-    Efficiently computes the sqrt
-    of an element in Fp2 using that
-    we always have a prime p such that
-    p ≡ 3 mod 4.
-    """
-    Fp2 = a.parent()
-    p = Fp2.characteristic()
-    i = Fp2.gen()  # i = √-1
-
-    # Removing these asserts will speed things
-    # up but adding them now to avoid annoying 
-    # bugs
-    assert p % 4 == 3
-    assert i*i == -1
-
-    a1 = a ** ((p - 3) // 4)
-    x0 = a1 * a
-    alpha = a1 * x0
-
-    if alpha == -1:
-        x0 *= i
+    if y02 == 0:
+        y0 = sqrt_Fp(n)
+        assert y0 * y0 == n, "n sqrt didnt work"
     else:
-        b = (1 + alpha) ** ((p - 1) // 2)
-        x0 *= b
+        y0 = sqrt_Fp(y02)
+        assert y0 * y0 == y02, "y0^2 sqrt didnt work"
 
-    return x0
+    y1 = x1 * invert_or_zero(4 * y0 * disc_sqrt)
+
+    # Handle case with x1 = 0
+    if x1 == 0 and disc == 0:
+        y1 = y0
+
+    r = F([y0, y1])
+    assert r**4 == x, "Whole thing is broken??"
+    return r
 
 
 def print_info(str, banner="="):

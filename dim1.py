@@ -1,51 +1,12 @@
 from collections import namedtuple
-from computing_roots import fourth_Fp2
-
 from sage.all import EllipticCurve
 from sage.schemes.elliptic_curves.ell_generic import EllipticCurve_generic
 
+from cgl import CGL
 from utilities import montgomery_coefficient, canonical_root
 
 ThetaNullPoint = namedtuple("ThetaNullPoint_dim_1", "a b")
 ThetaPoint = namedtuple("ThetaNullPoint_dim_1", "x z")
-
-
-class CGL:
-    def __init__(self, domain, sqrt_function=None, chunk=1):
-        self.domain = domain
-        self.sqrt_function = sqrt_function
-        self.chunk = chunk
-
-    def __repr__(self):
-        return f"CGL with domain={self.domain}"
-
-    def sqrt(self, x):
-        if self.sqrt_function is None:
-            r = x.sqrt()
-        else:
-            r = self.sqrt_function(x)
-
-        return canonical_root(r)
-
-    def advance(self, bits=None):
-        pass
-
-    def bit_string(self, message):
-        r = self
-        for x in range(0, len(message), self.chunk):
-            bits = message[x : x + self.chunk]
-            if len(bits) < self.chunk:
-                # pad bits if too short
-                bits += [0] * (self.chunk - len(bits))
-            r = r.advance(bits)
-        return r
-
-    def to_hash():
-        pass
-
-    def hash(self, bits):
-        r = self.bit_string(bits)
-        return r.to_hash()
 
 
 class ThetaCGL(CGL):
@@ -156,22 +117,22 @@ class ThetaCGL(CGL):
 
 # Experimental formula for 4-radical isogeny
 class ThetaCGLRadical4(ThetaCGL):
-    def __init__(self, domain, sqrt4_function=None, zeta4=None, chunk=2, **kwds):
+    def __init__(self, domain, fourth_root_function=None, zeta4=None, chunk=2, **kwds):
         super().__init__(domain, chunk=chunk, **kwds)
 
         if zeta4 is None:
-            a, b = self.domain
+            a, _ = self.domain
             zeta4 = a.base_ring().gen()
         assert zeta4 * zeta4 == -1
         self.zeta4 = zeta4
-        self.sqrt4_function = sqrt4_function
+        self.fourth_root_function = fourth_root_function
 
     # Here sqrt is the fourth root power
-    def sqrt4(self, x):
-        if self.sqrt4_function is None:
+    def fourth_root(self, x):
+        if self.fourth_root_function is None:
             r = self.sqrt(self.sqrt(x))
         else:
-            r = self.sqrt4_function(x)
+            r = self.fourth_root_function(x)
 
         return canonical_root(r)
 
@@ -180,15 +141,13 @@ class ThetaCGLRadical4(ThetaCGL):
         Given a level 2-theta null point, compute a 4-isogeneous theta null
         point
         """
-
-        # print(f"Radical 4 isogeny, bits={bits}")
         a, b = self.domain
 
         aa = a * a  # a*a is faster than a**2 in SageMath
         bb = b * b
         AA, BB = ThetaCGL.hadamard(aa, bb)
         AABB = AA * BB
-        factor = self.sqrt4(AABB)  # fourth root
+        factor = self.fourth_root(AABB)  # fourth root
 
         if bits[0] == 1:
             factor = -factor
@@ -199,6 +158,7 @@ class ThetaCGLRadical4(ThetaCGL):
         anew = a + factor
         bnew = a - factor
 
+        # anew, bnew = ThetaCGL.hadamard(a, factor)  # I think we need an hadamard?
         anew, bnew = ThetaCGL.hadamard(anew, bnew)  # I think we need an hadamard?
 
         return ThetaNullPoint(anew, bnew)
@@ -207,7 +167,7 @@ class ThetaCGLRadical4(ThetaCGL):
         O1 = self.radical_4isogeny(bits=bits)
         return ThetaCGLRadical4(
             O1,
-            sqrt4_function=self.sqrt4_function,
+            fourth_root_function=self.fourth_root_function,
             sqrt_function=self.sqrt_function,
             zeta4=self.zeta4,
         )
@@ -304,7 +264,7 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
             sqrt8_function=self.sqrt8_function,
             zeta8=self.zeta8,
             sqrt2=self.sqrt2,
-            sqrt4_function=self.sqrt4_function,
+            fourth_root_function=self.fourth_root_function,
             sqrt_function=self.sqrt_function,
             zeta4=self.zeta4,
         )

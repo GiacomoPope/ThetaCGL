@@ -2,9 +2,8 @@ import time
 
 from sage.all import GF, EllipticCurve
 from dim1 import ThetaCGL, ThetaCGLRadical4
-from dim2 import ThetaCGLDim2
-from utilities import sqrt_Fp2, new_sqrt_Fp2, print_info
-from computing_roots import fourth_Fp2
+from dim2 import ThetaCGLDim2, ThetaCGLDim2Radical4
+from utilities import sqrt_Fp2, fourth_Fp2, print_info
 
 
 def time_function_ns(f):
@@ -82,96 +81,100 @@ m1 = [
     1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1
 ]
 
+if False:
+    p = 79 * 2**247 - 1
+    F = GF(p**2, name="i", modulus=[1, 0, 1])
+    E0 = EllipticCurve(F, [1, 0])
+    O0 = ThetaCGL(E0, sqrt_function=sqrt_Fp2)
 
-p = 79 * 2**247 - 1
-F = GF(p**2, name="i", modulus=[1, 0, 1])
-E0 = EllipticCurve(F, [1, 0])
-O0 = ThetaCGL(E0, sqrt_function=new_sqrt_Fp2)
+    print_info(f"Example dimension 1 radical 2 in p254")
 
-print_info(f"Example dimension 1 radical 2 in p254")
+    a, b = O0.domain
 
-a, b = O0.domain
+    print(f"Theta coordinates as hex strings: ")
+    print(to_hex_str(a))
+    print(to_hex_str(b))
 
-print(f"Theta coordinates as hex strings: ")
-print(to_hex_str(a))
-print(to_hex_str(b))
+    print(f"Theta coordinates as u64 arrays (MONTGOMERY FORM): ")
+    print(to_little_u64_mont(a[0], 4))
+    print(to_little_u64_mont(a[1], 4))
+    print(to_little_u64_mont(b[0], 4))
+    print(to_little_u64_mont(b[1], 4))
+    print()
 
-print(f"Theta coordinates as u64 arrays (MONTGOMERY FORM): ")
-print(to_little_u64_mont(a[0], 4))
-print(to_little_u64_mont(a[1], 4))
-print(to_little_u64_mont(b[0], 4))
-print(to_little_u64_mont(b[1], 4))
+    out = O0.hash(m1)
+    print(out)
 
-out = O0.hash(m1)
-print(out)
+    print_info(f"Example dimension 1 radical 4 in p254")
+    zeta = F.gen()
+    print("zeta:")
+    print(zeta)
+    O0 = ThetaCGLRadical4(E0, zeta4=zeta, sqrt4_function=fourth_Fp2)
+    out = O0.hash(m1)
+    print("hash:")
+    print(out)
 
-print_info(f"Example dimension 1 radical 4 in p254")
-zeta = F.gen()
-print("zeta:")
-print(zeta)
-O0 = ThetaCGLRadical4(E0, zeta4=zeta, sqrt4_function=fourth_Fp2)
-out = O0.hash(m1)
-print("hash:")
-print(out)
+    p = 2**255 - 921
+    F = GF(p**2, name="i", modulus=[1, 0, 1])
+    E0 = EllipticCurve(F, [1, 0])
+    O0 = ThetaCGL(E0, sqrt_function=sqrt_Fp2)
 
-p = 2**255 - 921
-F = GF(p**2, name="i", modulus=[1, 0, 1])
-E0 = EllipticCurve(F, [1, 0])
-O0 = ThetaCGL(E0, sqrt_function=new_sqrt_Fp2)
+    print_info(f"Example dimension 1 radical 2 in p921")
 
-print_info(f"Example dimension 1 radical 2 in p921")
+    a, b = O0.domain
 
-a, b = O0.domain
+    print(f"Theta coordinates as hex strings: ")
+    print(to_hex_str(a))
+    print(to_hex_str(b))
 
-print(f"Theta coordinates as hex strings: ")
-print(to_hex_str(a))
-print(to_hex_str(b))
+    print(f"Theta coordinates as u64 arrays: ")
+    print(to_little_u64(a[0]))
+    print(to_little_u64(a[1]))
+    print(to_little_u64(b[0]))
+    print(to_little_u64(b[1]))
 
-print(f"Theta coordinates as u64 arrays: ")
-print(to_little_u64(a[0]))
-print(to_little_u64(a[1]))
-print(to_little_u64(b[0]))
-print(to_little_u64(b[1]))
+    out = O0.hash(m1)
+    print(out)
 
-out = O0.hash(m1)
-print(out)
+    print_info(f"Example dimension 1 radical 4 in p921")
+    zeta = F.gen()
+    print(f"{zeta = }")
+    O0 = ThetaCGLRadical4(E0, zeta4=zeta, sqrt4_function=fourth_Fp2)
+    out = O0.hash(m1)
+    print("hash:")
+    print(out)
 
-print_info(f"Example dimension 1 radical 4 in p921")
-zeta = F.gen()
-print(f"{zeta = }")
-O0 = ThetaCGLRadical4(E0, zeta4=zeta, sqrt4_function=fourth_Fp2)
-out = O0.hash(m1)
-print("hash:")
-print(out)
+if True:
+    p = 2**127 - 1
+    F = GF(p**2, name="i", modulus=[1, 0, 1])
+    zeta = F.gen()
+    E0 = EllipticCurve(F, [1, 0])
 
-print_info(f"Example in p127")
+    print_info(f"Example dimension 2 radical 2 in p127")
+    O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0, sqrt_function=sqrt_Fp2)
+    out = O0.hash(m1)
+    for h in out:
+        print(h)
 
-p = 2**127 - 1
+    # print(f"Theta coordinates as hex strings: ")
+    # print(to_hex_str(a))
+    # print(to_hex_str(b))
+    # print(to_hex_str(c))
+    # print(to_hex_str(d))
 
+    # print(f"Theta coordinates as u64 arrays (MONTGOMERY FORM): ")
+    # print(to_little_u64_mont(a[0], 2))
+    # print(to_little_u64_mont(a[1], 2))
+    # print(to_little_u64_mont(b[0], 2))
+    # print(to_little_u64_mont(b[1], 2))
+    # print(to_little_u64_mont(c[0], 2))
+    # print(to_little_u64_mont(c[1], 2))
+    # print(to_little_u64_mont(d[0], 2))
+    # print(to_little_u64_mont(d[1], 2))
 
-F = GF(p**2, name="i", modulus=[1, 0, 1])
-E0 = EllipticCurve(F, [1, 0])
-O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0, sqrt_function=new_sqrt_Fp2)
+    print_info(f"Example dimension 2 radical 4 in p127")
 
-a, b, c, d = O0.domain
-
-print(f"Theta coordinates as hex strings: ")
-print(to_hex_str(a))
-print(to_hex_str(b))
-print(to_hex_str(c))
-print(to_hex_str(d))
-
-print(f"Theta coordinates as u64 arrays (MONTGOMERY FORM): ")
-print(to_little_u64_mont(a[0], 2))
-print(to_little_u64_mont(a[1], 2))
-print(to_little_u64_mont(b[0], 2))
-print(to_little_u64_mont(b[1], 2))
-print(to_little_u64_mont(c[0], 2))
-print(to_little_u64_mont(c[1], 2))
-print(to_little_u64_mont(d[0], 2))
-print(to_little_u64_mont(d[1], 2))
-
-
-out = O0.hash(m1)
-for h in out:
-    print(h)
+    O0 = ThetaCGLDim2Radical4.from_elliptic_curves(E0, E0, sqrt_function=sqrt_Fp2, fourth_root_function=fourth_Fp2, zeta4=zeta)
+    out = O0.hash(m1)
+    for h in out:
+        print(h)
