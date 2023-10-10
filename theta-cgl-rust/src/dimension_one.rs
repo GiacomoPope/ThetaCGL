@@ -60,15 +60,14 @@ macro_rules! define_dim_one_theta_core {
                 let (AA, BB) = self.squared_theta();
                 let AABB = AA * BB;
                 let (mut factor, check) = AABB.fourth_root();
-                if check == 0{
+                if check == 0 {
                     panic!("Something has gone wrong with the isogeny chain.")
                 }
-                let mut factor_zeta = Fq::ZETA * factor;
 
                 // if the second bit is zero, we multiply by zeta
                 let ctl2 = ((bits[1] as u32) & 1).wrapping_neg();
-                Fq::condswap(&mut factor, &mut factor_zeta, ctl2);
-                
+                factor.set_cond(&(factor * Fq::ZETA), ctl2);
+
                 // if the first bit is zero, we negate the result
                 let ctl1 = ((bits[0] as u32) & 1).wrapping_neg();
                 factor.set_condneg(ctl1);
@@ -86,14 +85,13 @@ macro_rules! define_dim_one_theta_core {
         }
 
         #[derive(Clone, Copy, Debug)]
-        pub struct CGLDim1Rad2 { }
+        pub struct CGLDim1Rad2 {}
 
         impl CGLDim1Rad2 {
-
             const O0: ThetaPointDim1 = ThetaPointDim1::new(&X0, &Z0);
 
             pub fn new() -> CGLDim1Rad2 {
-                Self {  }
+                Self {}
             }
 
             pub fn bit_string(&self, mut T: ThetaPointDim1, msg: Vec<u8>) -> ThetaPointDim1 {
@@ -112,14 +110,13 @@ macro_rules! define_dim_one_theta_core {
         }
 
         #[derive(Clone, Copy, Debug)]
-        pub struct CGLDim1Rad4 { }
+        pub struct CGLDim1Rad4 {}
 
         impl CGLDim1Rad4 {
-
             const O0: ThetaPointDim1 = ThetaPointDim1::new(&X0, &Z0);
 
             pub fn new() -> CGLDim1Rad4 {
-                Self {  }
+                Self {}
             }
 
             pub fn bit_string(self, mut T: ThetaPointDim1, mut msg: Vec<u8>) -> ThetaPointDim1 {

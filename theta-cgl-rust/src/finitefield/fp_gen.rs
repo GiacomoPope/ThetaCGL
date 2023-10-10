@@ -107,6 +107,7 @@ macro_rules! define_fp_core {
             }
 
             /// Create an element by converting the provided integer.
+            #[inline(always)]
             pub fn from_i32(x: i32) -> Self {
                 let sx = (x >> 31) as u32;
                 let ax = ((x as u32) ^ sx).wrapping_sub(sx);
@@ -116,6 +117,7 @@ macro_rules! define_fp_core {
             }
 
             /// Create an element by converting the provided integer.
+            #[inline(always)]
             pub fn from_i64(x: i64) -> Self {
                 let sx = (x >> 63) as u64;
                 let ax = ((x as u64) ^ sx).wrapping_sub(sx);
@@ -125,11 +127,13 @@ macro_rules! define_fp_core {
             }
 
             /// Create an element by converting the provided integer.
+            #[inline(always)]
             pub fn from_u32(x: u32) -> Self {
                 Self::from_u64(x as u64)
             }
 
             /// Create an element by converting the provided integer.
+            #[inline(always)]
             pub fn from_u64(x: u64) -> Self {
                 let mut r = Self::ZERO;
                 r.0[0] = x;
@@ -138,6 +142,7 @@ macro_rules! define_fp_core {
             }
 
             /// Return 0xFFFFFFFF if this value is zero, or 0x00000000 otherwise.
+            #[inline]
             pub fn iszero(self) -> u32 {
                 let mut x = self.0[0];
                 for i in 1..N {
@@ -148,6 +153,7 @@ macro_rules! define_fp_core {
 
             /// Return 0xFFFFFFFF if this value is equal to rhs, or 0x00000000
             /// otherwise.
+            #[inline(always)]
             pub fn equals(self, rhs: &Self) -> u32 {
                 let mut r = 0u64;
                 for i in 0..N {
@@ -157,6 +163,7 @@ macro_rules! define_fp_core {
             }
 
             /// Add `rhs` to this value.
+            #[inline]
             fn set_add(&mut self, rhs: &Self) {
                 // raw addition.
                 let mut cc1 = 0;
@@ -185,6 +192,7 @@ macro_rules! define_fp_core {
             }
 
             /// Subtract `rhs` from this value.
+            #[inline]
             fn set_sub(&mut self, rhs: &Self) {
                 // raw subtraction
                 let mut cc = 0;
@@ -205,6 +213,7 @@ macro_rules! define_fp_core {
             }
 
             /// Negate this value.
+            #[inline]
             pub fn set_neg(&mut self) {
                 // subtract from zero
                 let mut cc = 0;
@@ -228,6 +237,7 @@ macro_rules! define_fp_core {
             // Internal note: if self has proper contents (value less than p), then
             // this necessarily yields a properly reduced value. If self is not
             // properly reduced, then the output is in [0..p] inclusive.
+            #[inline]
             fn set_montyred(&mut self) {
                 for _ in 0..N {
                     let f = self.0[0].wrapping_mul(P0I);
@@ -242,6 +252,7 @@ macro_rules! define_fp_core {
             }
 
             /// Multiply this value by `rhs`.
+            #[inline]
             fn set_mul(&mut self, rhs: &Self) {
                 let mut t = Self::ZERO;
 
@@ -281,6 +292,7 @@ macro_rules! define_fp_core {
             }
 
             /// Replace this value with its square.
+            #[inline]
             pub fn set_square(&mut self) {
                 // FIXME: this turns out to be slower than set_mul() on x86_64
                 // when N >= 23. This is probably due to the more complicated
@@ -352,6 +364,7 @@ macro_rules! define_fp_core {
             }
 
             /// Compute the square of this value.
+            #[inline(always)]
             pub fn square(self) -> Self {
                 let mut r = self;
                 r.set_square();
@@ -359,6 +372,7 @@ macro_rules! define_fp_core {
             }
 
             /// Halve this value.
+            #[inline]
             pub fn set_half(&mut self) {
                 let mm = (self.0[0] & 1).wrapping_neg();
                 let mut cc = 0;
@@ -376,6 +390,7 @@ macro_rules! define_fp_core {
             }
 
             /// Compute the half of this value.
+            #[inline(always)]
             pub fn half(self) -> Self {
                 let mut r = self;
                 r.set_half();
@@ -383,6 +398,7 @@ macro_rules! define_fp_core {
             }
 
             /// Double this value.
+            #[inline]
             pub fn set_mul2(&mut self) {
                 // Double (as an integer) and subtract the modulus.
                 let mut cc = 0;
@@ -407,6 +423,7 @@ macro_rules! define_fp_core {
             }
 
             /// Compute the sum of this value with itself.
+            #[inline(always)]
             pub fn mul2(self) -> Self {
                 let mut r = self;
                 r.set_mul2();
@@ -414,12 +431,14 @@ macro_rules! define_fp_core {
             }
 
             /// Triple this value.
+            #[inline]
             pub fn set_mul3(&mut self) {
                 let r = self.mul2();
                 *self += &r;
             }
 
             /// Compute the triple of this value.
+            #[inline(always)]
             pub fn mul3(self) -> Self {
                 let mut r = self;
                 r.set_mul3();
@@ -427,19 +446,38 @@ macro_rules! define_fp_core {
             }
 
             /// Quadruple this value.
+            #[inline]
             pub fn set_mul4(&mut self) {
                 self.set_mul2();
                 self.set_mul2();
             }
 
             /// Compute the quadruple of this value.
+            #[inline(always)]
             pub fn mul4(self) -> Self {
                 let mut r = self;
                 r.set_mul4();
                 r
             }
 
+            /// Multiply this value by 8
+            #[inline]
+            pub fn set_mul8(&mut self) {
+                self.set_mul2();
+                self.set_mul2();
+                self.set_mul2();
+            }
+
+            /// Compute the quadruple of this value.
+            #[inline(always)]
+            pub fn mul8(self) -> Self {
+                let mut r = self;
+                r.set_mul8();
+                r
+            }
+
             /// Multiply this value by a small signed integer k.
+            #[inline]
             pub fn set_mul_small(&mut self, k: i32) {
                 // Get the absolute value of the multiplier (but remember the sign).
                 let sk = (k >> 31) as u32;
@@ -529,6 +567,7 @@ macro_rules! define_fp_core {
             }
 
             /// Compute the product of this value by a small (unsigned) integer k.
+            #[inline(always)]
             pub fn mul_small(self, k: i32) -> Self {
                 let mut r = self;
                 r.set_mul_small(k);
@@ -538,6 +577,7 @@ macro_rules! define_fp_core {
             /// Set this value to either a or b, depending on whether the control
             /// word ctl is 0x00000000 or 0xFFFFFFFF, respectively.
             /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
+            #[inline]
             pub fn set_select(&mut self, a: &Self, b: &Self, ctl: u32) {
                 let c = (ctl as u64) | ((ctl as u64) << 32);
                 for i in 0..N {
@@ -550,6 +590,7 @@ macro_rules! define_fp_core {
             /// Return a or b, if ctl is 0x00000000 or 0xFFFFFFFF, respectively.
             /// ctl MUST be either 0x00000000 or 0xFFFFFFFF.
             /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
+            #[inline]
             pub fn select(a: &Self, b: &Self, ctl: u32) -> Self {
                 let mut r = Self::ZERO;
                 r.set_select(a, b, ctl);
@@ -559,6 +600,7 @@ macro_rules! define_fp_core {
             /// Set this value to rhs if ctl is 0xFFFFFFFF; leave it unchanged if
             /// ctl is 0x00000000.
             /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
+            #[inline]
             pub fn set_cond(&mut self, rhs: &Self, ctl: u32) {
                 let c = (ctl as u64) | ((ctl as u64) << 32);
                 for i in 0..N {
@@ -571,6 +613,7 @@ macro_rules! define_fp_core {
             /// Negate this value if ctl is 0xFFFFFFFF; leave it unchanged if
             /// ctl is 0x00000000.
             /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
+            #[inline]
             pub fn set_condneg(&mut self, ctl: u32) {
                 let v = -(self as &Self);
                 self.set_cond(&v, ctl);
@@ -579,6 +622,7 @@ macro_rules! define_fp_core {
             /// Exchange the values of a and b is ctl is 0xFFFFFFFF; leave both
             /// values unchanged if ctl is 0x00000000.
             /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
+            #[inline]
             pub fn condswap(a: &mut Self, b: &mut Self, ctl: u32) {
                 let c = (ctl as u64) | ((ctl as u64) << 32);
                 for i in 0..N {
@@ -593,6 +637,7 @@ macro_rules! define_fp_core {
             // Set this value to (u*f+v*g)/2^64. Coefficients f
             // and g are provided as u64, but they are signed integers in the
             // [-2^62..+2^62] range.
+            #[inline]
             fn set_montylin(&mut self, u: &Self, v: &Self, f: u64, g: u64) {
                 // Make sure f and g are non-negative.
                 let sf = sgnw(f);
@@ -640,6 +685,7 @@ macro_rules! define_fp_core {
                 }
             }
 
+            #[inline(always)]
             fn montylin(a: &Self, b: &Self, f: u64, g: u64) -> Self {
                 let mut r = Self::ZERO;
                 r.set_montylin(a, b, f, g);
@@ -655,6 +701,7 @@ macro_rules! define_fp_core {
             // dropped). The absolute value of (a*f + b*g)/2^31 is computed.
             // Returned value is -1 (as a u64) if a*f + b*g was negative, 0
             // otherwise.
+            #[inline]
             fn set_lindiv31abs(&mut self, a: &Self, b: &Self, f: u64, g: u64) -> u64 {
                 // Replace f and g with abs(f) and abs(g), but remember the
                 // original signs.
@@ -1227,6 +1274,7 @@ macro_rules! define_fp_core {
 
             /// Encode this value into bytes. Encoding uses little-endian, has
             /// a fixed size (for a given field), and is canonical.
+            #[inline(always)]
             pub fn encode(self) -> [u8; Self::ENCODED_LENGTH] {
                 let mut r = self;
                 r.set_montyred();
@@ -1240,6 +1288,7 @@ macro_rules! define_fp_core {
                 d
             }
 
+            #[inline]
             fn set_decode_nocheck(&mut self, buf: &[u8]) {
                 for i in 0..(N - 1) {
                     self.0[i] = u64::from_le_bytes(
@@ -1259,6 +1308,7 @@ macro_rules! define_fp_core {
             /// does not have exactly the canonical encoding length of a field
             /// element (Self::ENCODED_LENGTH), or if the source encodes
             /// an integer which is not in the [0..(p-1)] range.
+            #[inline(always)]
             pub fn decode(buf: &[u8]) -> (Self, u32) {
                 if buf.len() != Self::ENCODED_LENGTH {
                     return (Self::ZERO, 0);
@@ -1289,6 +1339,7 @@ macro_rules! define_fp_core {
             /// unsigned little-endian convention (no sign bit), and the resulting
             /// integer is reduced modulo the field modulus p. By definition, this
             /// function does not enforce canonicality of the source value.
+            #[inline]
             pub fn set_decode_reduce(&mut self, buf: &[u8]) {
                 let mut n = buf.len();
                 if n == 0 {
@@ -1323,6 +1374,7 @@ macro_rules! define_fp_core {
             /// unsigned little-endian convention (no sign bit), and the resulting
             /// integer is reduced modulo the field modulus p. By definition, this
             /// function does not enforce canonicality of the source value.
+            #[inline(always)]
             pub fn decode_reduce(buf: &[u8]) -> Self {
                 let mut x = Self::ZERO;
                 x.set_decode_reduce(buf);

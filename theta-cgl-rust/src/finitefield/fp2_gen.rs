@@ -62,33 +62,40 @@ macro_rules! define_fp2_core {
                 Self { x0: *re, x1: *im }
             }
 
+            #[inline]
             pub fn iszero(self) -> u32 {
                 self.x0.iszero() & self.x1.iszero()
             }
 
+            #[inline]
             pub fn equals(self, rhs: &Self) -> u32 {
                 self.x0.equals(&rhs.x0) & self.x1.equals(&rhs.x1)
             }
 
+            #[inline]
             fn set_add(&mut self, rhs: &Self) {
                 self.x0 += &rhs.x0;
                 self.x1 += &rhs.x1;
             }
 
+            #[inline]
             fn set_sub(&mut self, rhs: &Self) {
                 self.x0 -= &rhs.x0;
                 self.x1 -= &rhs.x1;
             }
 
+            #[inline]
             pub fn set_neg(&mut self) {
                 self.x0.set_neg();
                 self.x1.set_neg();
             }
 
+            #[inline]
             pub fn set_conj(&mut self) {
                 self.x1.set_neg();
             }
 
+            #[inline]
             pub fn conj(self) -> Self {
                 Self {
                     x0: self.x0,
@@ -96,6 +103,7 @@ macro_rules! define_fp2_core {
                 }
             }
 
+            #[inline]
             fn set_mul(&mut self, rhs: &Self) {
                 // a <- x0*y0
                 // b <- x1*y1
@@ -112,6 +120,7 @@ macro_rules! define_fp2_core {
                 self.x1 -= &b;
             }
 
+            #[inline]
             pub fn set_square(&mut self) {
                 // (x0 + i*x1)^2 = (x0^2 - x1^2) + 2*i*(x0*x1)
                 //               = (x0 + x1)*(x0 - x1) + i*(2*x0*x1)
@@ -123,73 +132,85 @@ macro_rules! define_fp2_core {
                 self.x0 *= &b;
             }
 
+            #[inline]
             pub fn square(self) -> Self {
                 let mut r = self;
                 r.set_square();
                 r
             }
 
+            #[inline]
             pub fn set_half(&mut self) {
                 self.x0.set_half();
                 self.x1.set_half();
             }
 
+            #[inline]
             pub fn half(self) -> Self {
                 let mut r = self;
                 r.set_half();
                 r
             }
 
+            #[inline]
             pub fn set_mul2(&mut self) {
                 self.x0.set_mul2();
                 self.x1.set_mul2();
             }
 
+            #[inline]
             pub fn mul2(self) -> Self {
                 let mut r = self;
                 r.set_mul2();
                 r
             }
 
-            // TODO: implement for GF255
-            // pub fn set_mul3(&mut self) {
-            //     self.x0.set_mul3();
-            //     self.x1.set_mul3();
-            // }
-            //
-            // pub fn mul3(self) -> Self {
-            //     let mut r = self;
-            //     r.set_mul3();
-            //     r
-            // }
-
+            #[inline]
             pub fn set_mul4(&mut self) {
                 self.x0.set_mul4();
                 self.x1.set_mul4();
             }
 
+            #[inline]
             pub fn mul4(self) -> Self {
                 let mut r = self;
                 r.set_mul4();
                 r
             }
 
+            #[inline]
+            pub fn set_mul8(&mut self) {
+                self.x0.set_mul8();
+                self.x1.set_mul8();
+            }
+
+            #[inline]
+            pub fn mul8(self) -> Self {
+                let mut r = self;
+                r.set_mul8();
+                r
+            }
+
+            #[inline]
             pub fn set_mul_small(&mut self, k: i32) {
                 self.x0.set_mul_small(k);
                 self.x1.set_mul_small(k);
             }
 
+            #[inline]
             pub fn mul_small(self, k: i32) -> Self {
                 let mut r = self;
                 r.set_mul_small(k);
                 r
             }
 
+            #[inline]
             pub fn set_select(&mut self, a: &Self, b: &Self, ctl: u32) {
                 self.x0.set_select(&a.x0, &b.x0, ctl);
                 self.x1.set_select(&a.x1, &b.x1, ctl);
             }
 
+            #[inline]
             pub fn select(a: &Self, b: &Self, ctl: u32) -> Self {
                 Self {
                     x0: Fp::select(&a.x0, &b.x0, ctl),
@@ -197,11 +218,13 @@ macro_rules! define_fp2_core {
                 }
             }
 
+            #[inline]
             pub fn set_cond(&mut self, rhs: &Self, ctl: u32) {
                 self.x0.set_cond(&rhs.x0, ctl);
                 self.x1.set_cond(&rhs.x1, ctl);
             }
 
+            #[inline]
             pub fn set_condneg(&mut self, ctl: u32) {
                 let y0 = -(&self.x0);
                 let y1 = -(&self.x1);
@@ -209,11 +232,13 @@ macro_rules! define_fp2_core {
                 self.x1.set_cond(&y1, ctl);
             }
 
+            #[inline]
             pub fn condswap(a: &mut Self, b: &mut Self, ctl: u32) {
                 Fp::condswap(&mut a.x0, &mut b.x0, ctl);
                 Fp::condswap(&mut a.x1, &mut b.x1, ctl);
             }
 
+            #[inline]
             fn set_div(&mut self, rhs: &Self) {
                 // 1/(x0 + i*x1) = (x0 - i*x1)/(x0^2 + x1^2)
                 let mut z = rhs.x0.square();
@@ -226,12 +251,14 @@ macro_rules! define_fp2_core {
                 self.set_mul(&r);
             }
 
+            #[inline]
             pub fn div(self, rhs: &Self) -> Self {
                 let mut r = self;
                 r.set_div(rhs);
                 r
             }
 
+            #[inline]
             pub fn set_invert(&mut self) {
                 // 1/(x0 + i*x1) = (x0 - i*x1)/(x0^2 + x1^2)
                 let mut z = self.x0.square();
@@ -242,6 +269,7 @@ macro_rules! define_fp2_core {
                 self.x1.set_neg();
             }
 
+            #[inline]
             pub fn invert(self) -> Self {
                 let mut r = self;
                 r.set_invert();
@@ -252,6 +280,7 @@ macro_rules! define_fp2_core {
             ///   0   if this value is zero
             ///  +1   if this value is a non-zero quadratic residue
             ///  -1   if this value is not a quadratic residue
+            #[inline]
             pub fn legendre(self) -> i32 {
                 // x = x0 + i*x1 is a square in GF(p^2) if and only if
                 // x0^2 + x1^2 is a square in GF(p). Moreover, x0^2 + x1^2 is

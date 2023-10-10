@@ -62,17 +62,33 @@ fn dimension_one_rad_4_921_example() {
 fn dimension_two_rad_2_127_example() {
     println!("Computing using 2-radical isogenies...");
     let cgl = thp127::CGLDim2Rad2::new();
-    let (h1, h2, h3) = cgl.hash(MSG.to_vec(), 3);
+    let (h1, h2, h3) = cgl.hash(MSG.to_vec());
 
     println!("Rust hash: {}", h1);
     println!("           {0}\n           {1}", h2, h3);
 
-    let exp1 = "i*51270636009212854362226904376444348492 + 118854541911646677142182896694474475917";
-    let exp2 = "i*37435301830601681338962451584023412917 + 153456715888985573907459419269142792661";
-    let exp3 = "i*103658172645780440076386144196752149867 + 70551901995418187699403785643888592714";
+    let ex1 = "i*51270636009212854362226904376444348492 + 118854541911646677142182896694474475917";
+    let ex2 = "i*37435301830601681338962451584023412917 + 153456715888985573907459419269142792661";
+    let ex3 = "i*103658172645780440076386144196752149867 + 70551901995418187699403785643888592714";
 
-    println!("Sage hash: {}", exp1);
-    println!("           {0}\n           {1}", exp2, exp3);
+    println!("Sage hash: {}", ex1);
+    println!("           {0}\n           {1}", ex2, ex3);
+}
+
+fn dimension_two_rad_4_127_example() {
+    println!("Computing using 4-radical isogenies...");
+    let cgl: thp127::CGLDim2Rad4 = thp127::CGLDim2Rad4::new();
+    let (h1, h2, h3) = cgl.hash(MSG.to_vec());
+
+    println!("Rust hash: {}", h1);
+    println!("           {0}\n           {1}", h2, h3);
+
+    let ex1 = "i*14255708726834209014572159019899113927 + 106613803422737905865003815327946998256";
+    let ex2 = "i*161915183057086815891740274300276651399 + 13519842835831752693363006384794856";
+    let ex3 = "i*105249037341253961638806546690278378374 + 165821113257513419160824899234824339511";
+
+    println!("Sage hash: {}", ex1);
+    println!("           {0}\n           {1}", ex2, ex3);
 }
 
 fn main() {
@@ -99,5 +115,8 @@ fn main() {
     println!("================================================================================");
 
     dimension_two_rad_2_127_example();
+    println!();
+    dimension_two_rad_4_127_example();
+
     println!("\n");
 }

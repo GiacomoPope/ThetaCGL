@@ -297,6 +297,7 @@ impl<const MQ: u64> GF255<MQ> {
     /// Negate this value if ctl is 0xFFFFFFFF; leave it unchanged if
     /// ctl is 0x00000000.
     /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
+    #[inline]
     pub fn set_condneg(&mut self, ctl: u32) {
         let v = -(self as &Self);
         self.set_cond(&v, ctl);
@@ -305,6 +306,7 @@ impl<const MQ: u64> GF255<MQ> {
     /// Set this value to either a or b, depending on whether the control
     /// word ctl is 0x00000000 or 0xFFFFFFFF, respectively.
     /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
+    #[inline]
     pub fn set_select(&mut self, a: &Self, b: &Self, ctl: u32) {
         let c = (ctl as u64) | ((ctl as u64) << 32);
         self.0[0] = a.0[0] ^ (c & (a.0[0] ^ b.0[0]));
@@ -315,7 +317,7 @@ impl<const MQ: u64> GF255<MQ> {
 
     // Return a value equal to either a0 (if ctl == 0) or a1 (if
     // ctl == 0xFFFFFFFF). Value ctl MUST be either 0 or 0xFFFFFFFF.
-    #[inline(always)]
+    #[inline]
     pub fn select(a0: &Self, a1: &Self, ctl: u32) -> Self {
         let mut r = *a0;
         r.set_cond(a1, ctl);
