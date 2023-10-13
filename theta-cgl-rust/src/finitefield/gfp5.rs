@@ -25,7 +25,10 @@ impl GFp {
     pub const ENCODED_LENGTH: usize = 8;
 
     /// GF(p) modulus: p = 2^64 - 2^32 + 1
-    pub const MOD: u64 = 0xFFFFFFFF00000001;
+    /// GF(p) modulus: p = 2^64 - 257
+    // pub const MOD: u64 = 0xFFFFFFFF00000001;
+    // TODO: take C into account
+    pub const MOD: u64 = 0xfffffffffffffeff;
 
     /// Element 0 in GF(p).
     pub const ZERO: GFp = GFp::from_u64_reduce(0);
@@ -37,83 +40,49 @@ impl GFp {
     pub const MINUS_ONE: GFp = GFp::from_u64_reduce(GFp::MOD - 1);
 
     // 2^128 mod p.
-    const R2: u64 = 0xFFFFFFFE00000001;
+    // const R2: u64 = 0xFFFFFFFE00000001;
+    // TODO: take C into account, now computed for fixed value (258)
+    const R2: u64 = 0x10201;
 
-    // Montgomery reduction: given x <= p*2^64 - 1 = 2^128 - 2^96 + 2^64 - 1,
+    // p = 2^64 - C
+    pub const C: u64 = 257;
+
+    // Montgomery reduction: given x <= p*2^64 - 1,
     // return x/2^64 mod p (in the 0 to p-1 range).
     #[inline(always)]
     const fn montyred(x: u128) -> u64 {
-        // Write:
-        //  x = x0 + x1*2^32 + xh*2^64
-        // with x0 and x1 over 32 bits each (in the 0..2^32-1 range),
-        // and 0 <= xh <= p-1 (since x < p*2^64).
-        // Then:
-        //  x/2^64 = xh + ((x0 + x1*2^32) / 2^64) mod p
-        // Define:
-        //  A = x0 + x1*2^32 + p*(2^64 - (x0 + (x0 + x1)*2^32))
-        //    = (p - ((x0 + x1)*2^32 - x1))*2^64
-        // Therefore:
-        //  (x0 + x1*2^32)/2^64 = -((x0 + x1)*2^32 - x1) mod p
-        // We thus want to compute (x0 + x1)*2^32 - x1, and subtract that
-        // from xh, and reduce the result modulo p.
+        // a = a1 * 2^64 + a0
+        let a0 = x as u64;
+        let a1 = (x >> 64) as u64;
+        let b: u128 = a1 as u128 * GFp::C as u128 + a0 as u128;
+        // b = b1 * 2^64 + b0
+        let b0 = b as u64;
+        let b1 = (b >> 64) as u64;
+        let mut r: u128 = b1 as u128 * GFp::C as u128 + b0 as u128;
 
-        let xl = x as u64;
-        let xh = (x >> 64) as u64;
-        let (a, e) = xl.overflowing_add(xl << 32);
+        // Debugging:
+        let foo = x % GFp::MOD as u128;
+        let goo = r % GFp::MOD as u128;
+        assert!(foo == goo);
 
-        // At this point, we have:
-        //  a = (x0 + x1)*2^32 + x0 - e*2^64
-        // Note that floor(a / 2^32) = (x0 + x1) - e*2^32, since x0
-        // fits on 32 bits.
+        let rc = r + GFp::C as u128;
+        let (r1, e1) = rc.overflowing_sub(1<<64);
 
-        let b = a.wrapping_sub(a >> 32).wrapping_sub(e as u64);
+        let c = GFp::C as u128;
+        let bla = r + c - 1<<64;
+        let bla1 = bla % GFp::MOD as u128; 
 
-        // We computed:
-        //  b = a - (x0 + x1) + e*2^32 - e  mod 2^64
-        //    = (x0 + x1)*2^32 + x0 - e*2^64 - (x0 + x1) + e*2^32 - e  mod 2^64
-        //    = (x0 + x1)*2^32 - x1 - e*p  mod 2^64
-        // If (x0 + x1) <= 2^32 - 1, then:
-        //     e = 0
-        //     (x0 + x1)*2^32 - x1 <= (x0 + x1)*2^32 <= 2^64 - 2^32 < p
-        //     and thus b = (x0 + x1)*2^32 - x1, and in the 0..p-1 range.
-        // Else:
-        //     e = 1
-        //     (x0 + x1)*2^32 - x1 - p = x0*2^32 + x1*(2^32 - 1) - p
-        //     with:
-        //         x0*2^32 <= (2^32 - 1)*2^32 < p
-        //         x1*(2^32 - 1) <= (2^32 - 1)*(2^32 - 1) < p
-        //         (x0 + x1)*2^32 - x1 >= 2^64 - (2^32 - 1) = p
-        //     thus b = (x0 + x1)*2^32 - p, and in the 0..p-1 range.
-        // In both cases, b contains exactly -((x0 + x1*2^32)/2^64) mod p,
-        // properly reduced into the 0..p-1 range.
-        //
-        // Thanks to the input assumption on x, we know that xh is also
-        // in the 0..p-1 range, and thus we only have to subtract b from
-        // xh modulo p. This subtraction is done by first doing it over
-        // the integers, and then adding back p in case there was a
-        // borrow. Since p = 2^64 - (2^32 - 1), "adding p" is equivalent
-        // to "subtracting 2^32 - 1" when working modulo p. The
-        // expression "0u32.wrapping_sub(c as u32)" should translate as
-        // "perform a subtract-with-carry from the value 0"; since
-        // setting a register to zero has no cost at all on x86 (it is
-        // done with a xor of a register with itself, and the CPU
-        // recognizes that instruction specially and maps it to a
-        // special case of the register renaming unit, no computation is
-        // actually done), we may hope for this operation to be done
-        // with 1-cycle latency.
+        r = r + (1 - e1 as u128) * (GFp::C as u128 - 1<<64);
 
-        let (r, c) = xh.overflowing_sub(b);
-        r.wrapping_sub(0u32.wrapping_sub(c as u32) as u64)
+        let goo1 = r % GFp::MOD as u128;
 
-        // A multiplication in GF(p) is a 64x64->128 multiply, followed
-        // by montyred(). On x86 (Intel Skylake+ core), the
-        // multiplication should be a mulx, which yields the low half
-        // (xl) after 3 cycles, and the high half (xh) after 4 cycles.
-        // Operations above imply an extra 7-cycle latency over the
-        // computation of xl, thus 10-cycle latency in total. We thus
-        // expect a sequence of n dependent multiplications to
-        // execute over 10*n cycles, which is corroborated by benchmarks
-        // (on an Intel i5-8259U "Coffee Lake" core).
+        let rc2 = r + GFp::C as u128;
+        let (r2, e2) = rc2.overflowing_sub(1<<64);
+        r = r + (1 - e2 as u128) * (GFp::C as u128 - 1<<64);
+
+        let goo2 = r % GFp::MOD as u128;
+
+        r as u64
     }
 
     /// Build a GF(p) element from a 64-bit integer. Returned values
@@ -533,7 +502,7 @@ mod tests {
     #[test]
     fn gfp_ops() {
         for i in 0..10 {
-            let v: u64 = (i as u64) + 0xFFFFFFFEFFFFFFFC;
+            let v: u64 = (i as u64) + GFp::MOD - 5;
             if i <= 4 {
                 let (x, c) = GFp::from_u64(v);
                 assert!(c == 0xFFFFFFFFFFFFFFFF);
