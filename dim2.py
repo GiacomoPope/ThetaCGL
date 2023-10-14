@@ -36,10 +36,19 @@ class ThetaCGLDim2(CGL):
         dd = d * d
 
         AA, BB, CC, DD = ThetaCGLDim2.hadamard(aa, bb, cc, dd)
+        
+        lam = 0
+        for X in [AA, BB, CC, DD]:
+            if X != 0:
+                lam = X
+                break
+        if lam == 0:
+            raise ValueError("All coordinates are zero")
 
-        AABB = AA * BB
-        AACC = AA * CC
-        AADD = AA * DD
+        AAAA = lam * AA
+        AABB = lam * BB
+        AACC = lam * CC
+        AADD = lam * DD
         AB = self.sqrt(AABB)
         AC = self.sqrt(AACC)
         AD = self.sqrt(AADD)
