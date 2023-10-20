@@ -43,6 +43,7 @@ impl GFp {
     // const R2: u64 = 0xFFFFFFFE00000001;
     // TODO: take C into account, now computed for fixed value (258)
     const R2: u64 = 0x10201;
+    const MU: u64 = 0xff00ff00ff00ff01;
 
     // p = 2^64 - C
     pub const C: u64 = 257;
@@ -51,38 +52,16 @@ impl GFp {
     // return x/2^64 mod p (in the 0 to p-1 range).
     #[inline(always)]
     const fn montyred(x: u128) -> u64 {
-        // a = a1 * 2^64 + a0
-        let a0 = x as u64;
-        let a1 = (x >> 64) as u64;
-        let b: u128 = a1 as u128 * GFp::C as u128 + a0 as u128;
-        // b = b1 * 2^64 + b0
-        let b0 = b as u64;
-        let b1 = (b >> 64) as u64;
-        let mut r: u128 = b1 as u128 * GFp::C as u128 + b0 as u128;
+        let r0 = x as u64;
+        let q = (GFp::MU as u128 * r0 as u128) as u64;
 
-        // Debugging:
-        let foo = x % GFp::MOD as u128;
-        let goo = r % GFp::MOD as u128;
-        assert!(foo == goo);
+        let qp = q as u128 * GFp::MOD as u128;
+        let (o, c1) = x.overflowing_add(qp);
+        let mut r = o >> 64 as u64;
+        r = r as u128 + (c1 as u128 * 1<<64 as u128);
+        let r1 = (r % GFp::MOD as u128) as u64;
 
-        let rc = r + GFp::C as u128;
-        let (r1, e1) = rc.overflowing_sub(1<<64);
-
-        let c = GFp::C as u128;
-        let bla = r + c - 1<<64;
-        let bla1 = bla % GFp::MOD as u128; 
-
-        r = r + (1 - e1 as u128) * (GFp::C as u128 - 1<<64);
-
-        let goo1 = r % GFp::MOD as u128;
-
-        let rc2 = r + GFp::C as u128;
-        let (r2, e2) = rc2.overflowing_sub(1<<64);
-        r = r + (1 - e2 as u128) * (GFp::C as u128 - 1<<64);
-
-        let goo2 = r % GFp::MOD as u128;
-
-        r as u64
+        r1
     }
 
     /// Build a GF(p) element from a 64-bit integer. Returned values
@@ -503,6 +482,7 @@ mod tests {
     fn gfp_ops() {
         for i in 0..10 {
             let v: u64 = (i as u64) + GFp::MOD - 5;
+            println!("{}", i);
             if i <= 4 {
                 let (x, c) = GFp::from_u64(v);
                 assert!(c == 0xFFFFFFFFFFFFFFFF);

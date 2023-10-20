@@ -134,7 +134,7 @@ impl GFp {
     #[inline(always)]
     pub const fn from_u64_reduce(v: u64) -> GFp {
         // R^2 = 2^64 - 2^33 + 1 mod p.
-        // With v < 2^64, we have R*v < 2^128 - 2^97 + 2^64, which is in
+        // With v < 2^64, we have R^2*v < 2^128 - 2^97 + 2^64, which is in
         // range of montyred().
         GFp(GFp::montyred((v as u128) * (GFp::R2 as u128)))
     }
@@ -1441,6 +1441,7 @@ mod tests {
             if i <= 4 {
                 let (x, c) = GFp::from_u64(v);
                 assert!(c == 0xFFFFFFFFFFFFFFFF);
+                let r = 1<<32 - 1;
                 assert!(x.to_u64() == v);
                 let y = GFp::from_u64_reduce(v);
                 assert!(y.to_u64() == v);
