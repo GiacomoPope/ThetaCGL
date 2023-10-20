@@ -104,8 +104,8 @@ impl GFp {
     const fn add(self, rhs: Self) -> Self {
         // We compute a + b = a - (p - b).
         let (x1, c1) = self.0.overflowing_sub(GFp::MOD - rhs.0);
-        let adj = 0u32.wrapping_sub(c1 as u32);
-        GFp(x1.wrapping_sub(adj as u64))
+        let t = c1 as u64 * GFp::C;
+        GFp(x1.wrapping_sub(t as u64))
     }
 
     /// Subtraction in GF(p)
@@ -113,8 +113,8 @@ impl GFp {
     const fn sub(self, rhs: Self) -> Self {
         // See montyred() for details on the subtraction.
         let (x1, c1) = self.0.overflowing_sub(rhs.0);
-        let adj = 0u32.wrapping_sub(c1 as u32);
-        GFp(x1.wrapping_sub(adj as u64))
+        let t = c1 as u64 * GFp::C;
+        GFp(x1.wrapping_sub(t as u64))
     }
 
     /// Negation in GF(p)
@@ -129,7 +129,8 @@ impl GFp {
         // If x is even, then this returned x/2.
         // If x is odd, then this returns (x-1)/2 + (p+1)/2 = (x+p)/2.
         GFp((self.0 >> 1).wrapping_add(
-            (self.0 & 1).wrapping_neg() & 0x7FFFFFFF80000001))
+            // TODO: HALF should correspond to C
+            (self.0 & 1).wrapping_neg() & 0x7fffffffffffff80))
     }
 
     /// Doubling in GF(p) (multiplication by 2).

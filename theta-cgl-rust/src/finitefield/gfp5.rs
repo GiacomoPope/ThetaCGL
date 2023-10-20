@@ -1441,7 +1441,6 @@ mod tests {
             if i <= 4 {
                 let (x, c) = GFp::from_u64(v);
                 assert!(c == 0xFFFFFFFFFFFFFFFF);
-                let r = 1<<32 - 1;
                 assert!(x.to_u64() == v);
                 let y = GFp::from_u64_reduce(v);
                 assert!(y.to_u64() == v);
