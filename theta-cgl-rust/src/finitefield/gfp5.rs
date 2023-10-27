@@ -235,14 +235,15 @@ impl GFp {
         // We have p-2 = 0xFFFFFFFEFFFFFFFF. In the instructions below,
         // we call 'xj' the value x^(2^j-1).
         let x = self;
-        let x2 = x * x.square();
-        let x4 = x2 * x2.msquare(2);
-        let x5 = x * x4.square();
-        let x10 = x5 * x5.msquare(5);
-        let x15 = x5 * x10.msquare(5);
-        let x16 = x * x15.square();
-        let x31 = x15 * x16.msquare(15);
-        let x32 = x * x31.square();
+        let x2 = x * x.square(); // x^3
+        let x4 = x2 * x2.msquare(2); // x^15
+        let x5 = x * x4.square(); // x^31
+        let x10 = x5 * x5.msquare(5); // x^(2^10 - 1)
+        let x15 = x5 * x10.msquare(5); // x^(2^15 - 1)
+        let x16 = x * x15.square(); // x^(2^16 - 1)
+        let x31 = x15 * x16.msquare(15); // x^(2^31 - 1)
+        let x32 = x * x31.square(); // x^(2^32 - 1)
+
         return x32 * x31.msquare(33);
     }
 

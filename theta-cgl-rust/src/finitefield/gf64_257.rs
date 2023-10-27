@@ -47,6 +47,7 @@ impl GFp {
 
     // p = 2^64 - C
     pub const C: u64 = 257;
+    const P_PLUS_ONE_HALF: u64 = 0x7fffffffffffff80;
 
     // Montgomery reduction: given x <= p*2^64 - 1,
     // return x/2^64 mod p (in the 0 to p-1 range).
@@ -129,32 +130,13 @@ impl GFp {
         // If x is even, then this returned x/2.
         // If x is odd, then this returns (x-1)/2 + (p+1)/2 = (x+p)/2.
         GFp((self.0 >> 1).wrapping_add(
-            // TODO: HALF should correspond to C
-            (self.0 & 1).wrapping_neg() & 0x7fffffffffffff80))
+            (self.0 & 1).wrapping_neg() & GFp::P_PLUS_ONE_HALF))
     }
 
     /// Doubling in GF(p) (multiplication by 2).
     #[inline(always)]
     pub const fn double(self) -> Self {
         self.add(self)
-    }
-
-    /// Multiplication in GF(p) by a small integer (less than 2^31).
-    #[inline(always)]
-    pub const fn mul_small(self, rhs: u32) -> Self {
-        // Since the 'rhs' value is not in Montgomery representation,
-        // we need to do a manual reduction instead.
-        let x = (self.0 as u128) * (rhs as u128);
-        let xl = x as u64;
-        let xh = (x >> 64) as u64;
-
-        // Since rhs <= 2^31 - 1, we have xh <= 2^31 - 2, and
-        // p - xh >= 2^64 - 2^32 - 2^31 + 3, which is close to 2^64;
-        // thus, even if xl was not lower than p, the subtraction
-        // will bring back the value in the proper range, and the
-        // normal subtraction in GF(p) yields the proper result.
-        let (r, c) = xl.overflowing_sub(GFp::MOD - ((xh << 32) - xh));
-        GFp(r.wrapping_sub(0u32.wrapping_sub(c as u32) as u64))
     }
 
     /// Multiplication in GF(p)
@@ -185,16 +167,31 @@ impl GFp {
         // This uses Fermat's little theorem: 1/x = x^(p-2) mod p.
         // We have p-2 = 0xFFFFFFFEFFFFFFFF. In the instructions below,
         // we call 'xj' the value x^(2^j-1).
+        // We call 'yj' the value x^(2^j).
         let x = self;
-        let x2 = x * x.square();
-        let x4 = x2 * x2.msquare(2);
-        let x5 = x * x4.square();
-        let x10 = x5 * x5.msquare(5);
-        let x15 = x5 * x10.msquare(5);
-        let x16 = x * x15.square();
-        let x31 = x15 * x16.msquare(15);
-        let x32 = x * x31.square();
-        return x32 * x31.msquare(33);
+        let y1 = x.square(); // x^2
+        let y2 = y1.square(); // x^4
+        let y3 = y2.square(); // x^8
+
+        let x2 = x * x.square(); // x^3
+        let x4 = x2 * x2.msquare(2); // x^15
+        let x5 = x * x4.square(); // x^31
+        let x7 = x2 * x5.msquare(2); // x^(2^7 - 1)
+        let x10 = x5 * x5.msquare(5); // x^(2^10 - 1)
+        let x15 = x5 * x10.msquare(5); // x^(2^15 - 1)
+        let x16 = x * x15.square(); // x^(2^16 - 1)
+        let x31 = x15 * x16.msquare(15); // x^(2^31 - 1)
+        let x32 = x * x31.square(); // x^(2^32 - 1)
+
+        // 2^64 - 257 - 2 = (2^32 - 1) * 2^32 + 2^32 - 259 = (2^32 - 1) * 2^32 + (2^16 - 1) * 2^16 + 2^16 - 259
+        // c1 = 2^8 - 3 = (2^4 - 1) * 2^4 + 13
+        let c1 = x4.msquare(4) * y3 * y2 * x;
+        // c2 = 2^16 - 259 = 2^16 - 2^8 - 3 = (2^7 - 1) * 2^9 + 2^8 - 3
+        let c2 = x7.msquare(9) * c1;
+        let c3 = x16.msquare(16);
+        let c4 = x32.msquare(32);
+
+        return c4 * c3 * c2;
     }
 
     fn div(self, rhs: Self) -> Self {
@@ -239,6 +236,8 @@ impl GFp {
     /// Legendre symbol: return x^((p-1)/2) (as a GF(p) element).
     pub fn legendre(self) -> GFp {
         // (p-1)/2 = 0x7FFFFFFF80000000
+        // TODO:
+        // (p-1)/2 = 0x7fffffffffffff7f
         let x = self;
         let x2 = x * x.square();
         let x4 = x2 * x2.msquare(2);
@@ -476,7 +475,7 @@ mod tests {
         } else {
             check_gfp_eq(x * x.invert(), 1);
         }
-        assert!(x.half().mul_small(2).equals(x) == 0xFFFFFFFFFFFFFFFF);
+        assert!(x.half().double().equals(x) == 0xFFFFFFFFFFFFFFFF);
     }
 
     #[test]
