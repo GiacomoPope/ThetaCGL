@@ -235,16 +235,31 @@ impl GFp {
 
     /// Legendre symbol: return x^((p-1)/2) (as a GF(p) element).
     pub fn legendre(self) -> GFp {
-        // (p-1)/2 = 0x7FFFFFFF80000000
-        // TODO:
         // (p-1)/2 = 0x7fffffffffffff7f
         let x = self;
-        let x2 = x * x.square();
-        let x4 = x2 * x2.msquare(2);
+        let y1 = x.square(); // x^2
+
+        let x2 = x * x.square(); // x^3
+        let x4 = x2 * x2.msquare(2); // x^15
+        let x5 = x * x4.square(); // x^31
         let x8 = x4 * x4.msquare(4);
-        let x16 = x8 * x8.msquare(8);
-        let x32 = x16 * x16.msquare(16);
-        x32.msquare(31)
+        let x10 = x5 * x5.msquare(5); // x^(2^10 - 1)
+        let x15 = x5 * x10.msquare(5); // x^(2^15 - 1)
+        let x16 = x * x15.square(); // x^(2^16 - 1)
+        let x31 = x15 * x16.msquare(15); // x^(2^31 - 1)
+
+        // 2**63 - 129 = (2**31 - 1) * 2**32 + 2**32 - 129
+        // = (2**31 - 1) * 2**32 + (2**16 - 1) * 2**16 + 2**16 - 129
+        // = (2**31 - 1) * 2**32 + (2**16 - 1) * 2**16 + (2**8 - 1) * 2**8 + 2**8 - 129
+        // = (2**31 - 1) * 2**32 + (2**16 - 1) * 2**16 + (2**8 - 1) * 2**8 + 127
+
+        // 2^7 - 1 = (2**5 - 1) * 2**2 + 3
+        let c1 = x5.msquare(2) * y1 * x;
+        let c2 = x8.msquare(8);
+        let c3 = x16.msquare(16);
+        let c4 = x31.msquare(32);
+
+        c4 * c3 * c2 * c1
     }
 
     // For g = 7^(2^32-1) mod p = 1753635133440165772 (a primitive 2^32 root
