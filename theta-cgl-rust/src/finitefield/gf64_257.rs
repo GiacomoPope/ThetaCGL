@@ -262,91 +262,51 @@ impl GFp {
         c4 * c3 * c2 * c1
     }
 
-    // For g = 7^(2^32-1) mod p = 1753635133440165772 (a primitive 2^32 root
-    // of 1 in GF(p)), we precompute GG[i] = g^(2^i) for i = 0 to 31.
-    const GG: [GFp; 32] = [
-        GFp::from_u64_reduce( 1753635133440165772),
-        GFp::from_u64_reduce( 4614640910117430873),
-        GFp::from_u64_reduce( 9123114210336311365),
-        GFp::from_u64_reduce(16116352524544190054),
-        GFp::from_u64_reduce( 6414415596519834757),
-        GFp::from_u64_reduce( 1213594585890690845),
-        GFp::from_u64_reduce(17096174751763063430),
-        GFp::from_u64_reduce( 5456943929260765144),
-        GFp::from_u64_reduce( 9713644485405565297),
-        GFp::from_u64_reduce(16905767614792059275),
-        GFp::from_u64_reduce( 5416168637041100469),
-        GFp::from_u64_reduce(17654865857378133588),
-        GFp::from_u64_reduce( 3511170319078647661),
-        GFp::from_u64_reduce(18146160046829613826),
-        GFp::from_u64_reduce( 9306717745644682924),
-        GFp::from_u64_reduce(12380578893860276750),
-        GFp::from_u64_reduce( 6115771955107415310),
-        GFp::from_u64_reduce(17776499369601055404),
-        GFp::from_u64_reduce(16207902636198568418),
-        GFp::from_u64_reduce( 1532612707718625687),
-        GFp::from_u64_reduce(17492915097719143606),
-        GFp::from_u64_reduce(  455906449640507599),
-        GFp::from_u64_reduce(11353340290879379826),
-        GFp::from_u64_reduce( 1803076106186727246),
-        GFp::from_u64_reduce(13797081185216407910),
-        GFp::from_u64_reduce(17870292113338400769),
-        GFp::from_u64_reduce(        549755813888),
-        GFp::from_u64_reduce(      70368744161280),
-        GFp::from_u64_reduce(17293822564807737345),
-        GFp::from_u64_reduce(18446744069397807105),
-        GFp::from_u64_reduce(     281474976710656),
-        GFp::from_u64_reduce(18446744069414584320)
-    ];
-
-    /// Square root in GF(p); returns (r, cc):
-    ///  - If the input is a square, r = sqrt(self) and cc = 0xFFFFFFFFFFFFFFFF
-    ///  - If the input is not a square, r = zero and cc = 0
-    /// Which of the two square roots is obtained is unspecified.
     pub fn sqrt(self) -> (Self, u64) {
-        // We use a constant-time Tonelli-Shanks. 
-        // Input: x
-        // Output: (sqrt(x), -1) if x is QR, or (0, 0) otherwise
-        // Definitions:
-        //    modulus: p = q*2^n + 1 with q odd (here, q = 2^32 - 1 and n = 32)
-        //    g is a primitive 2^n root of 1 in GF(p)
-        //    GG[j] = g^(2^j)  (j = 0 to n-1, precomputed)
-        // Init:
-        //    r <- x^((q+1)/2)
-        //    v <- x^q
-        // Process:
-        //    for i = n-1 down to 1:
-        //        w = v^(2^(i-1))   (with i-1 squarings)
-        //        if w == -1 then:
-        //            v <- v*GG[n-i]
-        //            r <- r*GG[n-i-1]
-        //    if v == 0 or 1 then:
-        //        return (r, -1)
-        //    else:
-        //        return (0, 0)  (no square root)
+        const WIN_LEN: i32 = 4;
+        const SQRT_EL: i32 = 1;
+        const SQRT_EH: [i32; 15] = [12, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 3];
 
-        let x = self;
-
-        // r <- u^((q+1)/2)
-        // v <- u^q
-        let x2 = x * x.square();
-        let x4 = x2 * x2.msquare(2);
-        let x5 = x * x4.square();
-        let x10 = x5 * x5.msquare(5);
-        let x15 = x5 * x10.msquare(5);
-        let x16 = x * x15.square();
-        let x31 = x15 * x16.msquare(15);
-        let mut r = x * x31;
-        let mut v = x * x31.square();
-
-        for i in (1..32).rev() {
-            let w = v.msquare((i - 1) as u32);
-            let cc = w.equals(GFp::MINUS_ONE);
-            v = GFp(v.0 ^ (cc & (v.0 ^ (v * GFp::GG[32 - i]).0)));
-            r = GFp(r.0 ^ (cc & (r.0 ^ (r * GFp::GG[31 - i]).0)));
+        // Make a window.
+        let mut ww = [self; (1usize << WIN_LEN) - 1];
+        for i in 1..ww.len() {
+            if ((i + 1) & 1) == 0 {
+                ww[i] = ww[i >> 1].square();
+            } else {
+                let z = ww[i] * ww[i - 1];
+                ww[i] = z;
+            }
         }
-        let m = v.iszero() | v.equals(GFp::ONE);
-        (GFp(r.0 & m), m)
+
+        // Square and multiply algorithm, with exponent e = (p + 1)/4.
+        // The exponent is not secret; we can do non-constant-time
+        // lookups in the window, and omit multiplications for null digits.
+        let mut x = ww[(SQRT_EH[SQRT_EH.len() - 1] as usize) - 1];
+        for i in (0..(SQRT_EH.len() - 1)).rev() {
+            for _ in 0..WIN_LEN {
+                x = x.square();
+            }
+            if SQRT_EH[i] != 0 {
+                x = x.mul(ww[(SQRT_EH[i] as usize) - 1]);
+            }
+        }
+        // Low 126 digits are all zero.
+        for _ in 0..(WIN_LEN * SQRT_EL) {
+            x = x.square()
+        }
+
+        // Check that the obtained value is indeed a square root of the
+        // source value (which is still in ww[0]); if not, clear this
+        // value.
+        let r = x.square().equals(ww[0]);
+        let rw = (r as u64) | ((r as u64) << 32);
+        x.0 &= rw;
+
+        // TODO:
+        // Conditionally negate this value, so that the chosen root
+        // follows the expected convention.
+
+        (x, r)
     }
 
     /// Select a value: this function returns x0 if c == 0, or x1 if
@@ -497,7 +457,6 @@ mod tests {
     fn gfp_ops() {
         for i in 0..10 {
             let v: u64 = (i as u64) + GFp::MOD - 5;
-            println!("{}", i);
             if i <= 4 {
                 let (x, c) = GFp::from_u64(v);
                 assert!(c == 0xFFFFFFFFFFFFFFFF);
