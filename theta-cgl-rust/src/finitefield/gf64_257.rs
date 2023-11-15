@@ -408,7 +408,8 @@ impl GFp {
     /// Double this value.
     #[inline]
     pub fn set_mul2(&mut self) {
-        self.0 = self.0 * 2;
+        let r = self.double();
+        self.0 = r.0;
     }
 
     /// Compute the sum of this value with itself.
@@ -499,9 +500,12 @@ impl GFp {
     }
 
     pub fn encode(self) -> [u8; Self::ENCODED_LENGTH] {
-        let mut r = [0u8; Self::ENCODED_LENGTH];
-        r[0..Self::ENCODED_LENGTH].copy_from_slice(&self.0.to_le_bytes());
-        r
+        let r = self.to_u64();
+        let mut d = [0u8; Self::ENCODED_LENGTH];
+        d[0..].copy_from_slice(
+            &(r.to_le_bytes()[..Self::ENCODED_LENGTH]),
+        );
+        d
     }
 
     pub fn decode(buf: &[u8]) -> (Self, u64) {
@@ -548,7 +552,8 @@ impl GFp {
             x = x + d;
         }
 
-        x * GFp::from_u64_reduce(Self::R2)
+        // x * GFp::from_u64_reduce(Self::R2)
+        x
     }
 
 }

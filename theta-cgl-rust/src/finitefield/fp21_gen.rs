@@ -293,13 +293,12 @@ macro_rules! define_fp2_core {
                 (self.x0.square() + self.x1.square()).legendre() 
             }
 
-            /// Set this value to its square root. Returned value is 0xFFFFFFFF if
+            /// Set this value to its square root. Returned value is 0xFFFFFFFFFFFFFFFF if
             /// the operation succeeded (value was indeed a quadratic residue), or
             /// 0x00000000 otherwise. On success, the chosen root is the one whose
             /// sign is 0 (i.e. if the "real part" is non-zero, then it is an even
             /// integer; if the "real part" is zero, then the "imaginary part" is
             /// an even integer). On failure, this value is set to 0.
-            /// TODO: return type
             pub fn set_sqrt(&mut self) -> u64 {
                 // x^p = (x0 + i*x1)^p = x0 - i*x1  (Frobenius automorphism)
                 // Thus: x^(p+1) = (x0 + i*x1)*(x0 - i*x1) = x0^2 + x1^2, which
@@ -345,7 +344,7 @@ macro_rules! define_fp2_core {
                 // If x1 = 0, then replace y0sq with x0
                 let x1z = self.x1.iszero();
                 y0sq.set_cond(&self.x0, x1z);
-                // Get the Legendre symbol and set nqr to 0xFFFFFFFF when y0sq
+                // Get the Legendre symbol and set nqr to 0xFFFFFFFFFFFFFFFF when y0sq
                 // is not a square
                 let ls = y0sq.legendre();
                 let nqr = (ls >> 1) as u64;
@@ -380,13 +379,12 @@ macro_rules! define_fp2_core {
                 (y, r)
             }
 
-            /// Set this value to its fourth root. Returned value is 0xFFFFFFFF if
+            /// Set this value to its fourth root. Returned value is 0xFFFFFFFFFFFFFFFF if
             /// the operation succeeded (value was indeed a fourth root), or
             /// 0x00000000 otherwise. On success, the chosen root is the one whose
             /// sign is 0 (i.e. if the "real part" is non-zero, then it is an even
             /// integer; if the "real part" is zero, then the "imaginary part" is
             /// an even integer). On failure, this value is set to 0.
-            /// TODO: return type
             pub fn set_fourth_root(&mut self) -> u64 {
                 // The aim of this function is to generalise set_sqrt by finding
                 // an element of Fp^2, y = y0 + i*y1 such that x = x0 + i x1 = y^4
@@ -462,7 +460,7 @@ macro_rules! define_fp2_core {
                 n.set_condneg(nqr);
 
                 // When y0^2 is zero, the correct value
-                // is insead n, so we can do a conditional
+                // is instead n, so we can do a conditional
                 // swap
                 y02.set_cond(&n, y02.iszero());
 
@@ -1049,7 +1047,7 @@ macro_rules! define_fp2_tests {
 
             let c = a / b;
             if b.iszero() != 0 {
-                assert!(c.iszero() == 0xFFFFFFFF);
+                assert!(c.iszero() == 0xFFFFFFFFFFFFFFFF);
             } else {
                 let c = c * b;
                 let vc = c.encode();
@@ -1060,17 +1058,17 @@ macro_rules! define_fp2_tests {
 
             let c = b.invert();
             if b.iszero() != 0 {
-                assert!(c.iszero() == 0xFFFFFFFF);
+                assert!(c.iszero() == 0xFFFFFFFFFFFFFFFF);
             } else {
                 let c = c * b;
-                assert!(c.equals(&Fp2::ONE) == 0xFFFFFFFF);
+                assert!(c.equals(&Fp2::ONE) == 0xFFFFFFFFFFFFFFFF);
             }
 
             if with_sqrt_and_fourth_root {
                 let e = a * a;
                 let (c, r) = e.sqrt();
-                assert!(r == 0xFFFFFFFF);
-                assert!((c * c).equals(&e) == 0xFFFFFFFF);
+                assert!(r == 0xFFFFFFFFFFFFFFFF);
+                assert!((c * c).equals(&e) == 0xFFFFFFFFFFFFFFFF);
                 let vc = c.encode();
                 let zc0 = BigInt::from_bytes_le(Sign::Plus, &vc[..Fp::ENCODED_LENGTH]);
                 let zc1 = BigInt::from_bytes_le(Sign::Plus, &vc[Fp::ENCODED_LENGTH..]);
@@ -1084,7 +1082,7 @@ macro_rules! define_fp2_tests {
                     assert!(e.legendre() == -1);
                     let (c, r) = e.sqrt();
                     assert!(r == 0);
-                    assert!(c.iszero() == 0xFFFFFFFF);
+                    assert!(c.iszero() == 0xFFFFFFFFFFFFFFFF);
                     let (_, r) = e.fourth_root();
                     assert!(r == 0);
                 } else {
@@ -1094,61 +1092,61 @@ macro_rules! define_fp2_tests {
                 if a0.iszero() == 0 {
                     let f = Fp2::new(&a0, &Fp::ZERO);
                     let (c, r) = f.sqrt();
-                    assert!(r == 0xFFFFFFFF);
-                    assert!((c * c).equals(&f) == 0xFFFFFFFF);
+                    assert!(r == 0xFFFFFFFFFFFFFFFF);
+                    assert!((c * c).equals(&f) == 0xFFFFFFFFFFFFFFFF);
                     let g = -f;
                     let (c, r) = g.sqrt();
-                    assert!(r == 0xFFFFFFFF);
-                    assert!((c * c).equals(&g) == 0xFFFFFFFF);
+                    assert!(r == 0xFFFFFFFFFFFFFFFF);
+                    assert!((c * c).equals(&g) == 0xFFFFFFFFFFFFFFFF);
                 }
 
                 let e = a * a * a * a;
                 let (c, r) = e.fourth_root();
 
-                assert!(r == 0xFFFFFFFF);
-                assert!((c * c * c * c).equals(&e) == 0xFFFFFFFF);
+                assert!(r == 0xFFFFFFFFFFFFFFFF);
+                assert!((c * c * c * c).equals(&e) == 0xFFFFFFFFFFFFFFFF);
 
                 // With neither zero
                 let a_check = Fp2::new(&a0, &a1);
                 let e_check = a_check * a_check;
                 let (c_check, r_check) = e_check.sqrt();
-                assert!(r_check == 0xFFFFFFFF);
-                assert!((c_check * c_check).equals(&e_check) == 0xFFFFFFFF);
+                assert!(r_check == 0xFFFFFFFFFFFFFFFF);
+                assert!((c_check * c_check).equals(&e_check) == 0xFFFFFFFFFFFFFFFF);
 
                 // With x1 = 0
                 let a_check = Fp2::new(&a0, &Fp::ZERO);
                 let e_check = a_check * a_check;
                 let (c_check, r_check) = e_check.sqrt();
-                assert!(r_check == 0xFFFFFFFF);
-                assert!((c_check * c_check).equals(&e_check) == 0xFFFFFFFF);
+                assert!(r_check == 0xFFFFFFFFFFFFFFFF);
+                assert!((c_check * c_check).equals(&e_check) == 0xFFFFFFFFFFFFFFFF);
 
                 // With x0 = 0
                 let a_check = Fp2::new(&Fp::ZERO, &a1);
                 let e_check = a_check * a_check;
                 let (c_check, r_check) = e_check.sqrt();
-                assert!(r_check == 0xFFFFFFFF);
-                assert!((c_check * c_check).equals(&e_check) == 0xFFFFFFFF);
+                assert!(r_check == 0xFFFFFFFFFFFFFFFF);
+                assert!((c_check * c_check).equals(&e_check) == 0xFFFFFFFFFFFFFFFF);
 
                 // With neither zero
                 let a_check = Fp2::new(&a0, &a1);
                 let e_check = a_check * a_check * a_check * a_check;
                 let (c_check, r_check) = e_check.fourth_root();
-                assert!(r_check == 0xFFFFFFFF);
-                assert!((c_check * c_check * c_check * c_check).equals(&e_check) == 0xFFFFFFFF);
+                assert!(r_check == 0xFFFFFFFFFFFFFFFF);
+                assert!((c_check * c_check * c_check * c_check).equals(&e_check) == 0xFFFFFFFFFFFFFFFF);
 
                 // With x1 = 0
                 let a_check = Fp2::new(&a0, &Fp::ZERO);
                 let e_check = a_check * a_check * a_check * a_check;
                 let (c_check, r_check) = e_check.fourth_root();
-                assert!(r_check == 0xFFFFFFFF);
-                assert!((c_check * c_check * c_check * c_check).equals(&e_check) == 0xFFFFFFFF);
+                assert!(r_check == 0xFFFFFFFFFFFFFFFF);
+                assert!((c_check * c_check * c_check * c_check).equals(&e_check) == 0xFFFFFFFFFFFFFFFF);
 
                 // With x0 = 0
                 let a_check = Fp2::new(&Fp::ZERO, &a1);
                 let e_check = a_check * a_check * a_check * a_check;
                 let (c_check, r_check) = e_check.fourth_root();
-                assert!(r_check == 0xFFFFFFFF);
-                assert!((c_check * c_check * c_check * c_check).equals(&e_check) == 0xFFFFFFFF);
+                assert!(r_check == 0xFFFFFFFFFFFFFFFF);
+                assert!((c_check * c_check * c_check * c_check).equals(&e_check) == 0xFFFFFFFFFFFFFFFF);
             }
         }
 
