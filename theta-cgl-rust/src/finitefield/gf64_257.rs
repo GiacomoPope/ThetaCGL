@@ -1,5 +1,4 @@
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
-use core::convert::TryFrom;
 
 // ========================================================================
 // GF(p)
@@ -24,11 +23,16 @@ impl GFp {
 
     pub const ENCODED_LENGTH: usize = 8;
 
+    pub const N: usize = 1;
+
     /// GF(p) modulus: p = 2^64 - 2^32 + 1
     /// GF(p) modulus: p = 2^64 - 257
     // pub const MOD: u64 = 0xFFFFFFFF00000001;
     // TODO: take C into account
     pub const MOD: u64 = 0xfffffffffffffeff;
+    pub const MODULUS: [u64; GFp::N] = [
+        0xFFFFFFFFFFFFFEFF
+    ];
 
     /// Element 0 in GF(p).
     pub const ZERO: GFp = GFp::from_u64_reduce(0);
@@ -37,7 +41,29 @@ impl GFp {
     pub const ONE: GFp = GFp::from_u64_reduce(1);
 
     /// Element -1 in GF(p).
-    pub const MINUS_ONE: GFp = GFp::from_u64_reduce(GFp::MOD - 1);
+    pub const MINUS_ONE: GFp = GFp::from_u64_reduce(GFp::MOD - 1); 
+
+    pub const R_VAL: u64 = 0x0000000000000101;
+    pub const MINUS_R_VAL: u64 = 0xFFFFFFFFFFFFFDFE;
+    const DR_VAL: u64 = 0x0000000000000202;
+    pub const TR_VAL: u64 = 0x0000000000000303;
+    pub const QR_VAL: u64 = 0x0000000000000404;
+    pub const R2_VAL: u64 = 0x0000000000010201;
+    pub const P0I: u64 = 18374966859414961921;
+    pub const TFIXDIV_VAL: u64 = 0x0000000410181004;
+    pub const TDEC_VAL: u64 = 0x0000000000000101;
+
+    const WIN_LEN: i32 = 4;
+    const SQRT_EL: i32 = 1;
+    const SQRT_EH: [i32; 15] = [12, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 3];
+
+    const FOURTH_ROOT_EL: i32 = 1;
+    const FOURTH_ROOT_EH: [i32; 15] = [14, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 1];
+
+    pub const TWO: Self = GFp::from_u64_reduce(GFp::DR_VAL);
+    pub const THREE: Self = GFp::from_u64_reduce(GFp::TR_VAL);
+    pub const FOUR: Self = GFp::from_u64_reduce(GFp::QR_VAL);
+    pub const TDEC: Self = GFp::from_u64_reduce(GFp::TDEC_VAL);
 
     // 2^128 mod p.
     // const R2: u64 = 0xFFFFFFFE00000001;
@@ -63,7 +89,7 @@ impl GFp {
         let r1 = (r % GFp::MOD as u128) as u64;
 
         r1
-    }
+    } 
 
     /// Build a GF(p) element from a 64-bit integer. Returned values
     /// are (r, c). If the source value v is lower than the modulus,
@@ -234,7 +260,7 @@ impl GFp {
     }
 
     /// Legendre symbol: return x^((p-1)/2) (as a GF(p) element).
-    pub fn legendre(self) -> GFp {
+    pub fn legendre_gfp(self) -> GFp {
         // (p-1)/2 = 0x7fffffffffffff7f
         let x = self;
         let y1 = x.square(); // x^2
@@ -262,13 +288,19 @@ impl GFp {
         c4 * c3 * c2 * c1
     }
 
-    pub fn sqrt(self) -> (Self, u64) {
-        const WIN_LEN: i32 = 4;
-        const SQRT_EL: i32 = 1;
-        const SQRT_EH: [i32; 15] = [12, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 3];
+    pub fn legendre(self) -> i32 {
+        let l = self.legendre_gfp();
+        let c1 = l.equals(GFp::ONE);
+        let c2 = l.equals(GFp::MINUS_ONE);
+        let cc1 = (c1 & 1) as i32;
+        let cc2 = (c2 & 1) as i32;
 
+        cc1 - cc2
+    }
+
+    pub fn sqrt(self) -> (Self, u64) { 
         // Make a window.
-        let mut ww = [self; (1usize << WIN_LEN) - 1];
+        let mut ww = [self; (1usize << GFp::WIN_LEN) - 1];
         for i in 1..ww.len() {
             if ((i + 1) & 1) == 0 {
                 ww[i] = ww[i >> 1].square();
@@ -281,17 +313,17 @@ impl GFp {
         // Square and multiply algorithm, with exponent e = (p + 1)/4.
         // The exponent is not secret; we can do non-constant-time
         // lookups in the window, and omit multiplications for null digits.
-        let mut x = ww[(SQRT_EH[SQRT_EH.len() - 1] as usize) - 1];
-        for i in (0..(SQRT_EH.len() - 1)).rev() {
-            for _ in 0..WIN_LEN {
+        let mut x = ww[(GFp::SQRT_EH[GFp::SQRT_EH.len() - 1] as usize) - 1];
+        for i in (0..(GFp::SQRT_EH.len() - 1)).rev() {
+            for _ in 0..GFp::WIN_LEN {
                 x = x.square();
             }
-            if SQRT_EH[i] != 0 {
-                x = x.mul(ww[(SQRT_EH[i] as usize) - 1]);
+            if GFp::SQRT_EH[i] != 0 {
+                x = x.mul(ww[(GFp::SQRT_EH[i] as usize) - 1]);
             }
         }
         // Low 126 digits are all zero.
-        for _ in 0..(WIN_LEN * SQRT_EL) {
+        for _ in 0..(GFp::WIN_LEN * GFp::SQRT_EL) {
             x = x.square()
         }
 
@@ -302,9 +334,60 @@ impl GFp {
         let rw = (r as u64) | ((r as u64) << 32);
         x.0 &= rw;
 
-        // TODO:
         // Conditionally negate this value, so that the chosen root
         // follows the expected convention.
+        let ctl = ((self.encode()[0] as u64) & 1).wrapping_neg();
+        x.set_condneg(ctl);
+
+        (x, r)
+    }
+
+    /// Set this value to its fourth root. Returned value is 0xFFFFFFFF if
+    /// the operation succeeded (value was indeed some element to the power of four), or
+    /// 0x00000000 otherwise. On success, the chosen root is the one whose
+    /// least significant bit (as an integer in [0..p-1]) is zero. On
+    /// failure, this value is set to 0.
+    /// TODO: return type
+    pub fn fourth_root(self) -> (Self, u64) {
+        // Make a window.
+        let mut ww = [self; (1usize << GFp::WIN_LEN) - 1];
+        for i in 1..ww.len() {
+            if ((i + 1) & 1) == 0 {
+                ww[i] = ww[i >> 1].square();
+            } else {
+                let z = ww[i] * ww[i - 1];
+                ww[i] = z;
+            }
+        }
+
+        // Square and multiply algorithm, with exponent e = (p + 1)/8.
+        // The exponent is not secret; we can do non-constant-time
+        // lookups in the window, and omit multiplications for null digits.
+        let mut x = ww[(GFp::FOURTH_ROOT_EH[GFp::FOURTH_ROOT_EH.len() - 1] as usize) - 1];
+        for i in (0..(GFp::FOURTH_ROOT_EH.len() - 1)).rev() {
+            for _ in 0..GFp::WIN_LEN {
+                x = x.square();
+            }
+            if GFp::FOURTH_ROOT_EH[i] != 0 {
+                x = x.mul(ww[(GFp::FOURTH_ROOT_EH[i] as usize) - 1]);
+            }
+        }
+        // Low 126 digits are all zero.
+        for _ in 0..(GFp::WIN_LEN * GFp::FOURTH_ROOT_EL) {
+            x = x.square();
+        }
+
+        // Check that the obtained value is indeed a fourth root of the
+        // source value (which is still in ww[0]); if not, clear this
+        // value.
+        let r = x.square().square().equals(ww[0]);
+        let rw = (r as u64) | ((r as u64) << 32);
+        x.0 &= rw;
+
+        // Conditionally negate this value, so that the chosen root
+        // follows the expected convention.
+        let ctl = ((self.encode()[0] as u64) & 1).wrapping_neg();
+        x.set_condneg(ctl);
 
         (x, r)
     }
@@ -315,6 +398,159 @@ impl GFp {
     pub fn select(c: u64, x0: GFp, x1: GFp) -> GFp {
         GFp(x0.0 ^ (c & (x0.0 ^ x1.0)))
     }
+
+    /// Negate this value.
+    #[inline]
+    pub fn set_neg(&mut self) {
+        self.0 = self.neg().0;
+    }
+
+    /// Double this value.
+    #[inline]
+    pub fn set_mul2(&mut self) {
+        self.0 = self.0 * 2;
+    }
+
+    /// Compute the sum of this value with itself.
+    #[inline(always)]
+    pub fn mul2(self) -> Self {
+        let mut r = self;
+        r.set_mul2();
+        r
+    }
+
+    /// Compute the quadruple of this value.
+    #[inline(always)]
+    pub fn mul4(self) -> Self {
+        let mut r = self;
+        r.set_mul4();
+        r
+    }
+
+    /// Halve this value.
+    #[inline]
+    pub fn set_half(&mut self) {
+        self.0 = self.half().0;
+    }
+
+    /// Quadruple this value.
+    #[inline]
+    pub fn set_mul4(&mut self) {
+        self.set_mul2();
+        self.set_mul2();
+    }
+
+    /// Multiply this value by 8
+    #[inline]
+    pub fn set_mul8(&mut self) {
+        self.set_mul2();
+        self.set_mul2();
+        self.set_mul2();
+    }
+
+    /// Set this value to either a or b, depending on whether the control
+    /// word ctl is 0x00000000 or 0xFFFFFFFF, respectively.
+    /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
+    /// TODO: ctl
+    #[inline]
+    pub fn set_select(&mut self, a: &Self, b: &Self, c: u64) {
+        // let c = (ctl as u64) | ((ctl as u64) << 32);
+        self.0 = GFp::select(c, *a, *b).0;
+    }
+
+    /// Set this value to rhs if ctl is 0xFFFFFFFF; leave it unchanged if
+    /// ctl is 0x00000000.
+    /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
+    /// TODO: fix desc (u32)
+    #[inline]
+    pub fn set_cond(&mut self, rhs: &Self, ctl: u64) {
+        let wa = self.0;
+        let wb = rhs.0;
+        self.0 = wa ^ (ctl & (wa ^ wb));
+    }
+
+    /// Exchange the values of a and b is ctl is 0xFFFFFFFF; leave both
+    /// values unchanged if ctl is 0x00000000.
+    /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
+    /// TODO: ctl
+    #[inline]
+    pub fn condswap(a: &mut Self, b: &mut Self, c: u64) {
+        // let c = (ctl as u64) | ((ctl as u64) << 32);
+        let wa = a.0;
+        let wb = b.0;
+        let wc = c & (wa ^ wb);
+        a.0 = wa ^ wc;
+        b.0 = wb ^ wc;
+    }
+
+    pub fn set_invert(&mut self) {
+        self.0 = self.invert().0;
+    }
+
+    /// Negate this value if ctl is 0xFFFFFFFF; leave it unchanged if
+    /// ctl is 0x00000000.
+    /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
+    /// TODO: fix description (ctl: u32)
+    #[inline]
+    pub fn set_condneg(&mut self, ctl: u64) {
+        // let c = (ctl as u64) | ((ctl as u64) << 32);
+        let v = self.neg();
+        self.set_cond(&v, ctl);
+    }
+
+    pub fn encode(self) -> [u8; Self::ENCODED_LENGTH] {
+        let mut r = [0u8; Self::ENCODED_LENGTH];
+        r[0..Self::ENCODED_LENGTH].copy_from_slice(&self.0.to_le_bytes());
+        r
+    }
+
+    pub fn decode(buf: &[u8]) -> (Self, u64) {
+        if buf.len() != Self::ENCODED_LENGTH {
+            return (GFp::ZERO, 0);
+        }
+        GFp::from_u64(u64::from_le_bytes(*<&[u8; 8]>::try_from(&buf[0.. 8]).unwrap()))
+    }
+
+    /// Get the "hash" of the value (64 bits of the Montgomery
+    /// representation).
+    pub fn hashcode(self) -> u64 {
+        self.0
+    }
+
+    /// Decode the provided bytes. The source slice
+    /// can have arbitrary length; the bytes are interpreted with the
+    /// unsigned little-endian convention (no sign bit), and the resulting
+    /// integer is reduced modulo the field modulus p. By definition, this
+    /// function does not enforce canonicality of the source value.
+    #[inline]
+    pub fn decode_reduce(buf: &[u8]) -> Self {
+        let mut n = buf.len();
+        let mut x = Self::ZERO;
+        if n == 0 {
+            return x;
+        }
+
+        let mut tmp = [0u8; Self::ENCODED_LENGTH];
+        const CLEN: usize = 8;
+        let mut nn = n % CLEN;
+        if nn == 0 {
+            nn = CLEN;
+        }
+        n -= nn;
+        tmp[..nn].copy_from_slice(&buf[n..]);
+        (x, _) = GFp::decode(&tmp); // TODO
+
+        while n > 0 {
+            n -= CLEN;
+            tmp[..CLEN].copy_from_slice(&buf[n..(n + CLEN)]);
+            let (d, _) = GFp::decode(&tmp); // TODO
+            x = x * Self::TDEC;
+            x = x + d;
+        }
+
+        x * GFp::from_u64_reduce(Self::R2)
+    }
+
 }
 
 // We implement all the needed traits to allow use of the arithmetic
@@ -489,18 +725,18 @@ mod tests {
             let b = prng.next_u64();
             test_gfp_ops(a, b);
         }
-        assert!(GFp::ZERO.legendre().iszero() == 0xFFFFFFFFFFFFFFFF);
+        assert!(GFp::ZERO.legendre_gfp().iszero() == 0xFFFFFFFFFFFFFFFF);
         let (s0, c0) = GFp::ZERO.sqrt();
         check_gfp_eq(s0, 0);
         assert!(c0 == 0xFFFFFFFFFFFFFFFF);
         for _ in 0..1000 {
             let x = GFp::from_u64_reduce((prng.next_u64() >> 1) + 1).square();
-            assert!(x.legendre().equals(GFp::ONE) == 0xFFFFFFFFFFFFFFFF);
+            assert!(x.legendre_gfp().equals(GFp::ONE) == 0xFFFFFFFFFFFFFFFF);
             let (r1, c1) = x.sqrt();
             assert!(r1.square().equals(x) == 0xFFFFFFFFFFFFFFFF);
             assert!(c1 == 0xFFFFFFFFFFFFFFFF);
             let y = x * GFp::from_u64_reduce(7);
-            assert!(y.legendre().equals(GFp::MINUS_ONE) == 0xFFFFFFFFFFFFFFFF);
+            assert!(y.legendre_gfp().equals(GFp::MINUS_ONE) == 0xFFFFFFFFFFFFFFFF);
             let (r2, c2) = y.sqrt();
             assert!(r2.iszero() == 0xFFFFFFFFFFFFFFFF);
             assert!(c2 == 0);
