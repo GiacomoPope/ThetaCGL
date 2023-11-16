@@ -25,10 +25,7 @@ impl GFp {
 
     pub const N: usize = 1;
 
-    /// GF(p) modulus: p = 2^64 - 2^32 + 1
     /// GF(p) modulus: p = 2^64 - 257
-    // pub const MOD: u64 = 0xFFFFFFFF00000001;
-    // TODO: take C into account
     pub const MOD: u64 = 0xfffffffffffffeff;
     pub const MODULUS: [u64; GFp::N] = [
         0xFFFFFFFFFFFFFEFF
@@ -65,9 +62,7 @@ impl GFp {
     pub const FOUR: Self = GFp::from_u64_reduce(GFp::QR_VAL);
     pub const TDEC: Self = GFp::from_u64_reduce(GFp::TDEC_VAL);
 
-    // 2^128 mod p.
-    // const R2: u64 = 0xFFFFFFFE00000001;
-    // TODO: take C into account, now computed for fixed value (258)
+    // R2 = 2^128 mod p.
     const R2: u64 = 0x10201;
     const MU: u64 = 0xff00ff00ff00ff01;
 
@@ -342,12 +337,11 @@ impl GFp {
         (x, r)
     }
 
-    /// Set this value to its fourth root. Returned value is 0xFFFFFFFF if
+    /// Set this value to its fourth root. Returned value is 0xFFFFFFFFFFFFFFFF if
     /// the operation succeeded (value was indeed some element to the power of four), or
-    /// 0x00000000 otherwise. On success, the chosen root is the one whose
+    /// 0x0000000000000000 otherwise. On success, the chosen root is the one whose
     /// least significant bit (as an integer in [0..p-1]) is zero. On
     /// failure, this value is set to 0.
-    /// TODO: return type
     pub fn fourth_root(self) -> (Self, u64) {
         // Make a window.
         let mut ww = [self; (1usize << GFp::WIN_LEN) - 1];
@@ -450,19 +444,16 @@ impl GFp {
     }
 
     /// Set this value to either a or b, depending on whether the control
-    /// word ctl is 0x00000000 or 0xFFFFFFFF, respectively.
-    /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
-    /// TODO: ctl
+    /// word ctl is 0x0000000000000000 or 0xFFFFFFFFFFFFFFFF, respectively.
+    /// The value of ctl MUST be either 0x0000000000000000 or 0xFFFFFFFFFFFFFFFF.
     #[inline]
     pub fn set_select(&mut self, a: &Self, b: &Self, c: u64) {
-        // let c = (ctl as u64) | ((ctl as u64) << 32);
         self.0 = GFp::select(c, *a, *b).0;
     }
 
-    /// Set this value to rhs if ctl is 0xFFFFFFFF; leave it unchanged if
-    /// ctl is 0x00000000.
-    /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
-    /// TODO: fix desc (u32)
+    /// Set this value to rhs if ctl is 0xFFFFFFFFFFFFFFFF; leave it unchanged if
+    /// ctl is 0x0000000000000000.
+    /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFFFFFFFFFF.
     #[inline]
     pub fn set_cond(&mut self, rhs: &Self, ctl: u64) {
         let wa = self.0;
@@ -480,13 +471,11 @@ impl GFp {
         self.0 = wa ^ (ctl & (wa ^ wb));
     }
 
-    /// Exchange the values of a and b is ctl is 0xFFFFFFFF; leave both
-    /// values unchanged if ctl is 0x00000000.
-    /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
-    /// TODO: ctl
+    /// Exchange the values of a and b is ctl is 0xFFFFFFFFFFFFFFFF; leave both
+    /// values unchanged if ctl is 0x0000000000000000.
+    /// The value of ctl MUST be either 0x0000000000000000 or 0xFFFFFFFFFFFFFFFF.
     #[inline]
     pub fn condswap(a: &mut Self, b: &mut Self, c: u64) {
-        // let c = (ctl as u64) | ((ctl as u64) << 32);
         let wa = a.0;
         let wb = b.0;
         let wc = c & (wa ^ wb);
@@ -498,13 +487,11 @@ impl GFp {
         self.0 = self.invert().0;
     }
 
-    /// Negate this value if ctl is 0xFFFFFFFF; leave it unchanged if
-    /// ctl is 0x00000000.
-    /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
-    /// TODO: fix description (ctl: u32)
+    /// Negate this value if ctl is 0xFFFFFFFFFFFFFFFF; leave it unchanged if
+    /// ctl is 0x0000000000000000.
+    /// The value of ctl MUST be either 0x0000000000000000 or 0xFFFFFFFFFFFFFFFF.
     #[inline]
     pub fn set_condneg(&mut self, ctl: u64) {
-        // let c = (ctl as u64) | ((ctl as u64) << 32);
         let v = self.neg();
         self.set_cond(&v, ctl);
     }
