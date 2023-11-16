@@ -441,7 +441,7 @@ macro_rules! define_fp2_core {
                 // y0^2 = [8n + sqrt(32(n^2 + x0))] / 16
                 // disc = 32(n^2 + x0)
                 let disc = (n.square() + self.x0).half();
-
+ 
                 // This has a solution, so we can always take a sqrt
                 let (disc_sqrt, r2) = disc.sqrt();
 
@@ -466,11 +466,17 @@ macro_rules! define_fp2_core {
 
                 // Now we can take the sqrt no problem, for all
                 // cases!
-                let (y0, r3) = y02.sqrt();
+                let (y0, mut r3) = y02.sqrt();
 
                 // y1 is computed from y0 with an inversion for
                 // all cases, except when x1 = 0 (see below)
                 let mut y1 = self.x1 / (y0 * disc_sqrt.mul4());
+
+                // r3 = 0 when n is not a square, this means y_0 = 0 and
+                // we compute y1 = self.x0.fourth_root()
+                let (x0_fourth_root, r4) = self.x0.fourth_root();
+                y1.set_cond_inv(&x0_fourth_root, r3);
+                r3 = r3 | r4;
 
                 // The final check comes from the case when x1 = 0
                 // Generally, we have that:
@@ -491,6 +497,7 @@ macro_rules! define_fp2_core {
                 // now return the fourth root. If any of the r are
                 // falsey, we return 0
                 let r = r1 & r2 & r3;
+                
                 self.x0.set_select(&Fp::ZERO, &y0, r);
                 self.x1.set_select(&Fp::ZERO, &y1, r);
 

@@ -470,6 +470,16 @@ impl GFp {
         self.0 = wa ^ (ctl & (wa ^ wb));
     }
 
+    /// Set this value to rhs if ctl is 0x0000000000000000; leave it unchanged if
+    /// ctl is 0xFFFFFFFFFFFFFFFF.
+    /// The value of ctl MUST be either 0x0000000000000000 or 0xFFFFFFFFFFFFFFFF.
+    #[inline]
+    pub fn set_cond_inv(&mut self, rhs: &Self, ctl: u64) {
+        let wa = rhs.0;
+        let wb = self.0;
+        self.0 = wa ^ (ctl & (wa ^ wb));
+    }
+
     /// Exchange the values of a and b is ctl is 0xFFFFFFFF; leave both
     /// values unchanged if ctl is 0x00000000.
     /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
