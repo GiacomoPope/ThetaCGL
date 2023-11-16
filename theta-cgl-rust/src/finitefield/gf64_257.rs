@@ -539,17 +539,16 @@ impl GFp {
         }
         n -= nn;
         tmp[..nn].copy_from_slice(&buf[n..]);
-        (x, _) = GFp::decode(&tmp); // TODO
+        (x, _) = GFp::decode(&tmp);
 
         while n > 0 {
             n -= CLEN;
             tmp[..CLEN].copy_from_slice(&buf[n..(n + CLEN)]);
-            let (d, _) = GFp::decode(&tmp); // TODO
+            let (d, _) = GFp::decode(&tmp);
             x = x * Self::TDEC;
             x = x + d;
         }
 
-        // x * GFp::from_u64_reduce(Self::R2)
         x
     }
 
