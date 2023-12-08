@@ -13,6 +13,7 @@ pub mod finitefield;
 
 mod dimension_one;
 mod dimension_two;
+mod dimension_three;
 mod util;
 
 // ============================================================

@@ -3,6 +3,7 @@ import time
 from sage.all import GF, EllipticCurve
 from dim1 import ThetaCGL, ThetaCGLRadical4
 from dim2 import ThetaCGLDim2, ThetaCGLDim2Radical4
+from dim3 import ThetaCGLDim3
 from utilities import sqrt_Fp2, fourth_Fp2, print_info
 
 
@@ -151,6 +152,7 @@ if True:
         print(h)
 
     # print(f"Theta coordinates as hex strings: ")
+    # a, b, c, d = O0.domain
     # print(to_hex_str(a))
     # print(to_hex_str(b))
     # print(to_hex_str(c))
@@ -172,3 +174,45 @@ if True:
     out = O0.hash(m1)
     for h in out:
         print(h)
+
+if True:
+    p = 2**64 - 257
+    F = GF(p**2, name="i", modulus=[1, 0, 1])
+    zeta = F.gen()
+    E0 = EllipticCurve(F, [1, 0])
+
+    print_info(f"Example dimension 3 radical 2 in p64")
+    O0 = ThetaCGLDim3.from_elliptic_curves(E0, E0, E0)
+    out = O0.hash(m1)
+    for h in out:
+        print(h)
+
+    # print(f"Theta coordinates as hex strings: ")
+    a, b, c, d, e, f, g, h = O0.domain
+    print(to_hex_str(a))
+    print(to_hex_str(b))
+    print(to_hex_str(c))
+    print(to_hex_str(d))
+    print(to_hex_str(e))
+    print(to_hex_str(f))
+    print(to_hex_str(g))
+    print(to_hex_str(h))
+
+    print(f"Theta coordinates as u64 arrays (MONTGOMERY FORM): ")
+    print(to_little_u64_mont(a[0], 2))
+    print(to_little_u64_mont(a[1], 2))
+    print(to_little_u64_mont(b[0], 2))
+    print(to_little_u64_mont(b[1], 2))
+    print(to_little_u64_mont(c[0], 2))
+    print(to_little_u64_mont(c[1], 2))
+    print(to_little_u64_mont(d[0], 2))
+    print(to_little_u64_mont(d[1], 2))
+
+    print(to_little_u64_mont(e[0], 2))
+    print(to_little_u64_mont(e[1], 2))
+    print(to_little_u64_mont(f[0], 2))
+    print(to_little_u64_mont(f[1], 2))
+    print(to_little_u64_mont(g[0], 2))
+    print(to_little_u64_mont(g[1], 2))
+    print(to_little_u64_mont(h[0], 2))
+    print(to_little_u64_mont(h[1], 2))
