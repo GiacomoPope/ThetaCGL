@@ -2,6 +2,7 @@
 
 use theta_cgl_rust::thp127;
 use theta_cgl_rust::thp254;
+use theta_cgl_rust::thp64;
 use theta_cgl_rust::thp921;
 
 // sha256("Bristol 2023")
@@ -91,6 +92,24 @@ fn dimension_two_rad_4_127_example() {
     println!("           {0}\n           {1}", ex2, ex3);
 }
 
+fn dimension_three_rad_2_64_example() {
+    println!("Computing using 2-radical isogenies...");
+    let cgl = thp64::CGLDim3Rad2::new();
+    let (h1, h2, h3, h4, h5, h6, h7) = cgl.hash(MSG.to_vec());
+
+    /*
+    println!("Rust hash: {}", h1);
+    println!("           {0}\n           {1}", h2, h3);
+
+    let ex1 = "i*51270636009212854362226904376444348492 + 118854541911646677142182896694474475917";
+    let ex2 = "i*37435301830601681338962451584023412917 + 153456715888985573907459419269142792661";
+    let ex3 = "i*103658172645780440076386144196752149867 + 70551901995418187699403785643888592714";
+
+    println!("Sage hash: {}", ex1);
+    println!("           {0}\n           {1}", ex2, ex3);
+    */
+}
+
 fn main() {
     /*
     println!("================================================================================");
@@ -114,11 +133,13 @@ fn main() {
     println!("================================================================================");
     println!("                  Dimension Two CGL with p = 2^127 - 1");
     println!("================================================================================");
-    */
 
     dimension_two_rad_2_127_example();
     println!();
     dimension_two_rad_4_127_example();
+    */
+
+    dimension_three_rad_2_64_example();
 
     println!("\n");
 }

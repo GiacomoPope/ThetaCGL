@@ -29,11 +29,13 @@ def check(O0, O1, O2):
 
 
 p = 4 * 2**72 * 3**41 - 1  # any p = 3 mod 4
+p = 2**64 - 257
 F = GF(p**2, name="i", modulus=[1, 0, 1])
 E0 = EllipticCurve(F, [1, 0])
 m1 = [1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1]
 m2 = [0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1]
 
+"""
 print_info(f"Example in dim 1")
 print("- Sanity checks")
 O0 = ThetaCGL(E0)
@@ -121,6 +123,7 @@ print(f"Fast Sqrt Hashing time took: {t_fast}ms")
 O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0, sqrt_function=sqrt_Fp2)
 t_fast = time_ms("O0.hash(m1)")
 print(f"New Sqrt Hashing time took: {t_fast}ms")
+"""
 
 
 print_info(f"Example in dim 3")

@@ -201,20 +201,26 @@ if True:
     print(to_hex_str(h))
 
     print(f"Theta coordinates as u64 arrays (MONTGOMERY FORM): ")
-    print(to_little_u64_mont(a[0], 1)) # 0
-    print(to_little_u64_mont(a[1], 1))
-    print(to_little_u64_mont(b[0], 1))
-    print(to_little_u64_mont(b[1], 1))
-    print(to_little_u64_mont(c[0], 1))
-    print(to_little_u64_mont(c[1], 1))
-    print(to_little_u64_mont(d[0], 1))
-    print(to_little_u64_mont(d[1], 1)) # 0
+    print(to_little_u64(a[0]))
+    print(to_little_u64(a[1]))
 
-    print(to_little_u64_mont(e[0], 1))
-    print(to_little_u64_mont(e[1], 1))
-    print(to_little_u64_mont(f[0], 1))
-    print(to_little_u64_mont(f[1], 1)) # 0
-    print(to_little_u64_mont(g[0], 1))
-    print(to_little_u64_mont(g[1], 1))
-    print(to_little_u64_mont(h[0], 1))
-    print(to_little_u64_mont(h[1], 1))
+    print(to_little_u64(b[0]))
+    print(to_little_u64(b[1]))
+
+    print(to_little_u64(c[0]))
+    print(to_little_u64(c[1]))
+
+    print(to_little_u64(d[0]))
+    print(to_little_u64(d[1]))
+
+    print(to_little_u64(e[0]))
+    print(to_little_u64(e[1]))
+
+    print(to_little_u64(f[0]))
+    print(to_little_u64(f[1]))
+
+    print(to_little_u64(g[0]))
+    print(to_little_u64(g[1]))
+
+    print(to_little_u64(h[0]))
+    print(to_little_u64(h[1]))
