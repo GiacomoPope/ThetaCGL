@@ -111,7 +111,6 @@ fn dimension_three_rad_2_64_example() {
 }
 
 fn main() {
-    /*
     println!("================================================================================");
     println!("                  Dimension One CGL with p = 79*2^247 - 1");
     println!("================================================================================");
@@ -137,7 +136,6 @@ fn main() {
     dimension_two_rad_2_127_example();
     println!();
     dimension_two_rad_4_127_example();
-    */
 
     dimension_three_rad_2_64_example();
 
