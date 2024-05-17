@@ -94,7 +94,7 @@ if True:
     out = O0.hash(m1)
     print(out)
 
-    # a, b = O0.domain
+    a, b = O0.domain
     # print(f"Theta coordinates as hex strings: ")
     # print(to_hex_str(a))
     # print(to_hex_str(b))
@@ -183,9 +183,11 @@ if True:
 
     print_info(f"Example dimension 3 radical 2 in p64")
     O0 = ThetaCGLDim3.from_elliptic_curves(E0, E0, E0)
+    """
     out = O0.hash(m1)
     for h in out:
         print(h)
+    """
 
     # print(f"Theta coordinates as hex strings: ")
     a, b, c, d, e, f, g, h = O0.domain
@@ -199,20 +201,20 @@ if True:
     print(to_hex_str(h))
 
     print(f"Theta coordinates as u64 arrays (MONTGOMERY FORM): ")
-    print(to_little_u64_mont(a[0], 2))
-    print(to_little_u64_mont(a[1], 2))
-    print(to_little_u64_mont(b[0], 2))
-    print(to_little_u64_mont(b[1], 2))
-    print(to_little_u64_mont(c[0], 2))
-    print(to_little_u64_mont(c[1], 2))
-    print(to_little_u64_mont(d[0], 2))
-    print(to_little_u64_mont(d[1], 2))
+    print(to_little_u64_mont(a[0], 1)) # 0
+    print(to_little_u64_mont(a[1], 1))
+    print(to_little_u64_mont(b[0], 1))
+    print(to_little_u64_mont(b[1], 1))
+    print(to_little_u64_mont(c[0], 1))
+    print(to_little_u64_mont(c[1], 1))
+    print(to_little_u64_mont(d[0], 1))
+    print(to_little_u64_mont(d[1], 1)) # 0
 
-    print(to_little_u64_mont(e[0], 2))
-    print(to_little_u64_mont(e[1], 2))
-    print(to_little_u64_mont(f[0], 2))
-    print(to_little_u64_mont(f[1], 2))
-    print(to_little_u64_mont(g[0], 2))
-    print(to_little_u64_mont(g[1], 2))
-    print(to_little_u64_mont(h[0], 2))
-    print(to_little_u64_mont(h[1], 2))
+    print(to_little_u64_mont(e[0], 1))
+    print(to_little_u64_mont(e[1], 1))
+    print(to_little_u64_mont(f[0], 1))
+    print(to_little_u64_mont(f[1], 1)) # 0
+    print(to_little_u64_mont(g[0], 1))
+    print(to_little_u64_mont(g[1], 1))
+    print(to_little_u64_mont(h[0], 1))
+    print(to_little_u64_mont(h[1], 1))
