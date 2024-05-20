@@ -71,7 +71,7 @@ class ThetaCGLDim3(CGL):
         return F
 
     @staticmethod
-    def last_sqrt(self, c0, c1, c2, c3, c4, c5, c6, c7, x0, x1, x2, x3, x4, x5, x6):
+    def last_sqrt(self, c0, c1, c2, c3, c4, c5, c6, c7, x0, x1, x2, x3, x4, x5, x6, lam):
         a0, a1, a2, a3, a4, a5, a6, a7 = ThetaCGLDim3.hadamard(
             c0, c1, c2, c3, c4, c5, c6, c7
         )
@@ -93,12 +93,15 @@ class ThetaCGLDim3(CGL):
         if den == 0:
             xx = [x0, x1, x2, x3, x4, x5, x6, c7]
             if all([el != 0 for el in xx]):
-                if c0*c1*c2*c3 - c4*c5*c6*c7 == 0:
-                    #print("*NEW* method", self.label())
-                    x7 = (x0*x1*x2*x3)/(x4*x5*x6)
+                y0, y1, y2, y3, y4, y5, y6, y7 = self.domain
+                yy = y0*y1*y2*y3*y4*y5*y6*y7
+
+                if (c0246*c1357 == (2**6*lam**4*yy)**2):
+                    # why the minus sign?
+                    x7 = - lam**4*2**6*(yy)/(x0 * x1 * x2 * x3 * x4 * x5 * x6)
                     assert x7*x7 == c7
                 else:
-                    print("method doesn't work", self.label())
+                    print("this case should not appear", self.label())
                     #print("c",[c0**2,c1**2,c2**2,c3**2,c4**2,c5**2,c6**2,c7**2])
                     x7 = self.sqrt(c7)
             else: 
@@ -275,6 +278,7 @@ class ThetaCGLDim3(CGL):
                 AE,
                 AF,
                 AG,
+                lam
             )
 
         anew, bnew, cnew, dnew, enew, fnew, gnew, hnew = ThetaCGLDim3.hadamard(
