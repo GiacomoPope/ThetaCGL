@@ -22,7 +22,16 @@ macro_rules! define_dim_three_theta_core {
         }
 
         impl ThetaPointDim3 {
-            pub const fn new(X: &Fq, Z: &Fq, U: &Fq, V: &Fq, G: &Fq, H: &Fq, I: &Fq, J: &Fq) -> ThetaPointDim3 {
+            pub const fn new(
+                X: &Fq,
+                Z: &Fq,
+                U: &Fq,
+                V: &Fq,
+                G: &Fq,
+                H: &Fq,
+                I: &Fq,
+                J: &Fq,
+            ) -> ThetaPointDim3 {
                 Self {
                     X: *X,
                     Z: *Z,
@@ -36,11 +45,23 @@ macro_rules! define_dim_three_theta_core {
             }
 
             pub fn coords(self) -> (Fq, Fq, Fq, Fq, Fq, Fq, Fq, Fq) {
-                (self.X, self.Z, self.U, self.V, self.G, self.H, self.I, self.J)
+                (
+                    self.X, self.Z, self.U, self.V, self.G, self.H, self.I, self.J,
+                )
             }
 
             // Compute the Hadamard transform
-            fn to_hadamard(self, x0: Fq, x1: Fq, x2: Fq, x3: Fq, x4: Fq, x5: Fq, x6: Fq, x7: Fq) -> (Fq, Fq, Fq, Fq, Fq, Fq, Fq, Fq) {
+            fn to_hadamard(
+                self,
+                x0: Fq,
+                x1: Fq,
+                x2: Fq,
+                x3: Fq,
+                x4: Fq,
+                x5: Fq,
+                x6: Fq,
+                x7: Fq,
+            ) -> (Fq, Fq, Fq, Fq, Fq, Fq, Fq, Fq) {
                 let y0 = x0 + x1 + x2 + x3 + x4 + x5 + x6 + x7;
                 let y1 = x0 - x1 + x2 - x3 + x4 - x5 + x6 - x7;
                 let y2 = x0 + x1 - x2 - x3 + x4 + x5 - x6 - x7;
@@ -57,16 +78,17 @@ macro_rules! define_dim_three_theta_core {
             pub fn radical_two_isogeny(self, bits: Vec<u8>) -> ThetaPointDim3 {
                 let (a, b, c, d, e, f, g, h) = self.coords();
 
-                let aa = a*a;
-                let bb = b*b;
-                let cc = c*c;
-                let dd = d*d;
-                let ee = e*e;
-                let ff = f*f;
-                let gg = g*g;
-                let hh = h*h;
+                let aa = a * a;
+                let bb = b * b;
+                let cc = c * c;
+                let dd = d * d;
+                let ee = e * e;
+                let ff = f * f;
+                let gg = g * g;
+                let hh = h * h;
 
-                let (mut AA, BB, CC, DD, EE, FF, GG, HH) = self.to_hadamard(aa, bb, cc, dd, ee, ff, gg, hh);
+                let (mut AA, BB, CC, DD, EE, FF, GG, HH) =
+                    self.to_hadamard(aa, bb, cc, dd, ee, ff, gg, hh);
 
                 let mut lam = Fq::ZERO;
 
@@ -112,7 +134,7 @@ macro_rules! define_dim_three_theta_core {
                 let mut AG = AAGG.sqrt().0;
 
                 let AB_is_zero = AB.iszero();
- 
+
                 let mut is_some_zero = AB_is_zero;
                 is_some_zero = is_some_zero | AC.iszero();
                 is_some_zero = is_some_zero | AD.iszero();
@@ -140,7 +162,7 @@ macro_rules! define_dim_three_theta_core {
 
                 let mut AH = AAHH.sqrt().0;
                 AH.set_condneg(is_some_zero & AB_is_zero);
-                
+
                 (AA, AB, AC, AD, AE, AF, AG, AH) = self.last_sqrt(
                     AAAA,
                     AABB,
@@ -158,18 +180,37 @@ macro_rules! define_dim_three_theta_core {
                     AF,
                     AG,
                     lam,
-                    all_non_zero
+                    all_non_zero,
                 );
 
-                let (anew, bnew, cnew, dnew, enew, fnew, gnew, hnew) = self.to_hadamard(AA, AB, AC, AD, AE, AF, AG, AH);
+                let (anew, bnew, cnew, dnew, enew, fnew, gnew, hnew) =
+                    self.to_hadamard(AA, AB, AC, AD, AE, AF, AG, AH);
 
                 ThetaPointDim3::new(&anew, &bnew, &cnew, &dnew, &enew, &fnew, &gnew, &hnew)
             }
 
-            fn last_sqrt(self, c0: Fq, c1: Fq, c2: Fq, c3: Fq, c4: Fq, c5: Fq, c6: Fq, c7: Fq, mut x0: Fq, mut x1: Fq, mut x2: Fq, mut x3: Fq, mut x4: Fq, mut x5: Fq, mut x6: Fq, lam: Fq, all_non_zero: u64) -> (Fq, Fq, Fq, Fq, Fq, Fq, Fq, Fq) {
-                let (a0, a1, a2, a3, a4, a5, a6, a7) = self.to_hadamard(
-                    c0, c1, c2, c3, c4, c5, c6, c7
-                );
+            fn last_sqrt(
+                self,
+                c0: Fq,
+                c1: Fq,
+                c2: Fq,
+                c3: Fq,
+                c4: Fq,
+                c5: Fq,
+                c6: Fq,
+                c7: Fq,
+                mut x0: Fq,
+                mut x1: Fq,
+                mut x2: Fq,
+                mut x3: Fq,
+                mut x4: Fq,
+                mut x5: Fq,
+                mut x6: Fq,
+                lam: Fq,
+                all_non_zero: u64,
+            ) -> (Fq, Fq, Fq, Fq, Fq, Fq, Fq, Fq) {
+                let (a0, a1, a2, a3, a4, a5, a6, a7) =
+                    self.to_hadamard(c0, c1, c2, c3, c4, c5, c6, c7);
 
                 let R1 = a0 * a1 * a2 * a3;
                 let R3 = a4 * a5 * a6 * a7;
@@ -188,25 +229,23 @@ macro_rules! define_dim_three_theta_core {
 
                 tmp = (R1 + R3 - term);
                 tmp = tmp * tmp;
-                let num = tmp + (c0246 * c1357).mul8().mul8().mul8().mul8().mul4() - (R1 * R3).mul4();
+                let num =
+                    tmp + (c0246 * c1357).mul8().mul8().mul8().mul8().mul4() - (R1 * R3).mul4();
                 let den = (R1 + R3 - term).mul8().mul8().mul4() * x0 * x1 * x2 * x3 * x4 * x5 * x6;
 
                 let (y0, y1, y2, y3, y4, y5, y6, y7) = self.coords();
-                let yy = y0*y1*y2*y3*y4*y5*y6*y7;
+                let yy = y0 * y1 * y2 * y3 * y4 * y5 * y6 * y7;
 
                 let lam_to_4 = lam * lam * lam * lam;
                 let mut l = lam_to_4 * yy;
                 l = l.mul8().mul8();
-                let cnd1 = (c0246*c1357).equals(&(l * l));
+                let cnd1 = (c0246 * c1357).equals(&(l * l));
 
                 let mut x7 = c7.sqrt().0;
                 let den_is_zero = den.iszero();
 
-                let tmp = - l / (x0 * x1 * x2 * x3 * x4 * x5 * x6);
+                let tmp = -l / (x0 * x1 * x2 * x3 * x4 * x5 * x6);
                 x7.set_cond(&tmp, den_is_zero & all_non_zero & cnd1);
-
-                // x0, x1, x2, x3, x4, x5, x6 = [den * x for x in [x0, x1, x2, x3, x4, x5, x6]]
-                // x7 = num
 
                 let den_is_not_zero = den_is_zero ^ 0xFFFFFFFFFFFFFFFF;
                 x0.set_cond(&(den * x0), den_is_not_zero);
@@ -223,10 +262,20 @@ macro_rules! define_dim_three_theta_core {
             }
 
             pub fn to_hash(self) -> (Fq, Fq, Fq, Fq, Fq, Fq, Fq) {
-                let (X, Z, U, V, G, H, I, J) = (self.X, self.Z, self.U, self.V, self.G, self.H, self.I, self.J);
+                let (X, Z, U, V, G, H, I, J) = (
+                    self.X, self.Z, self.U, self.V, self.G, self.H, self.I, self.J,
+                );
                 let X_inv = X.invert();
 
-                (Z * X_inv, U * X_inv, V * X_inv, G * X_inv, H * X_inv, I * X_inv, J * X_inv)
+                (
+                    Z * X_inv,
+                    U * X_inv,
+                    V * X_inv,
+                    G * X_inv,
+                    H * X_inv,
+                    I * X_inv,
+                    J * X_inv,
+                )
             }
         }
 
