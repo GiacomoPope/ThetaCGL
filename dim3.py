@@ -202,6 +202,20 @@ class ThetaCGLDim3(CGL):
         """
         a, b, c, d, e, f, g, h = self.domain
 
+        print("domain:")
+        print(a)
+        print(b)
+        print(c)
+        print(d)
+        print(e)
+        print(f)
+        print(g)
+        print(h)
+        print("")
+        print("")
+        print("")
+        print("")
+
         aa = a * a  # a*a is faster than a**2 in SageMath
         bb = b * b
         cc = c * c
@@ -210,9 +224,31 @@ class ThetaCGLDim3(CGL):
         ff = f * f
         gg = g * g
         hh = h * h
+
+        print("aa: ", aa)
+
         AA, BB, CC, DD, EE, FF, GG, HH = ThetaCGLDim3.hadamard(
             aa, bb, cc, dd, ee, ff, gg, hh
         )
+
+        print("==================")
+        print(AA)
+        print(BB)
+        print(CC)
+        print(DD)
+        print(EE)
+        print(FF)
+        print(GG)
+        print(HH)
+
+        """
+        print(AB)
+        print(AC)
+        print(AD)
+        print(AE)
+        print(AF)
+        print(AG)
+        """
 
         lam = 0
         for X in [AA, BB, CC, DD, EE, FF, GG, HH]:
@@ -254,6 +290,8 @@ class ThetaCGLDim3(CGL):
         if bits[5] == 1:
             AG = -AG
 
+
+        
         if zero_indices:
             # in this case, we can still choose the last square-root (?)
             print("we have redundant bits at ", zero_indices)

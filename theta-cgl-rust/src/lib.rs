@@ -45,8 +45,8 @@ pub mod thp64 {
     const H_re: Fp = Fp::from_u64_reduce(0x8B71D72B6E469F49);
     const H_im: Fp = Fp::from_u64_reduce(0);
 
-    const I_re: Fp = Fp::from_u64_reduce(0x0000000000000002);
-    const I_im: Fp = Fp::from_u64_reduce(0x0000000000000002);
+    const I_re: Fp = Fp::from_u64_reduce(0x8B71D72B6E469F49);
+    const I_im: Fp = Fp::from_u64_reduce(0);
 
     const J_re: Fp = Fp::from_u64_reduce(0x0000000000000002);
     const J_im: Fp = Fp::from_u64_reduce(0x0000000000000002);

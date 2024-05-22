@@ -222,7 +222,7 @@ macro_rules! define_fp2_core {
             */
 
             #[inline]
-            pub fn set_cond(&mut self, rhs: &Self, ctl: u32) {
+            pub fn set_cond(&mut self, rhs: &Self, ctl: u64) {
                 let c = (ctl as u64) | ((ctl as u64) << 32);
                 self.x0.set_cond(&rhs.x0, c);
                 self.x1.set_cond(&rhs.x1, c);
@@ -532,7 +532,7 @@ macro_rules! define_fp2_core {
                 *self = Self::ONE;
                 for i in (eoff..(eoff + ebitlen)).rev() {
                     let y = &*self * &x;
-                    let ctl = (((e[i >> 3] >> (i & 7)) as u32) & 1).wrapping_neg();
+                    let ctl = (((e[i >> 3] >> (i & 7)) as u64) & 1).wrapping_neg();
                     self.set_cond(&y, ctl);
                     if i == eoff {
                         break;
@@ -631,18 +631,18 @@ macro_rules! define_fp2_core {
                         *self = Self::ONE;
                     }
                     1 => {
-                        self.set_cond(&Self::ONE, ((e as u32) & 1).wrapping_sub(1));
+                        self.set_cond(&Self::ONE, (e & 1).wrapping_sub(1));
                     }
                     _ => {
                         let x = *self;
                         self.set_cond(
                             &Self::ONE,
-                            (((e >> (ebitlen - 1)) as u32) & 1).wrapping_sub(1),
+                            ((e >> (ebitlen - 1)) & 1).wrapping_sub(1),
                         );
                         for i in (0..(ebitlen - 1)).rev() {
                             self.set_square();
                             let y = &*self * &x;
-                            self.set_cond(&y, (((e >> i) as u32) & 1).wrapping_neg());
+                            self.set_cond(&y, ((e >> i) & 1).wrapping_neg());
                         }
                     }
                 }

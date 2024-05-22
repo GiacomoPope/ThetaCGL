@@ -57,6 +57,19 @@ macro_rules! define_dim_three_theta_core {
             pub fn radical_two_isogeny(self, bits: Vec<u8>) -> ThetaPointDim3 {
                 let (a, b, c, d, e, f, g, h) = self.coords();
 
+                println!("domain");
+                println!("{}", a);
+                println!("{}", b);
+                println!("{}", c);
+                println!("{}", d);
+                println!("{}", e);
+                println!("{}", f);
+                println!("{}", g);
+                println!("{}", h);
+                println!("");
+                println!("");
+
+
                 let aa = a*a;
                 let bb = b*b;
                 let cc = c*c;
@@ -65,21 +78,104 @@ macro_rules! define_dim_three_theta_core {
                 let ff = f*f;
                 let gg = g*g;
                 let hh = h*h;
+
+                println!("aa: {}", aa);
+                
                 let (AA, BB, CC, DD, EE, FF, GG, HH) = self.to_hadamard(aa, bb, cc, dd, ee, ff, gg, hh);
 
-                let AABB = AA * BB;
-                let AACC = AA * CC;
-                let AADD = AA * DD;
-                let AAEE = AA * EE;
-                let AAFF = AA * FF;
-                let AAGG = AA * GG;
-                let AAHH = AA * HH;
+                println!("========");
+                println!("{}", AA);
+                println!("{}", BB);
+                println!("{}", CC);
+                println!("{}", DD);
+                println!("{}", EE);
+                println!("{}", FF);
+                println!("{}", GG);
+                println!("{}", HH);
+                println!("");
+
+
+                let mut lam = Fq::ZERO;
+
+                let AA_is_non_zero = AA.iszero() ^ 0xFFFFFFFFFFFFFFFF;
+                lam.set_cond(&AA, AA_is_non_zero);
+                let mut non_zero_found = AA_is_non_zero;
+
+                let mut all_non_zero = AA_is_non_zero;
+
+                let mut set_lam = |x: Fq| {
+                    let x_is_zero = x.iszero();
+                    let x_is_non_zero = x_is_zero ^ 0xFFFFFFFFFFFFFFFF;
+                    lam.set_cond(&x, non_zero_found & x_is_non_zero);
+                    non_zero_found = non_zero_found | x_is_non_zero;
+                    all_non_zero = all_non_zero & x_is_non_zero;
+                };
+
+                /*
+                println!("");
+                println!("");
+                println!("{}", AA);
+                println!("{}", BB);
+                println!("{}", CC);
+                println!("{}", DD);
+                println!("{}", EE);
+                println!("{}", FF);
+                println!("{}", GG);
+                println!("{}", HH);
+                */
+
+                set_lam(BB);
+                set_lam(CC);
+                set_lam(DD);
+                set_lam(EE);
+                set_lam(FF);
+                set_lam(GG);
+                set_lam(HH);
+
+                assert!(non_zero_found == 0xFFFFFFFFFFFFFFFF);
+
+                let AAAA = lam * AA;
+                let AABB = lam * BB;
+                let AACC = lam * CC;
+                let AADD = lam * DD;
+                let AAEE = lam * EE;
+                let AAFF = lam * FF;
+                let AAGG = lam * GG;
+                let AAHH = lam * HH;
+
                 let mut AB = AABB.sqrt().0;
                 let mut AC = AACC.sqrt().0;
                 let mut AD = AADD.sqrt().0;
                 let mut AE = AAEE.sqrt().0;
                 let mut AF = AAFF.sqrt().0;
                 let mut AG = AAGG.sqrt().0;
+
+                /*
+                AB = Fq::ONE;
+                AC = Fq::ONE;
+                AD = Fq::ONE;
+                AE = Fq::ONE;
+                AF = Fq::ONE;
+                AG = Fq::ZERO;
+                */
+
+                let AB_is_zero = AB.iszero();
+ 
+                /*
+                let mut is_some_zero = AB_is_zero;
+                is_some_zero = is_some_zero | AC.iszero();
+                is_some_zero = is_some_zero | AD.iszero();
+                is_some_zero = is_some_zero | AE.iszero();
+                is_some_zero = is_some_zero | AF.iszero();
+                is_some_zero = is_some_zero | AG.iszero();
+
+                // let non_is_zero = ((is_some_zero == 0) as u64).wrapping_neg();
+                let non_is_zero = is_some_zero ^ 0xFFFFFFFFFFFFFFFF;
+
+                println!("-------");
+                println!("{}", is_some_zero);
+                println!("{}", non_is_zero);
+                */
 
                 let ctl1 = ((bits[0] as u64) & 1).wrapping_neg();
                 AB.set_condneg(ctl1);
@@ -99,13 +195,107 @@ macro_rules! define_dim_three_theta_core {
                 let ctl6 = ((bits[5] as u64) & 1).wrapping_neg();
                 AG.set_condneg(ctl6);
 
-                // TODO:
-                // AH =  ThetaCGLDim3.last_sqrt(self,AA*AA,AABB,AACC,AADD,AAEE,AAFF,AAGG,AAHH,AA,AB,AC,AD,AE,AF,AG)
-                let AH = AAHH.sqrt().0;
+                let mut AH = AAHH.sqrt().0;
+                AH.set_condneg(AB_is_zero);
+
+                println!("======================");
+                println!("{}", AB);
+                println!("{}", AC);
+                println!("{}", AD);
+                println!("{}", AE);
+                println!("{}", AF);
+                println!("{}", AG);
+
+                AH = self.last_sqrt(
+                    AAAA,
+                    AABB,
+                    AACC,
+                    AADD,
+                    AAEE,
+                    AAFF,
+                    AAGG,
+                    AAHH,
+                    AA,
+                    AB,
+                    AC,
+                    AD,
+                    AE,
+                    AF,
+                    AG,
+                    lam,
+                    all_non_zero
+                );
 
                 let (anew, bnew, cnew, dnew, enew, fnew, gnew, hnew) = self.to_hadamard(AA, AB, AC, AD, AE, AF, AG, AH);
 
                 ThetaPointDim3::new(&anew, &bnew, &cnew, &dnew, &enew, &fnew, &gnew, &hnew)
+            }
+
+            fn last_sqrt(self, c0: Fq, c1: Fq, c2: Fq, c3: Fq, c4: Fq, c5: Fq, c6: Fq, c7: Fq, x0: Fq, x1: Fq, x2: Fq, x3: Fq, x4: Fq, x5: Fq, x6: Fq, lam: Fq, all_non_zero: u64) -> Fq {
+                let (a0, a1, a2, a3, a4, a5, a6, a7) = self.to_hadamard(
+                    c0, c1, c2, c3, c4, c5, c6, c7
+                );
+                let R1 = a0 * a1 * a2 * a3;
+                let R3 = a4 * a5 * a6 * a7;
+
+                let c04 = c0 * c4;
+                let c15 = c1 * c5;
+                let c26 = c2 * c6;
+                let c37 = c3 * c7;
+                let c0246 = c04 * c26;
+                let c1357 = c15 * c37;
+
+                // TODO: implement mul_small in fp2_64_gen
+                let mut tmp = (c04 - c15 + c26 - c37);
+                tmp = tmp * tmp;
+                let term = tmp.mul8().mul2() - (c0246 + c1357).mul8().mul8();
+
+                tmp = (R1 + R3 - term);
+                tmp = tmp * tmp;
+                let num = tmp + (c0246 * c1357).mul8().mul8().mul8().mul8().mul4() - (R1 * R3).mul4();
+                let den = (R1 + R3 - term).mul8().mul8().mul4() * x0 * x1 * x2 * x3 * x4 * x5 * x6;
+
+                let (y0, y1, y2, y3, y4, y5, y6, y7) = self.coords();
+                let yy = y0*y1*y2*y3*y4*y5*y6*y7;
+
+                let lam_to_4 = lam * lam * lam * lam;
+                let mut l = lam_to_4 * yy;
+                l = l.mul8().mul8();
+                let cnd1 = (c0246*c1357).equals(&(l * l));
+
+                let mut x7 = c7.sqrt().0;
+
+                let den_is_zero = den.iszero();
+
+                let tmp = - l / (x0 * x1 * x2 * x3 * x4 * x5 * x6);
+                x7.set_cond(&tmp, den_is_zero & all_non_zero & cnd1);
+
+                x7.set_cond(&(num / den), den_is_zero ^ 0xFFFFFFFFFFFFFFFF);
+
+
+                // assert!(x7.equals(&c7) == 0xFFFFFFFFFFFFFFFFu64);
+
+
+                /*
+                // if den = 0
+                xx = [x0, x1, x2, x3, x4, x5, x6, c7]
+                if all([el != 0 for el in xx]):
+                    y0, y1, y2, y3, y4, y5, y6, y7 = self.domain
+                    yy = y0*y1*y2*y3*y4*y5*y6*y7
+
+                    if (c0246*c1357 == (2**6*lam**4*yy)**2):
+                        # why the minus sign?
+                        x7 = - lam**4*2**6*(yy)/(x0 * x1 * x2 * x3 * x4 * x5 * x6)
+                        assert x7*x7 == c7
+                    else:
+                        print("this case should not appear", self.label())
+                        #print("c",[c0**2,c1**2,c2**2,c3**2,c4**2,c5**2,c6**2,c7**2])
+                        x7 = self.sqrt(c7)
+                else: 
+                    x7 = self.sqrt(c7)
+                */
+
+                x7
             }
 
             pub fn to_hash(self) -> (Fq, Fq, Fq, Fq, Fq, Fq, Fq) {
