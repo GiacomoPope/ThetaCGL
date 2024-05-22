@@ -57,20 +57,6 @@ macro_rules! define_dim_three_theta_core {
             pub fn radical_two_isogeny(self, bits: Vec<u8>) -> ThetaPointDim3 {
                 let (a, b, c, d, e, f, g, h) = self.coords();
 
-                /*
-                println!("domain");
-                println!("{}", a);
-                println!("{}", b);
-                println!("{}", c);
-                println!("{}", d);
-                println!("{}", e);
-                println!("{}", f);
-                println!("{}", g);
-                println!("{}", h);
-                println!("");
-                println!("");
-                */
-
                 let aa = a*a;
                 let bb = b*b;
                 let cc = c*c;
@@ -80,31 +66,7 @@ macro_rules! define_dim_three_theta_core {
                 let gg = g*g;
                 let hh = h*h;
 
-                /*
-                println!("aa: {}", aa);
-                println!("aa: {}", bb);
-                println!("aa: {}", cc);
-                println!("aa: {}", dd);
-                println!("aa: {}", ee);
-                println!("aa: {}", ff);
-                println!("aa: {}", gg);
-                println!("aa: {}", hh);
-                */
-                
-                let (AA, BB, CC, DD, EE, FF, GG, HH) = self.to_hadamard(aa, bb, cc, dd, ee, ff, gg, hh);
-
-                /*
-                println!("========");
-                println!("{}", AA);
-                println!("{}", BB);
-                println!("{}", CC);
-                println!("{}", DD);
-                println!("{}", EE);
-                println!("{}", FF);
-                println!("{}", GG);
-                println!("{}", HH);
-                println!("");
-                */
+                let (mut AA, BB, CC, DD, EE, FF, GG, HH) = self.to_hadamard(aa, bb, cc, dd, ee, ff, gg, hh);
 
                 let mut lam = Fq::ZERO;
 
@@ -119,32 +81,9 @@ macro_rules! define_dim_three_theta_core {
                     let x_is_non_zero = x_is_zero ^ 0xFFFFFFFFFFFFFFFF;
                     let non_zero_not_found = non_zero_found ^ 0xFFFFFFFFFFFFFFFF;
                     lam.set_cond(&x, non_zero_not_found & x_is_non_zero);
-                    /*
-                    println!("{}", non_zero_found);
-                    println!("{}", x_is_non_zero);
-                    println!("{}", x);
-                    println!("lam: {}", lam.clone());
-                    println!("cond: {}", non_zero_not_found & x_is_non_zero);
-                    println!("");
-                    */
-
                     non_zero_found = non_zero_found | x_is_non_zero;
                     all_non_zero = all_non_zero & x_is_non_zero;
                 };
-
-
-                /*
-                println!("");
-                println!("");
-                println!("{}", AA);
-                println!("{}", BB);
-                println!("{}", CC);
-                println!("{}", DD);
-                println!("{}", EE);
-                println!("{}", FF);
-                println!("{}", GG);
-                println!("{}", HH);
-                */
 
                 set_lam(BB);
                 set_lam(CC);
@@ -172,15 +111,6 @@ macro_rules! define_dim_three_theta_core {
                 let mut AF = AAFF.sqrt().0;
                 let mut AG = AAGG.sqrt().0;
 
-                /*
-                AB = Fq::ONE;
-                AC = Fq::ONE;
-                AD = Fq::ONE;
-                AE = Fq::ONE;
-                AF = Fq::ONE;
-                AG = Fq::ZERO;
-                */
-
                 let AB_is_zero = AB.iszero();
  
                 let mut is_some_zero = AB_is_zero;
@@ -189,14 +119,6 @@ macro_rules! define_dim_three_theta_core {
                 is_some_zero = is_some_zero | AE.iszero();
                 is_some_zero = is_some_zero | AF.iszero();
                 is_some_zero = is_some_zero | AG.iszero();
-
-                let non_is_zero = is_some_zero ^ 0xFFFFFFFFFFFFFFFF;
-
-                /*
-                println!("-------");
-                println!("{}", is_some_zero);
-                println!("{}", non_is_zero);
-                */
 
                 let ctl1 = ((bits[0] as u64) & 1).wrapping_neg();
                 AB.set_condneg(ctl1);
@@ -219,7 +141,7 @@ macro_rules! define_dim_three_theta_core {
                 let mut AH = AAHH.sqrt().0;
                 AH.set_condneg(is_some_zero & AB_is_zero);
                 
-                AH = self.last_sqrt(
+                (AA, AB, AC, AD, AE, AF, AG, AH) = self.last_sqrt(
                     AAAA,
                     AABB,
                     AACC,
@@ -244,7 +166,7 @@ macro_rules! define_dim_three_theta_core {
                 ThetaPointDim3::new(&anew, &bnew, &cnew, &dnew, &enew, &fnew, &gnew, &hnew)
             }
 
-            fn last_sqrt(self, c0: Fq, c1: Fq, c2: Fq, c3: Fq, c4: Fq, c5: Fq, c6: Fq, c7: Fq, x0: Fq, x1: Fq, x2: Fq, x3: Fq, x4: Fq, x5: Fq, x6: Fq, lam: Fq, all_non_zero: u64) -> Fq {
+            fn last_sqrt(self, c0: Fq, c1: Fq, c2: Fq, c3: Fq, c4: Fq, c5: Fq, c6: Fq, c7: Fq, mut x0: Fq, mut x1: Fq, mut x2: Fq, mut x3: Fq, mut x4: Fq, mut x5: Fq, mut x6: Fq, lam: Fq, all_non_zero: u64) -> (Fq, Fq, Fq, Fq, Fq, Fq, Fq, Fq) {
                 let (a0, a1, a2, a3, a4, a5, a6, a7) = self.to_hadamard(
                     c0, c1, c2, c3, c4, c5, c6, c7
                 );
@@ -282,9 +204,22 @@ macro_rules! define_dim_three_theta_core {
 
                 let tmp = - l / (x0 * x1 * x2 * x3 * x4 * x5 * x6);
                 x7.set_cond(&tmp, den_is_zero & all_non_zero & cnd1);
-                x7.set_cond(&(num / den), den_is_zero ^ 0xFFFFFFFFFFFFFFFF);
 
-                x7
+                // x0, x1, x2, x3, x4, x5, x6 = [den * x for x in [x0, x1, x2, x3, x4, x5, x6]]
+                // x7 = num
+
+                let den_is_not_zero = den_is_zero ^ 0xFFFFFFFFFFFFFFFF;
+                x0.set_cond(&(den * x0), den_is_not_zero);
+                x1.set_cond(&(den * x1), den_is_not_zero);
+                x2.set_cond(&(den * x2), den_is_not_zero);
+                x3.set_cond(&(den * x3), den_is_not_zero);
+                x4.set_cond(&(den * x4), den_is_not_zero);
+                x5.set_cond(&(den * x5), den_is_not_zero);
+                x6.set_cond(&(den * x6), den_is_not_zero);
+
+                x7.set_cond(&num, den_is_not_zero);
+
+                (x0, x1, x2, x3, x4, x5, x6, x7)
             }
 
             pub fn to_hash(self) -> (Fq, Fq, Fq, Fq, Fq, Fq, Fq) {
