@@ -57,6 +57,7 @@ macro_rules! define_dim_three_theta_core {
             pub fn radical_two_isogeny(self, bits: Vec<u8>) -> ThetaPointDim3 {
                 let (a, b, c, d, e, f, g, h) = self.coords();
 
+                /*
                 println!("domain");
                 println!("{}", a);
                 println!("{}", b);
@@ -68,7 +69,7 @@ macro_rules! define_dim_three_theta_core {
                 println!("{}", h);
                 println!("");
                 println!("");
-
+                */
 
                 let aa = a*a;
                 let bb = b*b;
@@ -79,10 +80,20 @@ macro_rules! define_dim_three_theta_core {
                 let gg = g*g;
                 let hh = h*h;
 
+                /*
                 println!("aa: {}", aa);
+                println!("aa: {}", bb);
+                println!("aa: {}", cc);
+                println!("aa: {}", dd);
+                println!("aa: {}", ee);
+                println!("aa: {}", ff);
+                println!("aa: {}", gg);
+                println!("aa: {}", hh);
+                */
                 
                 let (AA, BB, CC, DD, EE, FF, GG, HH) = self.to_hadamard(aa, bb, cc, dd, ee, ff, gg, hh);
 
+                /*
                 println!("========");
                 println!("{}", AA);
                 println!("{}", BB);
@@ -93,7 +104,7 @@ macro_rules! define_dim_three_theta_core {
                 println!("{}", GG);
                 println!("{}", HH);
                 println!("");
-
+                */
 
                 let mut lam = Fq::ZERO;
 
@@ -106,10 +117,21 @@ macro_rules! define_dim_three_theta_core {
                 let mut set_lam = |x: Fq| {
                     let x_is_zero = x.iszero();
                     let x_is_non_zero = x_is_zero ^ 0xFFFFFFFFFFFFFFFF;
-                    lam.set_cond(&x, non_zero_found & x_is_non_zero);
+                    let non_zero_not_found = non_zero_found ^ 0xFFFFFFFFFFFFFFFF;
+                    lam.set_cond(&x, non_zero_not_found & x_is_non_zero);
+                    /*
+                    println!("{}", non_zero_found);
+                    println!("{}", x_is_non_zero);
+                    println!("{}", x);
+                    println!("lam: {}", lam.clone());
+                    println!("cond: {}", non_zero_not_found & x_is_non_zero);
+                    println!("");
+                    */
+
                     non_zero_found = non_zero_found | x_is_non_zero;
                     all_non_zero = all_non_zero & x_is_non_zero;
                 };
+
 
                 /*
                 println!("");
@@ -161,7 +183,6 @@ macro_rules! define_dim_three_theta_core {
 
                 let AB_is_zero = AB.iszero();
  
-                /*
                 let mut is_some_zero = AB_is_zero;
                 is_some_zero = is_some_zero | AC.iszero();
                 is_some_zero = is_some_zero | AD.iszero();
@@ -169,9 +190,9 @@ macro_rules! define_dim_three_theta_core {
                 is_some_zero = is_some_zero | AF.iszero();
                 is_some_zero = is_some_zero | AG.iszero();
 
-                // let non_is_zero = ((is_some_zero == 0) as u64).wrapping_neg();
                 let non_is_zero = is_some_zero ^ 0xFFFFFFFFFFFFFFFF;
 
+                /*
                 println!("-------");
                 println!("{}", is_some_zero);
                 println!("{}", non_is_zero);
@@ -196,16 +217,8 @@ macro_rules! define_dim_three_theta_core {
                 AG.set_condneg(ctl6);
 
                 let mut AH = AAHH.sqrt().0;
-                AH.set_condneg(AB_is_zero);
-
-                println!("======================");
-                println!("{}", AB);
-                println!("{}", AC);
-                println!("{}", AD);
-                println!("{}", AE);
-                println!("{}", AF);
-                println!("{}", AG);
-
+                AH.set_condneg(is_some_zero & AB_is_zero);
+                
                 AH = self.last_sqrt(
                     AAAA,
                     AABB,
@@ -235,6 +248,7 @@ macro_rules! define_dim_three_theta_core {
                 let (a0, a1, a2, a3, a4, a5, a6, a7) = self.to_hadamard(
                     c0, c1, c2, c3, c4, c5, c6, c7
                 );
+
                 let R1 = a0 * a1 * a2 * a3;
                 let R3 = a4 * a5 * a6 * a7;
 
@@ -264,36 +278,11 @@ macro_rules! define_dim_three_theta_core {
                 let cnd1 = (c0246*c1357).equals(&(l * l));
 
                 let mut x7 = c7.sqrt().0;
-
                 let den_is_zero = den.iszero();
 
                 let tmp = - l / (x0 * x1 * x2 * x3 * x4 * x5 * x6);
                 x7.set_cond(&tmp, den_is_zero & all_non_zero & cnd1);
-
                 x7.set_cond(&(num / den), den_is_zero ^ 0xFFFFFFFFFFFFFFFF);
-
-
-                // assert!(x7.equals(&c7) == 0xFFFFFFFFFFFFFFFFu64);
-
-
-                /*
-                // if den = 0
-                xx = [x0, x1, x2, x3, x4, x5, x6, c7]
-                if all([el != 0 for el in xx]):
-                    y0, y1, y2, y3, y4, y5, y6, y7 = self.domain
-                    yy = y0*y1*y2*y3*y4*y5*y6*y7
-
-                    if (c0246*c1357 == (2**6*lam**4*yy)**2):
-                        # why the minus sign?
-                        x7 = - lam**4*2**6*(yy)/(x0 * x1 * x2 * x3 * x4 * x5 * x6)
-                        assert x7*x7 == c7
-                    else:
-                        print("this case should not appear", self.label())
-                        #print("c",[c0**2,c1**2,c2**2,c3**2,c4**2,c5**2,c6**2,c7**2])
-                        x7 = self.sqrt(c7)
-                else: 
-                    x7 = self.sqrt(c7)
-                */
 
                 x7
             }
