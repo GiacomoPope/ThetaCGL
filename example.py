@@ -139,7 +139,7 @@ m1 = [
     1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1,
 ]
 m2 = [0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1]
-O0 = ThetaCGLDim3.from_elliptic_curves(E0, E0, E0)
+O0 = ThetaCGLDim3.from_elliptic_curves(E0, E0, E0, sqrt_function=sqrt_Fp2)
 print(f"Hashing test 1: {O0.hash(m1)}")
 # print(f"Hashing test 2: {O0.hash(m2)}")
 
