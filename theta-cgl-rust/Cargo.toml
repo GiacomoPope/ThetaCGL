@@ -20,20 +20,20 @@ criterion = { version = "0.4", features = ["html_reports"] }
 # path = "benches/roots.rs"
 # harness = false
 
-[[bench]]
-name = "p127"
-path = "benches/p127.rs"
-harness = false
+# [[bench]]
+# name = "p127"
+# path = "benches/p127.rs"
+# harness = false
 
-[[bench]]
-name = "p254"
-path = "benches/p254.rs"
-harness = false
+# [[bench]]
+# name = "p254"
+# path = "benches/p254.rs"
+# harness = false
 
-[[bench]]
-name = "p921"
-path = "benches/p921.rs"
-harness = false
+# [[bench]]
+# name = "p921"
+# path = "benches/p921.rs"
+# harness = false
 
 [[bench]]
 name = "th127"
@@ -48,4 +48,9 @@ harness = false
 [[bench]]
 name = "th921"
 path = "benches/th921.rs"
+harness = false
+
+[[bench]]
+name = "th5248"
+path = "benches/th5248.rs"
 harness = false

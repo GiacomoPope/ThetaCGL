@@ -102,3 +102,28 @@ pub mod thp921 {
 
     crate::dimension_one::define_dim_one_theta_core! {}
 }
+
+pub mod thp5248 {
+    pub type Fp = crate::fields::Fp5248::Fp;
+    pub type Fq = crate::fields::Fp5248Ext::Fp2;
+
+    const X0_re: Fp = Fp::w64le(0, 0, 0, 0);
+    const X0_im: Fp = Fp::w64le(
+        0xFF805D2A0D52E912,
+        0xED25DC2169473610,
+        0xE2973DF03F968969,
+        0x013A0F3E1D7C72C5,
+    );
+    const Z0_re: Fp = Fp::w64le(
+        0xFFFFFFFFFFFFFFFE,
+        0xFFFFFFFFFFFFFFFF,
+        0xFFFFFFFFFFFFFFFF,
+        0x04FFFFFFFFFFFFFF,
+    );
+    const Z0_im: Fp = Fp::w64le(1, 0, 0, 0);
+
+    const X0: Fq = Fq::new(&X0_re, &X0_im);
+    const Z0: Fq = Fq::new(&Z0_re, &Z0_im);
+
+    crate::dimension_one::define_dim_one_theta_core! {}
+}

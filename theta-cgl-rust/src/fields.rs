@@ -130,6 +130,11 @@ pub mod Fp921 {
     pub type Fp = GF255<921>;
 }
 
+pub mod Fp5248 {
+    pub use crate::finitefield::gf5_248_m64::GF5_248;
+    pub type Fp = GF5_248;
+}
+
 pub mod Fp127Ext {
     use super::Fp127::Fp;
     const NQR_RE: Fp = Fp::new([0xE1F195E63EF9998E, 0x025681E8E25E14E8]);
@@ -160,6 +165,17 @@ pub mod Fp254Ext {
 pub mod Fp921Ext {
     use super::Fp921::Fp;
     const NQR_RE: Fp = Fp::w64le(2, 0, 0, 0);
+
+    crate::finitefield::fp2_gen::define_fp2_core! {}
+    #[cfg(test)]
+    mod tests {
+        crate::finitefield::fp2_gen::define_fp2_tests! {}
+    }
+}
+
+pub mod Fp5248Ext {
+    use super::Fp5248::Fp;
+    const NQR_RE: Fp = Fp::w64le(5, 0, 0, 0);
 
     crate::finitefield::fp2_gen::define_fp2_core! {}
     #[cfg(test)]

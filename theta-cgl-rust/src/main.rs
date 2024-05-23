@@ -2,6 +2,7 @@
 
 use theta_cgl_rust::thp127;
 use theta_cgl_rust::thp254;
+use theta_cgl_rust::thp5248;
 use theta_cgl_rust::thp921;
 
 // sha256("Bristol 2023")
@@ -59,6 +60,27 @@ fn dimension_one_rad_4_921_example() {
     println!("SageMath: {}", expected);
 }
 
+fn dimension_one_rad_2_5248_example() {
+    println!("Computing using 2-radical isogenies...");
+    let cgl = thp5248::CGLDim1Rad2::new();
+    let hash = cgl.hash(MSG.to_vec());
+    println!("Rust:     {}", hash);
+
+    let expected: &str = "i*581317035081276154367619389388237654364317674072512259556056909695832618407 + 1591777228698064412432158294069564584505508595511695847665789421532577214324";
+    println!("SageMath: {}", expected);
+}
+
+fn dimension_one_rad_4_5248_example() {
+    println!("Computing using 4-radical isogenies...");
+    let cgl = thp5248::CGLDim1Rad4::new();
+    let hash = cgl.hash(MSG.to_vec());
+
+    println!("Rust:     {}", hash);
+
+    let expected = "i*1984116653337552224850207110995407685821969784456245019753456222927051983734 + 1984116653337552224850207110995407685821969784456245019753456222927051983734";
+    println!("SageMath: {}", expected);
+}
+
 fn dimension_two_rad_2_127_example() {
     println!("Computing using 2-radical isogenies...");
     let cgl = thp127::CGLDim2Rad2::new();
@@ -108,6 +130,15 @@ fn main() {
     dimension_one_rad_2_921_example();
     println!();
     dimension_one_rad_4_921_example();
+    println!("\n");
+
+    println!("================================================================================");
+    println!("                  Dimension One CGL with p = 5*2^258 - 1");
+    println!("================================================================================");
+
+    dimension_one_rad_2_5248_example();
+    println!();
+    dimension_one_rad_4_5248_example();
     println!("\n");
 
     println!("================================================================================");
