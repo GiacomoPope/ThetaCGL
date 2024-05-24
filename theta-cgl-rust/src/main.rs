@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use theta_cgl_rust::thp127;
+use theta_cgl_rust::thp127new;
 use theta_cgl_rust::thp254;
 use theta_cgl_rust::thp5248;
 use theta_cgl_rust::thp921;
@@ -83,7 +83,7 @@ fn dimension_one_rad_4_5248_example() {
 
 fn dimension_two_rad_2_127_example() {
     println!("Computing using 2-radical isogenies...");
-    let cgl = thp127::CGLDim2Rad2::new();
+    let cgl = thp127new::CGLDim2Rad2::new();
     let (h1, h2, h3) = cgl.hash(MSG.to_vec());
 
     println!("Rust hash: {}", h1);
@@ -99,7 +99,7 @@ fn dimension_two_rad_2_127_example() {
 
 fn dimension_two_rad_4_127_example() {
     println!("Computing using 4-radical isogenies...");
-    let cgl: thp127::CGLDim2Rad4 = thp127::CGLDim2Rad4::new();
+    let cgl: thp127new::CGLDim2Rad4 = thp127new::CGLDim2Rad4::new();
     let (h1, h2, h3) = cgl.hash(MSG.to_vec());
 
     println!("Rust hash: {}", h1);

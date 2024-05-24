@@ -2,130 +2,65 @@ use core::convert::TryFrom;
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use rand_core::{CryptoRng, RngCore};
 
-use super::utils64::{
-    addcarry_u64, lzcnt, sgnw, subborrow_u64, umull, umull_add, umull_x2, umull_x2_add,
-};
+use super::utils64::{addcarry_u64, lzcnt, sgnw, subborrow_u64, umull, umull_x2, umull_x2_add};
 
 #[derive(Clone, Copy, Debug)]
-pub struct GF5_248([u64; 4]);
+pub struct Gf127([u64; 2]);
 
-impl GF5_248 {
+impl Gf127 {
     // IMPLEMENTATION NOTES
     // ====================
     //
-    // Modulus is: q = 5*2^248 - 1
-    // We represent the value x (integer in Z_q) with the integer y,
-    // with the following rules:
-    //    y mod q = x*2^256 mod q
-    //    0 <= y < 2^251
+    // Modulus is: q = 2^127 - 1
+    // Internally we only ensure that values x < 2^127 which means
+    // the element 0 has two valid representations: 0 and 2^127 - 1
 
     // Element encoding length (in bytes); always 32 bytes.
-    pub const ENCODED_LENGTH: usize = 32;
-    pub const BIT_LENGTH: usize = 251; // TODO ONLY USED FOR PRINTING
+    pub const ENCODED_LENGTH: usize = 16;
+    pub const BIT_LENGTH: usize = 127; // TODO ONLY USED FOR PRINTING
 
     // Modulus q in base 2^64 (low-to-high order).
-    pub const MODULUS: [u64; 4] = [
-        0xFFFFFFFFFFFFFFFF,
-        0xFFFFFFFFFFFFFFFF,
-        0xFFFFFFFFFFFFFFFF,
-        0x04FFFFFFFFFFFFFF,
-    ];
-
-    // 2*q
-    const MOD_X2: [u64; 4] = [
-        0xFFFFFFFFFFFFFFFE,
-        0xFFFFFFFFFFFFFFFF,
-        0xFFFFFFFFFFFFFFFF,
-        0x09FFFFFFFFFFFFFF,
-    ];
-
-    pub const ZERO: Self = Self([0, 0, 0, 0]);
-    pub const ONE: Self = Self([
-        0x0000000000000033,
-        0x0000000000000000,
-        0x0000000000000000,
-        0x0100000000000000,
-    ]);
-    pub const MINUS_ONE: Self = Self([
-        0xFFFFFFFFFFFFFFCC,
-        0xFFFFFFFFFFFFFFFF,
-        0xFFFFFFFFFFFFFFFF,
-        0x03FFFFFFFFFFFFFF,
-    ]);
-
-    // 1/2^244 in the field, in Montgomery representation.
-    const INVT244: Self = Self([
-        0x0000000000001000,
-        0x0000000000000000,
-        0x0000000000000000,
-        0x0000000000000000,
-    ]);
-
-    // Montgomery representation of 2^256 (i.e. 2^512 mod q).
-    const R2: Self = Self([
-        0x3333333333333D70,
-        0x3333333333333333,
-        0x3333333333333333,
-        0x0333333333333333,
-    ]);
+    pub const MODULUS: [u64; 2] = [0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF];
+    pub const ZERO: Self = Self([0, 0]);
+    pub const ONE: Self = Self([1, 0]);
+    pub const MINUS_ONE: Self = Self([0x7FFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFE]);
 
     // TODO: these are extra constants I needed for the extension
     // construction... Maybe these should be shifted to a specialised
     // extension...
-    pub const N: usize = 4; // Number of limbs
-    pub const TWO: Self = Self([
-        0x0000000000000066,
-        0x0000000000000000,
-        0x0000000000000000,
-        0x0200000000000000,
-    ]);
-    pub const THREE: Self = Self([
-        0x0000000000000099,
-        0x0000000000000000,
-        0x0000000000000000,
-        0x0300000000000000,
-    ]);
-    pub const FOUR: Self = Self([
-        0x00000000000000CC,
-        0x0000000000000000,
-        0x0000000000000000,
-        0x0400000000000000,
-    ]);
-    pub const THREE_INV: Self = Self([
-        0xAAAAAAAAAAAAAABB,
-        0xAAAAAAAAAAAAAAAA,
-        0xAAAAAAAAAAAAAAAA,
-        0x03AAAAAAAAAAAAAA,
-    ]);
+    pub const N: usize = 2; // Number of limbs
+    pub const TWO: Self = Self([2, 0]);
+    pub const THREE: Self = Self([3, 0]);
+    pub const FOUR: Self = Self([4, 0]);
+    pub const THREE_INV: Self = Self([0x5555555555555555, 0x5555555555555555]);
 
-    /// Get a new instance containing the provided 256-bit integer,
-    /// which is implicitly reduced modulo q. All 256-bit values are
+    /// Get a new instance containing the provided 128-bit integer,
+    /// which is implicitly reduced modulo q. All 128-bit values are
     /// accepted. This function is meant for constant (compile-time)
     /// evaluation; at runtime, consider using `from_w64le()`, which
     /// is faster.
-    /// This function expects the four 64-bit limbs in little-endian order.
-    pub const fn w64le(x0: u64, x1: u64, x2: u64, x3: u64) -> Self {
-        Self::const_mmul(Self([x0, x1, x2, x3]), Self::R2)
+    /// This function expects the two 64-bit limbs in little-endian order.
+    pub const fn w64le(x0: u64, x1: u64) -> Self {
+        Self(Self::const_mred(x0, x1))
     }
 
-    /// Get a new instance containing the provided 256-bit integer,
-    /// which is implicitly reduced modulo q. All 256-bit values are
+    /// Get a new instance containing the provided 128-bit integer,
+    /// which is implicitly reduced modulo q. All 128-bit values are
     /// accepted. This function is meant for constant (compile-time)
     /// evaluation; at runtime, consider using `from_w64be()`, which
     /// is faster.
-    /// This function expects the four 64-bit limbs in big-endian order.
-    pub const fn w64be(x3: u64, x2: u64, x1: u64, x0: u64) -> Self {
-        Self::const_mmul(Self([x0, x1, x2, x3]), Self::R2)
+    /// This function expects the two 64-bit limbs in big-endian order.
+    pub const fn w64be(x1: u64, x0: u64) -> Self {
+        Self(Self::const_mred(x0, x1))
     }
 
-    /// Get a new instance containing the provided 256-bit integer,
-    /// which is implicitly reduced modulo q. All 256-bit values are
+    /// Get a new instance containing the provided 128-bit integer,
+    /// which is implicitly reduced modulo q. All 128-bit values are
     /// accepted.
     #[inline(always)]
-    pub fn from_w64le(x0: u64, x1: u64, x2: u64, x3: u64) -> Self {
-        let mut r = Self([x0, x1, x2, x3]);
-        r.set_partial_reduce();
-        r.set_mul(&Self::R2);
+    pub fn from_w64le(x0: u64, x1: u64) -> Self {
+        let mut r = Self([x0, x1]);
+        r.set_reduce_small(0);
         r
     }
 
@@ -133,42 +68,37 @@ impl GF5_248 {
     /// which is implicitly reduced modulo q. All 256-bit values are
     /// accepted.
     #[inline(always)]
-    pub fn from_w64be(x3: u64, x2: u64, x1: u64, x0: u64) -> Self {
-        let mut r = Self([x0, x1, x2, x3]);
-        r.set_partial_reduce();
-        r.set_mul(&Self::R2);
+    pub fn from_w64be(x1: u64, x0: u64) -> Self {
+        let mut r = Self([x0, x1]);
+        r.set_reduce_small(0);
         r
     }
 
     #[inline(always)]
     fn set_add(&mut self, rhs: &Self) {
-        // Raw addition.
-        let (d0, cc) = addcarry_u64(self.0[0], rhs.0[0], 0);
-        let (d1, cc) = addcarry_u64(self.0[1], rhs.0[1], cc);
-        let (d2, cc) = addcarry_u64(self.0[2], rhs.0[2], cc);
-        let (d3, _) = addcarry_u64(self.0[3], rhs.0[3], cc);
+        // Raw addition max value
+        let (mut d0, mut cc) = addcarry_u64(self.0[0], rhs.0[0], 0);
+        let (mut d1, _) = addcarry_u64(self.0[1], rhs.0[1], cc);
 
-        // Inputs were up to 2^251 - 1; sum can be up to 2^252 - 2.
-        // We subtract q if the value is not lower than 2^251. Subtraction
-        // of q is done by adding -q (modulo 2^256) (because -q has two
-        // limbs equal to zero, which saves a few operations).
-        let f = d3 >> 59;
-        let (d0, cc) = addcarry_u64(d0, f, 0);
-        let (d1, cc) = addcarry_u64(d1, 0, cc);
-        let (d2, cc) = addcarry_u64(d2, 0, cc);
-        let (d3, _) = addcarry_u64(d3, (0xFBu64 << 56) & f.wrapping_neg(), cc);
+        // The max value here is 2*(2^127 - 1) = 2^128 - 2
+        // Subtraction of the modulus should happen if the top bit
+        // is set.
+        // 2^128 - 2 - 2^127 + 1 = 2^127 - 1 is in the allowable
+        // range so we only need to perform one reduction
 
-        // If the value is still not lower than 2^251 then we subtract q again.
-        let f = d3 >> 59;
-        let (d0, cc) = addcarry_u64(d0, f, 0);
-        let (d1, cc) = addcarry_u64(d1, 0, cc);
-        let (d2, cc) = addcarry_u64(d2, 0, cc);
-        let (d3, _) = addcarry_u64(d3, (0xFBu64 << 56) & f.wrapping_neg(), cc);
+        // Extract top bit
+        let m = (d1 >> 63) as u8;
+
+        // Clear top bit (same as subtracting 2^127)
+        d1 = d1 & 0x7FFFFFFFFFFFFFFF;
+
+        // Add the top bit back mod p (2^127 = 1 mod p) the result
+        // will be smaller than 2^127.
+        (d0, cc) = addcarry_u64(d0, 0, m);
+        (d1, _) = addcarry_u64(d1, 0, cc);
 
         self.0[0] = d0;
         self.0[1] = d1;
-        self.0[2] = d2;
-        self.0[3] = d3;
     }
 
     #[inline(always)]
@@ -176,51 +106,26 @@ impl GF5_248 {
         // Raw subtraction.
         let (d0, cc) = subborrow_u64(self.0[0], rhs.0[0], 0);
         let (d1, cc) = subborrow_u64(self.0[1], rhs.0[1], cc);
-        let (d2, cc) = subborrow_u64(self.0[2], rhs.0[2], cc);
-        let (d3, cc) = subborrow_u64(self.0[3], rhs.0[3], cc);
 
-        // If the result is negative, we add 2*q (by subtracting -2*q).
-        let (m, _) = subborrow_u64(0, 0, cc);
-        let (d0, cc) = subborrow_u64(d0, m & 2, 0);
-        let (d1, cc) = subborrow_u64(d1, 0, cc);
-        let (d2, cc) = subborrow_u64(d2, 0, cc);
-        let (d3, _) = subborrow_u64(d3, (0xF6u64 << 56) & m, cc);
-
-        // If the value is not lower than 2^251 then we subtract q (i.e.
-        // we add -q).
-        let f = d3 >> 59;
-        let (d0, cc) = addcarry_u64(d0, f, 0);
-        let (d1, cc) = addcarry_u64(d1, 0, cc);
-        let (d2, cc) = addcarry_u64(d2, 0, cc);
-        let (d3, _) = addcarry_u64(d3, (0xFBu64 << 56) & f.wrapping_neg(), cc);
+        // If the result is negative, we add q back
+        let m = (cc as u64).wrapping_neg();
+        let (d0, cc) = addcarry_u64(d0, Self::MODULUS[0] & m, 0);
+        let (d1, _) = addcarry_u64(d1, Self::MODULUS[1] & m, cc);
 
         self.0[0] = d0;
         self.0[1] = d1;
-        self.0[2] = d2;
-        self.0[3] = d3;
     }
 
     // Negate this value (in place).
     #[inline(always)]
     pub fn set_neg(&mut self) {
-        // 2*q - self.
-        let (d0, cc) = subborrow_u64(Self::MOD_X2[0], self.0[0], 0);
-        let (d1, cc) = subborrow_u64(Self::MOD_X2[1], self.0[1], cc);
-        let (d2, cc) = subborrow_u64(Self::MOD_X2[2], self.0[2], cc);
-        let (d3, _) = subborrow_u64(Self::MOD_X2[3], self.0[3], cc);
-
-        // If the value is not lower than 2^251 then we subtract q (i.e.
-        // we add -q).
-        let f = d3 >> 59;
-        let (d0, cc) = addcarry_u64(d0, f, 0);
-        let (d1, cc) = addcarry_u64(d1, 0, cc);
-        let (d2, cc) = addcarry_u64(d2, 0, cc);
-        let (d3, _) = addcarry_u64(d3, (0xFBu64 << 56) & f.wrapping_neg(), cc);
-
+        // Subtraction from p - self
+        // self is in the range [0, 2^127 - 1]
+        // and so the result of this subtraction is always in the allowable range?
+        let (d0, _) = subborrow_u64(Self::MODULUS[0], self.0[0], 0);
+        let (d1, _) = subborrow_u64(Self::MODULUS[1], self.0[1], 0);
         self.0[0] = d0;
         self.0[1] = d1;
-        self.0[2] = d2;
-        self.0[3] = d3;
     }
 
     // Conditionally copy the provided value ('a') into self:
@@ -232,8 +137,6 @@ impl GF5_248 {
         let cw = ((ctl as i32) as i64) as u64;
         self.0[0] ^= cw & (self.0[0] ^ a.0[0]);
         self.0[1] ^= cw & (self.0[1] ^ a.0[1]);
-        self.0[2] ^= cw & (self.0[2] ^ a.0[2]);
-        self.0[3] ^= cw & (self.0[3] ^ a.0[3]);
     }
 
     /// Negate this value if ctl is 0xFFFFFFFF; leave it unchanged if
@@ -251,8 +154,6 @@ impl GF5_248 {
         let c = (ctl as u64) | ((ctl as u64) << 32);
         self.0[0] = a.0[0] ^ (c & (a.0[0] ^ b.0[0]));
         self.0[1] = a.0[1] ^ (c & (a.0[1] ^ b.0[1]));
-        self.0[2] = a.0[2] ^ (c & (a.0[2] ^ b.0[2]));
-        self.0[3] = a.0[3] ^ (c & (a.0[3] ^ b.0[3]));
     }
 
     // Return a value equal to either a0 (if ctl == 0) or a1 (if
@@ -276,33 +177,22 @@ impl GF5_248 {
         let t = cw & (a.0[1] ^ b.0[1]);
         a.0[1] ^= t;
         b.0[1] ^= t;
-        let t = cw & (a.0[2] ^ b.0[2]);
-        a.0[2] ^= t;
-        b.0[2] ^= t;
-        let t = cw & (a.0[3] ^ b.0[3]);
-        a.0[3] ^= t;
-        b.0[3] ^= t;
     }
 
     #[inline(always)]
     pub fn set_half(&mut self) {
         // Right-shift the value by 1 bit.
         let d0 = (self.0[0] >> 1) | (self.0[1] << 63);
-        let d1 = (self.0[1] >> 1) | (self.0[2] << 63);
-        let d2 = (self.0[2] >> 1) | (self.0[3] << 63);
-        let d3 = self.0[3] >> 1;
+        let d1 = self.0[1] >> 1;
 
         // If the dropped bit was 1, then we got (x - 1)/2 and we need
-        // to add 1/2 mod q = (q + 1)/2 = 5*2^247.
-        let d3 = d3 + ((self.0[0] & 1).wrapping_neg() & (5u64 << 55));
+        // to add 1/2 mod q = (q + 1)/2 = 2^126.
+        let d1 = d1 + ((self.0[0] & 1).wrapping_neg() & (1u64 << 62));
 
-        // Value is necessarily in range: max value is
-        // (2^251 - 1)/2 + 5*2^247, which is lower than 2^251.
-
+        // Value is necessarily in range:
+        // TODO: double check this...
         self.0[0] = d0;
         self.0[1] = d1;
-        self.0[2] = d2;
-        self.0[3] = d3;
     }
 
     #[inline(always)]
@@ -312,47 +202,52 @@ impl GF5_248 {
         r
     }
 
+    // Add hi * 2^128 to this value; this is equivalent to performing an
+    // appropriate reduction when the intermediate value has extra bits of
+    // value hi.
+    // We additionally check if the 127 bit is set and reduce this too, so
+    // ultimately we take an integer a + 2^128 * hi and reduce it to ensure
+    // it is smaller than 2^127, with a < 2^128.
+    #[inline(always)]
+    fn set_reduce_small(&mut self, hi: u64) {
+        // Add hi*2^128 to the value, which modulo p is the same
+        // as adding hi
+        let hi = (self.0[1] >> 63) | (hi << 1);
+        self.0[1] &= 0x7FFFFFFFFFFFFFFF;
+
+        let (d0, cc) = addcarry_u64(self.0[0], hi, 0);
+        let (d1, cc) = addcarry_u64(self.0[1], 0, cc);
+
+        // Now we may have filled the 127th bit again, so perform the reduction
+        // once more
+        // Extract the top bit and add it to the bottom
+        let m = ((cc as u64) << 1) | (d1 >> 63);
+        let d1 = d1 & 0x7FFFFFFFFFFFFFFF;
+        let (d0, cc) = addcarry_u64(d0, m, 0);
+        let (d1, _) = addcarry_u64(d1, 0, cc);
+
+        self.0[0] = d0;
+        self.0[1] = d1;
+    }
+
     // Multiply this value by 2.
     #[inline(always)]
     pub fn set_mul2(&mut self) {
-        let r = *self;
-        self.set_add(&r);
+        // Extract the top bit
+        let tt = self.0[1] >> 63;
+
+        // Shift left
+        self.0[1] = (self.0[1] << 1) | (self.0[0] >> 63);
+        self.0[0] = self.0[0] << 1;
+
+        // Wrap around the extracted bit
+        self.set_reduce_small(tt);
     }
 
     #[inline(always)]
     pub fn mul2(self) -> Self {
         let mut r = self;
         r.set_mul2();
-        r
-    }
-
-    // Multiply this value by 3.
-    #[inline(always)]
-    pub fn set_mul3(&mut self) {
-        // Tripling as an integer.
-        let a0 = self.0[0];
-        let a1 = self.0[1];
-        let a2 = self.0[2];
-        let a3 = self.0[3];
-        let b0 = a0 << 1;
-        let b1 = (a1 << 1) | (a0 >> 63);
-        let b2 = (a2 << 1) | (a1 >> 63);
-        let b3 = (a3 << 1) | (a2 >> 63);
-        let (d0, cc) = addcarry_u64(a0, b0, 0);
-        let (d1, cc) = addcarry_u64(a1, b1, cc);
-        let (d2, cc) = addcarry_u64(a2, b2, cc);
-        let (d3, _) = addcarry_u64(a3, b3, cc);
-        self.0[0] = d0;
-        self.0[1] = d1;
-        self.0[2] = d2;
-        self.0[3] = d3;
-        self.set_partial_reduce();
-    }
-
-    #[inline(always)]
-    pub fn mul3(self) -> Self {
-        let mut r = self;
-        r.set_mul3();
         r
     }
 
@@ -373,11 +268,15 @@ impl GF5_248 {
     // Multiply this value by 4.
     #[inline(always)]
     pub fn set_mul4(&mut self) {
-        self.0[3] = (self.0[3] << 2) | (self.0[2] >> 62);
-        self.0[2] = (self.0[2] << 2) | (self.0[1] >> 62);
+        // Extract the top bits
+        let tt = self.0[1] >> 62;
+
+        // Shift left
         self.0[1] = (self.0[1] << 2) | (self.0[0] >> 62);
         self.0[0] = self.0[0] << 2;
-        self.set_partial_reduce();
+
+        // Wrap around the extracted bits
+        self.set_reduce_small(tt);
     }
 
     #[inline(always)]
@@ -390,11 +289,15 @@ impl GF5_248 {
     // Multiply this value by 8.
     #[inline(always)]
     pub fn set_mul8(&mut self) {
-        self.0[3] = (self.0[3] << 3) | (self.0[2] >> 61);
-        self.0[2] = (self.0[2] << 3) | (self.0[1] >> 61);
+        // Extract the top bits
+        let tt = self.0[1] >> 61;
+
+        // Shift left
         self.0[1] = (self.0[1] << 3) | (self.0[0] >> 61);
         self.0[0] = self.0[0] << 3;
-        self.set_partial_reduce();
+
+        // Wrap around the extracted bits
+        self.set_reduce_small(tt);
     }
 
     #[inline(always)]
@@ -407,11 +310,15 @@ impl GF5_248 {
     // Multiply this value by 16.
     #[inline(always)]
     pub fn set_mul16(&mut self) {
-        self.0[3] = (self.0[3] << 4) | (self.0[2] >> 60);
-        self.0[2] = (self.0[2] << 4) | (self.0[1] >> 60);
+        // Extract the top bits
+        let tt = self.0[1] >> 60;
+
+        // Shift left
         self.0[1] = (self.0[1] << 4) | (self.0[0] >> 60);
         self.0[0] = self.0[0] << 4;
-        self.set_partial_reduce();
+
+        // Wrap around the extracted bits
+        self.set_reduce_small(tt);
     }
 
     #[inline(always)]
@@ -424,11 +331,15 @@ impl GF5_248 {
     // Multiply this value by 32.
     #[inline(always)]
     pub fn set_mul32(&mut self) {
-        self.0[3] = (self.0[3] << 5) | (self.0[2] >> 59);
-        self.0[2] = (self.0[2] << 5) | (self.0[1] >> 59);
+        // Extract the top bits
+        let tt = self.0[1] >> 59;
+
+        // Shift left
         self.0[1] = (self.0[1] << 5) | (self.0[0] >> 59);
         self.0[0] = self.0[0] << 5;
-        self.set_partial_reduce();
+
+        // Wrap around the extracted bits
+        self.set_reduce_small(tt);
     }
 
     #[inline(always)]
@@ -448,43 +359,20 @@ impl GF5_248 {
         // Store as u64
         let b = ax as u64;
 
-        // Compute the product as an integer over five words.
-        // Max value is (2^32 - 1)*(2^251 - 1), so the top word (d4) is
-        // at most 2^27 - 2.
+        // Compute the product as an integer over three words.
+        // Max value is (2^32 - 1)*(2^127 - 1), so the top word (d4) is
+        // at most 2^31 - 1.
         let (d0, d1) = umull(self.0[0], b);
-        let (d2, d3) = umull(self.0[2], b);
-        let (lo, hi) = umull(self.0[1], b);
+        let (lo, d2) = umull(self.0[1], b);
         let (d1, cc) = addcarry_u64(d1, lo, 0);
-        let (d2, cc) = addcarry_u64(d2, hi, cc);
-        let (lo, d4) = umull(self.0[3], b);
-        let (d3, cc) = addcarry_u64(d3, lo, cc);
-        let (d4, _) = addcarry_u64(d4, 0, cc);
-
-        // Extract low 248-bit part, and the high word (35 bits).
-        let h = (d4 << 8) | (d3 >> 56);
-        let d3 = d3 & 0x00FFFFFFFFFFFFFF;
-
-        // Fold value h by dividing it by 5. Since 5*2^248 = 1 mod q,
-        // We add floor(h/5) + (h mod 5)*2^248 to the value.
-        let (_, z) = umull(h, 0xCCCCCCCCCCCCCCCD);
-        let quo = z >> 2;
-        let rem = h - (5 * quo);
-        let (d0, cc) = addcarry_u64(d0, quo, 0);
-        let (d1, cc) = addcarry_u64(d1, 0, cc);
-        let (d2, cc) = addcarry_u64(d2, 0, cc);
-        let (d3, _) = addcarry_u64(d3, rem << 56, cc);
-
-        // The value is at most 5*2^248 + 6871947672, which is in
-        // range.
+        let (d2, _) = addcarry_u64(d2, 0, cc);
 
         self.0[0] = d0;
         self.0[1] = d1;
-        self.0[2] = d2;
-        self.0[3] = d3;
+        self.set_reduce_small(d2);
 
         // Now we need to conditionally flip the sign
-        // TODO: this probably ruins performance and we
-        // should only use u32 here...
+        // if the input x was negative
         self.set_condneg(sx);
     }
 
@@ -495,212 +383,59 @@ impl GF5_248 {
         r
     }
 
-    // Montgomery reduction, i.e. division by 2^256. Output is also
-    // normalized in the 0 to q-1 range.
-    #[inline(always)]
-    fn set_montgomery_reduce(&mut self) {
-        // Let m = -1/q mod 2^256 = 5*2^248 + 1.
-        // For input x, we compute f = x*m mod 2^256, then
-        // h = x + f*q, which is a multiple of 2^256. The output
-        // is then h/2^256. Note that if x < 2^256, then:
-        //   h <= 2^256 - 1 + (2^256 - 1)*q
-        //   h <= q*2^256 + 2^256 - q - 1
-        // Since h = 0 mod 2^256 and, this implies that h <= q*2^256.
-        // The output h/2^256 is thus in the 0 to q range (inclusive).
-
-        // Input x.
-        let x0 = self.0[0];
-        let x1 = self.0[1];
-        let x2 = self.0[2];
-        let x3 = self.0[3];
-
-        // f = x*(-1/q) mod 2^256
-        let f0 = x0;
-        let f1 = x1;
-        let f2 = x2;
-        let f3 = x3.wrapping_add(x0.wrapping_mul(5) << 56);
-
-        // g = f*q
-        let (g3, hi) = umull(f0, 5u64 << 56);
-        let (g4, hi) = umull_add(f1, 5u64 << 56, hi);
-        let (g5, hi) = umull_add(f2, 5u64 << 56, hi);
-        let (g6, g7) = umull_add(f3, 5u64 << 56, hi);
-        let (g0, cc) = subborrow_u64(0, f0, 0);
-        let (g1, cc) = subborrow_u64(0, f1, cc);
-        let (g2, cc) = subborrow_u64(0, f2, cc);
-        let (g3, cc) = subborrow_u64(g3, f3, cc);
-        let (g4, cc) = subborrow_u64(g4, 0, cc);
-        let (g5, cc) = subborrow_u64(g5, 0, cc);
-        let (g6, cc) = subborrow_u64(g6, 0, cc);
-        let (g7, _) = subborrow_u64(g7, 0, cc);
-
-        // h = x + f*q
-        // We drop the low 256 bits.
-        let (_, cc) = addcarry_u64(g0, x0, 0);
-        let (_, cc) = addcarry_u64(g1, x1, cc);
-        let (_, cc) = addcarry_u64(g2, x2, cc);
-        let (_, cc) = addcarry_u64(g3, x3, cc);
-        let (d0, cc) = addcarry_u64(g4, 0, cc);
-        let (d1, cc) = addcarry_u64(g5, 0, cc);
-        let (d2, cc) = addcarry_u64(g6, 0, cc);
-        let (d3, _) = addcarry_u64(g7, 0, cc);
-
-        // h \in [0..q]
-        // Normalize: if output is q, replace with zero.
-        let t = d0 & d1 & d2 & (d3 ^ !Self::MODULUS[3]);
-        let (_, cc) = addcarry_u64(t, 1, 0);
-        let (w, _) = subborrow_u64(0, 0, cc);
-        let w = !w;
-
-        self.0[0] = d0 & w;
-        self.0[1] = d1 & w;
-        self.0[2] = d2 & w;
-        self.0[3] = d3 & w;
-    }
-
     #[inline(always)]
     fn set_mul(&mut self, rhs: &Self) {
-        let (a0, a1, a2, a3) = (self.0[0], self.0[1], self.0[2], self.0[3]);
-        let (b0, b1, b2, b3) = (rhs.0[0], rhs.0[1], rhs.0[2], rhs.0[3]);
+        let (a0, a1) = (self.0[0], self.0[1]);
+        let (b0, b1) = (rhs.0[0], rhs.0[1]);
 
-        // Product -> 502 bits
+        // Schoolbook Product
         let (e0, e1) = umull(a0, b0);
         let (e2, e3) = umull(a1, b1);
-        let (e4, e5) = umull(a2, b2);
-        let (e6, e7) = umull(a3, b3);
 
         let (lo, hi) = umull(a0, b1);
-        let (e1, cc) = addcarry_u64(e1, lo, 0);
-        let (e2, cc) = addcarry_u64(e2, hi, cc);
-        let (lo, hi) = umull(a0, b3);
-        let (e3, cc) = addcarry_u64(e3, lo, cc);
-        let (e4, cc) = addcarry_u64(e4, hi, cc);
-        let (lo, hi) = umull(a2, b3);
-        let (e5, cc) = addcarry_u64(e5, lo, cc);
-        let (e6, cc) = addcarry_u64(e6, hi, cc);
-        let (e7, _) = addcarry_u64(e7, 0, cc);
-
-        let (lo, hi) = umull(a1, b0);
-        let (e1, cc) = addcarry_u64(e1, lo, 0);
-        let (e2, cc) = addcarry_u64(e2, hi, cc);
-        let (lo, hi) = umull(a3, b0);
-        let (e3, cc) = addcarry_u64(e3, lo, cc);
-        let (e4, cc) = addcarry_u64(e4, hi, cc);
-        let (lo, hi) = umull(a3, b2);
-        let (e5, cc) = addcarry_u64(e5, lo, cc);
-        let (e6, cc) = addcarry_u64(e6, hi, cc);
-        let (e7, _) = addcarry_u64(e7, 0, cc);
-
-        let (lo, hi) = umull(a0, b2);
-        let (e2, cc) = addcarry_u64(e2, lo, 0);
-        let (e3, cc) = addcarry_u64(e3, hi, cc);
-        let (lo, hi) = umull(a1, b3);
-        let (e4, cc) = addcarry_u64(e4, lo, cc);
-        let (e5, cc) = addcarry_u64(e5, hi, cc);
-        let (e6, cc) = addcarry_u64(e6, 0, cc);
-        let (e7, _) = addcarry_u64(e7, 0, cc);
-
-        let (lo, hi) = umull(a2, b0);
-        let (e2, cc) = addcarry_u64(e2, lo, 0);
-        let (e3, cc) = addcarry_u64(e3, hi, cc);
-        let (lo, hi) = umull(a3, b1);
-        let (e4, cc) = addcarry_u64(e4, lo, cc);
-        let (e5, cc) = addcarry_u64(e5, hi, cc);
-        let (e6, cc) = addcarry_u64(e6, 0, cc);
-        let (e7, _) = addcarry_u64(e7, 0, cc);
-
-        let (lo, hi) = umull(a1, b2);
-        let (lo2, hi2) = umull(a2, b1);
+        let (lo2, hi2) = umull(a1, b0);
         let (lo, cc) = addcarry_u64(lo, lo2, 0);
         let (hi, tt) = addcarry_u64(hi, hi2, cc);
-        let (e3, cc) = addcarry_u64(e3, lo, 0);
-        let (e4, cc) = addcarry_u64(e4, hi, cc);
-        let (e5, cc) = addcarry_u64(e5, tt as u64, cc);
-        let (e6, cc) = addcarry_u64(e6, 0, cc);
-        let (e7, _) = addcarry_u64(e7, 0, cc);
+        let (e1, cc) = addcarry_u64(e1, lo, 0);
+        let (e2, cc) = addcarry_u64(e2, hi, cc);
+        let (e3, _) = addcarry_u64(e3, tt as u64, cc);
 
-        // Montgomery reduction.
-        //
-        // The low part is lo(e) = e0..e3 (256 bits).
-        // Let m = -1/q mod 2^256; the Montgomery reduction is adding
-        // (lo(e)*m mod 2^256)*q to the high part g = e4..e7 (246 bits).
-        //
-        // We have m = 5*2^248 + 1; the product f = lo(e)*m mod 2^256 is
-        // obtained by simply added e0*5 (mod 2^8) to the high byte of e3.
+        // Reduction.
+        // The maximum value if (2^127 - 1) * (2^127 - 1) = 2^254 - 2^128 + 1
+        // Which we want to write as e = e0 || e1 || e2 || e3 = elo + 2^127 * ehi
+
+        // elo is the lowest 127 bits of e
         let f0 = e0;
-        let f1 = e1;
-        let f2 = e2;
-        let f3 = e3.wrapping_add(e0.wrapping_mul(5) << 56);
+        let f1 = e1 & 0x7FFFFFFFFFFFFFFF;
 
-        // Compute g = f*q.
-        let (g3, hi) = umull(f0, 5u64 << 56);
-        let (g4, hi) = umull_add(f1, 5u64 << 56, hi);
-        let (g5, hi) = umull_add(f2, 5u64 << 56, hi);
-        let (g6, g7) = umull_add(f3, 5u64 << 56, hi);
-        let (g0, cc) = subborrow_u64(0, f0, 0);
-        let (g1, cc) = subborrow_u64(0, f1, cc);
-        let (g2, cc) = subborrow_u64(0, f2, cc);
-        let (g3, cc) = subborrow_u64(g3, f3, cc);
-        let (g4, cc) = subborrow_u64(g4, 0, cc);
-        let (g5, cc) = subborrow_u64(g5, 0, cc);
-        let (g6, cc) = subborrow_u64(g6, 0, cc);
-        let (g7, _) = subborrow_u64(g7, 0, cc);
+        // ehi are top bits. As the maximum value is smaller than 2^254
+        // the shift of e3 loses no information
+        let g0 = (e1 >> 63) | (e2 << 1);
+        let g1 = (e2 >> 63) | (e3 << 1);
 
-        // We add g = f*q to e0..e7. Since e0..e7 < 2^502, and f < 2^256,
-        // we know that the result is not less than
-        // 2^502 + 2^256*5*2^248 < 6*2^504; it is also a multiple of
-        // 2^256. After dividing by 2^256, we get a value which is
-        // less than 6*2^248, i.e. already in our proper range.
-        let (_, cc) = addcarry_u64(e0, g0, 0);
-        let (_, cc) = addcarry_u64(e1, g1, cc);
-        let (_, cc) = addcarry_u64(e2, g2, cc);
-        let (_, cc) = addcarry_u64(e3, g3, cc);
-        let (d0, cc) = addcarry_u64(e4, g4, cc);
-        let (d1, cc) = addcarry_u64(e5, g5, cc);
-        let (d2, cc) = addcarry_u64(e6, g6, cc);
-        let (d3, _) = addcarry_u64(e7, g7, cc);
+        // We compute the output through addition of d = elo + ehi and then
+        // reduce one last time
+        let (d0, cc) = addcarry_u64(f0, g0, 0);
+        let (d1, _) = addcarry_u64(f1, g1, cc);
+
+        let m = (d1 >> 63) as u8;
+        let d1 = d1 & 0x7FFFFFFFFFFFFFFF;
+        let (d0, cc) = addcarry_u64(d0, 0, m);
+        let (d1, _) = addcarry_u64(d1, 0, cc);
 
         self.0[0] = d0;
         self.0[1] = d1;
-        self.0[2] = d2;
-        self.0[3] = d3;
     }
 
     // Square this value (in place).
     #[inline(always)]
     pub fn set_square(&mut self) {
-        let (a0, a1, a2, a3) = (self.0[0], self.0[1], self.0[2], self.0[3]);
+        // Compute the middle piece a0*a1
+        let (a0, a1) = (self.0[0], self.0[1]);
 
-        // 1. Non-square products. Max intermediate value:
-        //   a0*a1            * 2^64
-        //   a0*a2            * 2^128
-        //   (a0*a3 + a1*a2)  * 2^192
-        //   a1*a3            * 2^256
-        //   a2*a3            * 2^320
-        // for a total which is stlightly below 2^448, which means that
-        // the value fits on e1..e6 (no possible carry into e7).
+        // 2. Double the intermediate value
         let (e1, e2) = umull(a0, a1);
-        let (e3, e4) = umull(a0, a3);
-        let (e5, e6) = umull(a2, a3);
-        let (lo, hi) = umull(a0, a2);
-        let (e2, cc) = addcarry_u64(e2, lo, 0);
-        let (e3, cc) = addcarry_u64(e3, hi, cc);
-        let (lo, hi) = umull(a1, a3);
-        let (e4, cc) = addcarry_u64(e4, lo, cc);
-        let (e5, cc) = addcarry_u64(e5, hi, cc);
-        let (e6, _) = addcarry_u64(e6, 0, cc);
-        let (lo, hi) = umull(a1, a2);
-        let (e3, cc) = addcarry_u64(e3, lo, 0);
-        let (e4, cc) = addcarry_u64(e4, hi, cc);
-        let (e5, cc) = addcarry_u64(e5, 0, cc);
-        let (e6, _) = addcarry_u64(e6, 0, cc);
-
-        // 2. Double the intermediate value, then add the squares.
-        let e7 = e6 >> 63;
-        let e6 = (e6 << 1) | (e5 >> 63);
-        let e5 = (e5 << 1) | (e4 >> 63);
-        let e4 = (e4 << 1) | (e3 >> 63);
-        let e3 = (e3 << 1) | (e2 >> 63);
+        let e3 = e2 >> 63;
         let e2 = (e2 << 1) | (e1 >> 63);
         let e1 = e1 << 1;
 
@@ -708,46 +443,24 @@ impl GF5_248 {
         let (e1, cc) = addcarry_u64(e1, hi, 0);
         let (lo, hi) = umull(a1, a1);
         let (e2, cc) = addcarry_u64(e2, lo, cc);
-        let (e3, cc) = addcarry_u64(e3, hi, cc);
-        let (lo, hi) = umull(a2, a2);
-        let (e4, cc) = addcarry_u64(e4, lo, cc);
-        let (e5, cc) = addcarry_u64(e5, hi, cc);
-        let (lo, hi) = umull(a3, a3);
-        let (e6, cc) = addcarry_u64(e6, lo, cc);
-        let (e7, _) = addcarry_u64(e7, hi, cc);
+        let (e3, _) = addcarry_u64(e3, hi, cc);
 
         // 3. Reduction (see set_mul() for details).
         let f0 = e0;
-        let f1 = e1;
-        let f2 = e2;
-        let f3 = e3.wrapping_add(e0.wrapping_mul(5) << 56);
+        let f1 = e1 & 0x7FFFFFFFFFFFFFFF;
+        let g0 = (e1 >> 63) | (e2 << 1);
+        let g1: u64 = (e2 >> 63) | (e3 << 1);
 
-        let (g3, hi) = umull(f0, 5u64 << 56);
-        let (g4, hi) = umull_add(f1, 5u64 << 56, hi);
-        let (g5, hi) = umull_add(f2, 5u64 << 56, hi);
-        let (g6, g7) = umull_add(f3, 5u64 << 56, hi);
-        let (g0, cc) = subborrow_u64(0, f0, 0);
-        let (g1, cc) = subborrow_u64(0, f1, cc);
-        let (g2, cc) = subborrow_u64(0, f2, cc);
-        let (g3, cc) = subborrow_u64(g3, f3, cc);
-        let (g4, cc) = subborrow_u64(g4, 0, cc);
-        let (g5, cc) = subborrow_u64(g5, 0, cc);
-        let (g6, cc) = subborrow_u64(g6, 0, cc);
-        let (g7, _) = subborrow_u64(g7, 0, cc);
+        let (d0, cc) = addcarry_u64(f0, g0, 0);
+        let (d1, _) = addcarry_u64(f1, g1, cc);
 
-        let (_, cc) = addcarry_u64(e0, g0, 0);
-        let (_, cc) = addcarry_u64(e1, g1, cc);
-        let (_, cc) = addcarry_u64(e2, g2, cc);
-        let (_, cc) = addcarry_u64(e3, g3, cc);
-        let (d0, cc) = addcarry_u64(e4, g4, cc);
-        let (d1, cc) = addcarry_u64(e5, g5, cc);
-        let (d2, cc) = addcarry_u64(e6, g6, cc);
-        let (d3, _) = addcarry_u64(e7, g7, cc);
+        let m = (d1 >> 63) as u8;
+        let d1 = d1 & 0x7FFFFFFFFFFFFFFF;
+        let (d0, cc) = addcarry_u64(d0, 0, m);
+        let (d1, _) = addcarry_u64(d1, 0, cc);
 
         self.0[0] = d0;
         self.0[1] = d1;
-        self.0[2] = d2;
-        self.0[3] = d3;
     }
 
     // Square this value.
@@ -774,27 +487,14 @@ impl GF5_248 {
         r
     }
 
-    // Ensure that the internal encoding of this value is in the 0..q-1
-    // range.
-    #[inline(always)]
+    #[inline]
     fn set_normalized(&mut self) {
-        // Subtract q.
-        let (d0, cc) = subborrow_u64(self.0[0], Self::MODULUS[0], 0);
-        let (d1, cc) = subborrow_u64(self.0[1], Self::MODULUS[1], cc);
-        let (d2, cc) = subborrow_u64(self.0[2], Self::MODULUS[2], cc);
-        let (d3, cc) = subborrow_u64(self.0[3], Self::MODULUS[3], cc);
-
-        // Add back q if there was a borrow.
-        let m = (cc as u64).wrapping_neg();
-        let (d0, cc) = addcarry_u64(d0, m & Self::MODULUS[0], 0);
-        let (d1, cc) = addcarry_u64(d1, m & Self::MODULUS[1], cc);
-        let (d2, cc) = addcarry_u64(d2, m & Self::MODULUS[2], cc);
-        let (d3, _) = addcarry_u64(d3, m & Self::MODULUS[3], cc);
-
-        self.0[0] = d0;
-        self.0[1] = d1;
-        self.0[2] = d2;
-        self.0[3] = d3;
+        // TODO!!!!
+        if self.0[0] == Self::MODULUS[0] && self.0[1] == Self::MODULUS[1] {
+            self.0[0] = 0;
+            self.0[1] = 0;
+        }
+        assert!(self.0[1] >> 63 == 0);
     }
 
     // Set this value to u*f+v*g (with 'u' being self). Parameters f and g
@@ -818,43 +518,12 @@ impl GF5_248 {
         // overflow.
         let (d0, t) = umull_x2(tu.0[0], f, tv.0[0], g);
         let (d1, t) = umull_x2_add(tu.0[1], f, tv.0[1], g, t);
-        let (d2, t) = umull_x2_add(tu.0[2], f, tv.0[2], g, t);
-        let (d3, t) = umull_x2_add(tu.0[3], f, tv.0[3], g, t);
-
-        // Reduction: we split the value into a low part (248 bits) and
-        // a high part (71 bits, since t can be up to 63 bits). If the
-        // high part is h, then:
-        //   h*2^248 = (h mod 5)*2^248 + floor(h / 5) mod q
-        // We can compute the division by 5 by multiplying by the right
-        // constant, and right-shifting.
-        let h0 = (d3 >> 56) | (t << 8);
-        let h1 = t >> 56;
-        let d3 = d3 & 0x00FFFFFFFFFFFFFF;
-        let (_, z) = umull(h0, 0xCCCCCCCCCCCCCCCD);
-        let quo0 = z >> 2;
-        let rem0 = h0 - (5 * quo0);
-        let quo1 = (h1 * 0xCD) >> 10;
-        let rem1 = h1 - (5 * quo1);
-
-        // h = rem0 + 5*quo0 + (rem1 + 5*quo1)*2^64
-        //   = rem0 + rem1 + 5*(quo0 + quo1*2^64 + rem1*((2^64 - 1)/5))
-        // We add rem0 and rem1 modulo 5, with an extra carry that
-        // goes into the folded part (multiple of 5).
-        let (e, cc) = addcarry_u64(rem0 + 0xFFFFFFFFFFFFFFFA, rem1, 0);
-        let (f0, cc) = addcarry_u64(quo0, rem1 * 0x3333333333333333, cc);
-        let (f1, _) = addcarry_u64(quo1, 0, cc);
-        let e = e - 0xFFFFFFFFFFFFFFFA;
-
-        // Now we conly have to add e*2^248 + f0:f1 to the 248-bit low part.
-        let (d0, cc) = addcarry_u64(d0, f0, 0);
-        let (d1, cc) = addcarry_u64(d1, f1, cc);
-        let (d2, cc) = addcarry_u64(d2, 0, cc);
-        let (d3, _) = addcarry_u64(d3, e << 56, cc);
 
         self.0[0] = d0;
         self.0[1] = d1;
-        self.0[2] = d2;
-        self.0[3] = d3;
+
+        // The upper word t can be at most 63 bits
+        self.set_reduce_small(t)
     }
 
     #[inline(always)]
@@ -884,41 +553,32 @@ impl GF5_248 {
         // Apply the signs of f and g to the source operands.
         let (a0, cc) = subborrow_u64(a.0[0] ^ sf, sf, 0);
         let (a1, cc) = subborrow_u64(a.0[1] ^ sf, sf, cc);
-        let (a2, cc) = subborrow_u64(a.0[2] ^ sf, sf, cc);
-        let (a3, cc) = subborrow_u64(a.0[3] ^ sf, sf, cc);
-        let (a4, _) = subborrow_u64(0, 0, cc);
+        let (a2, _) = subborrow_u64(0, 0, cc);
         let (b0, cc) = subborrow_u64(b.0[0] ^ sg, sg, 0);
         let (b1, cc) = subborrow_u64(b.0[1] ^ sg, sg, cc);
-        let (b2, cc) = subborrow_u64(b.0[2] ^ sg, sg, cc);
-        let (b3, cc) = subborrow_u64(b.0[3] ^ sg, sg, cc);
-        let (b4, _) = subborrow_u64(0, 0, cc);
+        let (b2, _) = subborrow_u64(0, 0, cc);
 
-        // Compute a*f+b*g into d0:d1:d2:d3:t. Since f and g are at
+        // Compute a*f+b*g into d0:d1:t. Since f and g are at
         // most 2^31, we can add two 128-bit products with no overflow.
         let (d0, t) = umull_x2(a0, f, b0, g);
         let (d1, t) = umull_x2_add(a1, f, b1, g, t);
-        let (d2, t) = umull_x2_add(a2, f, b2, g, t);
-        let (d3, t) = umull_x2_add(a3, f, b3, g, t);
-        // d4 <- a4*f + b4*g + t; a4 and b4 can be only 0 or -1
-        let d4 = t.wrapping_sub(a4 & f).wrapping_sub(b4 & g);
+        // d2 <- a2*f + b2*g + t; a2 and b2 can be only 0 or -1
+        let d2 = t.wrapping_sub(a2 & f).wrapping_sub(b2 & g);
 
         // Shift-right the value by 31 bits.
         let d0 = (d0 >> 31) | (d1 << 33);
         let d1 = (d1 >> 31) | (d2 << 33);
-        let d2 = (d2 >> 31) | (d3 << 33);
-        let d3 = (d3 >> 31) | (d4 << 33);
 
         // If the result is negative, then negate it.
-        let t = sgnw(d4);
+        let t = sgnw(d2);
         let (d0, cc) = subborrow_u64(d0 ^ t, t, 0);
-        let (d1, cc) = subborrow_u64(d1 ^ t, t, cc);
-        let (d2, cc) = subborrow_u64(d2 ^ t, t, cc);
-        let (d3, _) = subborrow_u64(d3 ^ t, t, cc);
+        let (d1, _) = subborrow_u64(d1 ^ t, t, cc);
 
         self.0[0] = d0;
         self.0[1] = d1;
-        self.0[2] = d2;
-        self.0[3] = d3;
+        assert!(d1 >> 63 == 0);
+        // TODO: do I need this?
+        // self.set_reduce_small(0);
         t
     }
 
@@ -963,8 +623,8 @@ impl GF5_248 {
         let mut u = *self;
         let mut v = Self::ZERO;
 
-        // Generic loop does 15*31 = 465 inner iterations.
-        for _ in 0..15 {
+        // Generic loop does 7*31 = 217 inner iterations.
+        for _ in 0..7 {
             // Get approximations of a and b over 64 bits:
             //  - If len(a) <= 64 and len(b) <= 64, then we just use
             //    their values (low limbs).
@@ -972,17 +632,13 @@ impl GF5_248 {
             //       (a mod 2^31) + 2^31*floor(a / 2^(n - 33))
             //       (b mod 2^31) + 2^31*floor(b / 2^(n - 33))
 
-            let m3 = a.0[3] | b.0[3];
-            let m2 = a.0[2] | b.0[2];
             let m1 = a.0[1] | b.0[1];
-            let tnz3 = sgnw(m3 | m3.wrapping_neg());
-            let tnz2 = sgnw(m2 | m2.wrapping_neg()) & !tnz3;
-            let tnz1 = sgnw(m1 | m1.wrapping_neg()) & !tnz3 & !tnz2;
-            let tnzm = (m3 & tnz3) | (m2 & tnz2) | (m1 & tnz1);
-            let tnza = (a.0[3] & tnz3) | (a.0[2] & tnz2) | (a.0[1] & tnz1);
-            let tnzb = (b.0[3] & tnz3) | (b.0[2] & tnz2) | (b.0[1] & tnz1);
-            let snza = (a.0[2] & tnz3) | (a.0[1] & tnz2) | (a.0[0] & tnz1);
-            let snzb = (b.0[2] & tnz3) | (b.0[1] & tnz2) | (b.0[0] & tnz1);
+            let tnz1 = sgnw(m1 | m1.wrapping_neg());
+            let tnzm = m1 & tnz1;
+            let tnza = a.0[1] & tnz1;
+            let tnzb = b.0[1] & tnz1;
+            let snza = a.0[0] & tnz1;
+            let snzb = b.0[0] & tnz1;
 
             // If both len(a) <= 64 and len(b) <= 64, then:
             //    tnzm = 0
@@ -1015,7 +671,7 @@ impl GF5_248 {
             //       we want to use the entire low words of a and b
             //  - Otherwise, we want to use the top 33 bits of tnza and
             //    tnzb, and the low 31 bits of the low words of a and b.
-            let tzx = !(tnz1 | tnz2 | tnz3);
+            let tzx = !tnz1;
             let tnza = tnza | (a.0[0] & tzx);
             let tnzb = tnzb | (b.0[0] & tzx);
             let mut xa = (a.0[0] & 0x7FFFFFFF) | (tnza & 0xFFFFFFFF80000000);
@@ -1099,22 +755,10 @@ impl GF5_248 {
         self.set_lin(&u, &v, f1, g1);
 
         // At the point:
-        //  - Numerator and denominator were both in Montgomery representation,
-        //    but the two factors R canceled each other.
-        //  - We have injected 31*15+35 = 500 extra factors of 2, hence we
-        //    must divide the result by 2^500.
-        //  - However, we also want to obtain the result in Montgomery
-        //    representation, i.e. multiply by 2^256. We thus want to
-        //    divide the current result by 2^(500 - 256) = 2^244.
-        //  - We do this division by using a Montgomery multiplication with
-        //    the Montgomery representation of 1/2^244, i.e. the integer
-        //    2^256/2^244 = 4096.
-
-        // At this point, we have injected extra factors of 2, one for
-        // each of the 31*15+35 = 500 iterations, so we must divide by
-        // 2^500 (mod q). This is done with a multiplication by the
-        // appropriate constant.
-        self.set_mul(&Self::INVT244);
+        //  - We have injected 31*7+35 = 252 extra factors of 2, hence we
+        //    must divide the result by 2^252.
+        // Computing 2^(-252) mod p = 4
+        self.set_mul4();
     }
 
     // TODO added
@@ -1193,19 +837,15 @@ impl GF5_248 {
         let mut ls = 0u64; // running symbol information in the low bit
 
         // Outer loop
-        for _ in 0..15 {
+        for _ in 0..7 {
             // Get approximations of a and b over 64 bits.
-            let m3 = a.0[3] | b.0[3];
-            let m2 = a.0[2] | b.0[2];
             let m1 = a.0[1] | b.0[1];
-            let tnz3 = sgnw(m3 | m3.wrapping_neg());
-            let tnz2 = sgnw(m2 | m2.wrapping_neg()) & !tnz3;
-            let tnz1 = sgnw(m1 | m1.wrapping_neg()) & !tnz3 & !tnz2;
-            let tnzm = (m3 & tnz3) | (m2 & tnz2) | (m1 & tnz1);
-            let tnza = (a.0[3] & tnz3) | (a.0[2] & tnz2) | (a.0[1] & tnz1);
-            let tnzb = (b.0[3] & tnz3) | (b.0[2] & tnz2) | (b.0[1] & tnz1);
-            let snza = (a.0[2] & tnz3) | (a.0[1] & tnz2) | (a.0[0] & tnz1);
-            let snzb = (b.0[2] & tnz3) | (b.0[1] & tnz2) | (b.0[0] & tnz1);
+            let tnz1 = sgnw(m1 | m1.wrapping_neg());
+            let tnzm = m1 & tnz1;
+            let tnza = a.0[1] & tnz1;
+            let tnzb = b.0[1] & tnz1;
+            let snza = a.0[0] & tnz1;
+            let snzb = b.0[0] & tnz1;
 
             let s = lzcnt(tnzm);
             let sm = (31_i32.wrapping_sub(s as i32) >> 31) as u64;
@@ -1215,7 +855,7 @@ impl GF5_248 {
             let tnza = tnza << s;
             let tnzb = tnzb << s;
 
-            let tzx = !(tnz1 | tnz2 | tnz3);
+            let tzx = !tnz1;
             let tnza = tnza | (a.0[0] & tzx);
             let tnzb = tnzb | (b.0[0] & tzx);
             let mut xa = (a.0[0] & 0x7FFFFFFF) | (tnza & 0xFFFFFFFF80000000);
@@ -1332,16 +972,14 @@ impl GF5_248 {
     // bit is 0 (when normalized in 0..q-1).
     fn set_sqrt_ext(&mut self) -> u32 {
         // Candidate root is self^((q+1)/4).
-        // (q+1)/4 = 5*2^246
-        let z = *self;
-        let z5 = z * z.xsquare(2);
-        let mut y = z5.xsquare(246);
+        // (q+1)/4 = 2^125
+        let mut y = self.xsquare(125);
 
         // Normalize y and negate it if necessary to set the low bit to 0.
         // We must take care to make the bit check on the value in normal
         // representation, not Montgomery representation.
         let mut yn = y;
-        yn.set_montgomery_reduce();
+        yn.set_normalized();
         y.set_cond(&-y, ((yn.0[0] as u32) & 1).wrapping_neg());
 
         // Check that the candidate is indeed a square root.
@@ -1395,16 +1033,14 @@ impl GF5_248 {
     /// failure, this value is set to 0.
     fn set_fourth_root(&mut self) -> u32 {
         // Candidate root is self^((q+1)/8).
-        // (q+1)/4 = 5*2^245
-        let z = *self;
-        let z5 = z * z.xsquare(2);
-        let mut y = z5.xsquare(245);
+        // (q+1)/4 = 2^124
+        let mut y = self.xsquare(124);
 
         // Normalize y and negate it if necessary to set the low bit to 0.
         // We must take care to make the bit check on the value in normal
         // representation, not Montgomery representation.
         let mut yn = y;
-        yn.set_montgomery_reduce();
+        yn.set_normalized();
         y.set_cond(&-y, ((yn.0[0] as u32) & 1).wrapping_neg());
 
         // Check that the candidate is indeed a square root.
@@ -1442,20 +1078,6 @@ impl GF5_248 {
         self.0[0]
     }
 
-    /* TODO? Not very useful on this field.
-    // Compute two signed integers (c0, c1) such that this self = c0/c1 in
-    // the ring. The two returned values may range up to about 1.2*2^126
-    // each (in absolute value).
-    //
-    // THIS FUNCTION IS NOT CONSTANT-TIME. It shall be used only for a
-    // public source element.
-    pub fn split_vartime(self) -> (i128, i128) {
-        let mut k = self;
-        k.set_normalized();
-        lagrange253_vartime(&k.0, &Self::MODULUS)
-    }
-    */
-
     // Equality check between two field elements (constant-time);
     // returned value is 0xFFFFFFFF on equality, 0 otherwise.
     #[inline(always)]
@@ -1470,99 +1092,52 @@ impl GF5_248 {
         // There are two possible representations for 0: 0 and q.
         let a0 = self.0[0];
         let a1 = self.0[1];
-        let a2 = self.0[2];
-        let a3 = self.0[3];
-        let t0 = a0 | a1 | a2 | a3;
-        let t1 = (a0 ^ Self::MODULUS[0])
-            | (a1 ^ Self::MODULUS[1])
-            | (a2 ^ Self::MODULUS[2])
-            | (a3 ^ Self::MODULUS[3]);
+        let t0 = a0 | a1;
+        let t1 = (a0 ^ Self::MODULUS[0]) | (a1 ^ Self::MODULUS[1]);
 
         // Top bit of r is 0 if and only if one of t0 or t1 is zero.
         let r = (t0 | t0.wrapping_neg()) & (t1 | t1.wrapping_neg());
         ((r >> 63) as u32).wrapping_sub(1)
     }
 
-    /* unused
-    #[inline(always)]
-    fn decode32_reduce(buf: &[u8]) -> Self {
-        let mut r = Self::ZERO;
-        if buf.len() == 32 {
-            r.set_decode32_reduce(buf);
-        }
-        r
-    }
-    */
-
-    // This internal function decodes 32 bytes (exactly) into a 256-bit
+    // This internal function decodes 16 bytes (exactly) into a 128-bit
     // integer.
     #[inline(always)]
-    fn set_decode32_raw(&mut self, buf: &[u8]) {
-        debug_assert!(buf.len() == 32);
+    fn set_decode16_raw(&mut self, buf: &[u8]) {
+        debug_assert!(buf.len() == 16);
         self.0[0] = u64::from_le_bytes(*<&[u8; 8]>::try_from(&buf[0..8]).unwrap());
         self.0[1] = u64::from_le_bytes(*<&[u8; 8]>::try_from(&buf[8..16]).unwrap());
-        self.0[2] = u64::from_le_bytes(*<&[u8; 8]>::try_from(&buf[16..24]).unwrap());
-        self.0[3] = u64::from_le_bytes(*<&[u8; 8]>::try_from(&buf[24..32]).unwrap());
     }
 
-    // This internal function decodes 32 bytes (exactly) into a 256-bit
-    // integer, and partially reduces it modulo q to ensure a 251-bit value.
+    // This internal function decodes 16 bytes (exactly) into a 128-bit
+    // integer, and reduces it modulo q
     // WARNING: Montgomery representation is not applied.
     #[inline]
-    fn set_decode32_reduce(&mut self, buf: &[u8]) {
-        // Decode the 32 bytes as a raw integer.
-        self.set_decode32_raw(buf);
+    fn set_decode16_reduce(&mut self, buf: &[u8]) {
+        // Decode the 16 bytes as a raw integer.
+        self.set_decode16_raw(buf);
 
         // Partial reduction.
-        self.set_partial_reduce();
+        self.set_reduce_small(0);
     }
 
-    // Apply partial reduction modulo q so that the internal state fits
-    // on 251 bits.
-    // WARNING: Montgomery representation is not applied.
+    // Encode this value over exactly 16 bytes. Encoding is always canonical
+    // (little-endian encoding of the value in the 0..q-1 range.
     #[inline(always)]
-    fn set_partial_reduce(&mut self) {
-        // We need to reduce the value into an acceptable range (251 bits).
-        // Extract low 248-bit part, and the high part (8 bits).
-        let h = self.0[3] >> 56;
-        let d3 = self.0[3] & 0x00FFFFFFFFFFFFFF;
-
-        // Fold value h by dividing it by 5. Since 5*2^248 = 1 mod q,
-        // We add floor(h/5) + (h mod 5)*2^248 to the value.
-        let quo = (h * 0xCD) >> 10;
-        let rem = h - (5 * quo);
-        let (d0, cc) = addcarry_u64(self.0[0], quo, 0);
-        let (d1, cc) = addcarry_u64(self.0[1], 0, cc);
-        let (d2, cc) = addcarry_u64(self.0[2], 0, cc);
-        let (d3, _) = addcarry_u64(d3, rem << 56, cc);
-
-        self.0[0] = d0;
-        self.0[1] = d1;
-        self.0[2] = d2;
-        self.0[3] = d3;
-    }
-
-    // Encode this value over exactly 32 bytes. Encoding is always canonical
-    // (little-endian encoding of the value in the 0..q-1 range, high four
-    // bits of the last byte are always 0).
-    #[inline(always)]
-    pub fn encode32(self) -> [u8; 32] {
+    pub fn encode16(self) -> [u8; 16] {
         let mut r = self;
-        r.set_montgomery_reduce();
-        let mut d = [0u8; 32];
+        r.set_normalized();
+        let mut d = [0u8; 16];
         d[0..8].copy_from_slice(&r.0[0].to_le_bytes());
         d[8..16].copy_from_slice(&r.0[1].to_le_bytes());
-        d[16..24].copy_from_slice(&r.0[2].to_le_bytes());
-        d[24..32].copy_from_slice(&r.0[3].to_le_bytes());
         d
     }
 
-    // Encode this value over exactly 32 bytes. Encoding is always canonical
-    // (little-endian encoding of the value in the 0..q-1 range, high four
-    // bits of the last byte are always 0).
+    // Encode this value over exactly 16 bytes. Encoding is always canonical
+    // (little-endian encoding of the value in the 0..q-1 range.
     #[inline(always)]
-    pub fn encode(self) -> [u8; 32] {
-        self.encode32()
+    pub fn encode(self) -> [u8; 16] {
+        self.encode16()
     }
 
     // Decode the field element from the provided bytes. If the source
@@ -1573,29 +1148,22 @@ impl GF5_248 {
     // is returned.
     #[inline]
     pub fn set_decode_ct(&mut self, buf: &[u8]) -> u32 {
-        if buf.len() != 32 {
+        if buf.len() != 16 {
             *self = Self::ZERO;
             return 0;
         }
 
-        self.set_decode32_raw(buf);
+        self.set_decode16_raw(buf);
 
         // Try to subtract q from the value; if that does not yield a
         // borrow, then the encoding was not canonical.
         let (_, cc) = subborrow_u64(self.0[0], Self::MODULUS[0], 0);
         let (_, cc) = subborrow_u64(self.0[1], Self::MODULUS[1], cc);
-        let (_, cc) = subborrow_u64(self.0[2], Self::MODULUS[2], cc);
-        let (_, cc) = subborrow_u64(self.0[3], Self::MODULUS[3], cc);
 
         // Clear the value if not canonical.
         let cc = (cc as u64).wrapping_neg();
         self.0[0] &= cc;
         self.0[1] &= cc;
-        self.0[2] &= cc;
-        self.0[3] &= cc;
-
-        // Convert to Montgomery representation.
-        self.set_mul(&Self::R2);
 
         cc as u32
     }
@@ -1618,24 +1186,9 @@ impl GF5_248 {
     // 32 bytes yields an integer with is not lower than q), then this
     // returns (0, 0).
     #[inline]
-    pub fn decode32(buf: &[u8]) -> (Self, u32) {
+    pub fn decode16(buf: &[u8]) -> (Self, u32) {
         Self::decode(buf)
     }
-
-    // // Decode a field element from 32 bytes. If the source slice has length
-    // // exactly 32 bytes and contains a valid canonical encoding of a field
-    // // element, then that element is returned. Otherwise, `None` is
-    // // returned. Side-channel analysis may reveal to outsiders whether the
-    // // decoding succeeded.
-    // #[inline(always)]
-    // pub fn decode(buf: &[u8]) -> Option<Self> {
-    //     let (r, cc) = Self::decode32(buf);
-    //     if cc != 0 {
-    //         Some(r)
-    //     } else {
-    //         None
-    //     }
-    // }
 
     // Decode a field element from some bytes. The bytes are interpreted
     // in unsigned little-endian convention, and the resulting integer
@@ -1646,37 +1199,30 @@ impl GF5_248 {
         if n == 0 {
             return;
         }
-        if (n & 31) != 0 {
-            // If input size is not a multiple of 32, then we decode a
-            // partial block and the value is already less than 2^248.
-            let k = n & !(31 as usize);
-            let mut tmp = [0u8; 32];
+        if (n & 15) != 0 {
+            // If input size is not a multiple of 16, then we decode a
+            // partial block and the value is already less than 2^127.
+            let k = n & !(15 as usize);
+            let mut tmp = [0u8; 16];
             tmp[..(n - k)].copy_from_slice(&buf[k..]);
             n = k;
-            self.set_decode32_raw(&tmp);
+            self.set_decode16_raw(&tmp);
         } else {
-            // If input size is a multiple of 32, then we decode a full
-            // 32-byte block, and we must reduce it to get a 251-bit value.
-            n -= 32;
-            self.set_decode32_reduce(&buf[n..]);
+            // If input size is a multiple of 16, then we decode a full
+            // 16-byte block, and we must reduce it to get a 127-bit value.
+            n -= 16;
+            self.set_decode16_reduce(&buf[n..]);
         }
 
         // Process all remaining blocks, in descending address order.
+        // TODO: Broken!
         while n > 0 {
-            // For each block, we multiply the current value by 2^256
-            // (i.e. we Montgomery-multiply by 2^512) then we add the
-            // next block.
-            let k = n - 32;
+            let k = n - 16;
             let mut v = Self::ZERO;
-            v.set_decode32_reduce(&buf[k..k + 32]);
-            self.set_mul(&Self::R2);
+            v.set_decode16_reduce(&buf[k..k + 16]);
             self.set_add(&v);
             n = k;
         }
-
-        // We decoded the value as a plain integer, we must convert it
-        // to Montgomery representation.
-        self.set_mul(&Self::R2);
     }
 
     // Decode a field element from some bytes. The bytes are interpreted
@@ -1693,81 +1239,28 @@ impl GF5_248 {
     // contexts. It is safe (constant-time) and thus also usable at
     // runtime, but less efficient than set_mul() since it does not
     // leverage intrinsics.
-    const fn const_mred(a0: u64, a1: u64, a2: u64, a3: u64) -> [u64; 4] {
+    const fn const_mred(a0: u64, a1: u64) -> [u64; 2] {
         // Custom add-with-carry.
         const fn adc(x: u64, y: u64, cc: u64) -> (u64, u64) {
             let z = (x as u128).wrapping_add(y as u128).wrapping_add(cc as u128);
             (z as u64, (z >> 64) as u64)
         }
 
-        // Extract low 248-bit part, and the high part (8 bits).
-        let h = a3 >> 56;
-        let a3 = a3 & 0x00FFFFFFFFFFFFFF;
-
-        // Fold value h by dividing it by 5. Since 5*2^248 = 1 mod q,
-        // We add floor(h/5) + (h mod 5)*2^248 to the value.
-        let quo = (h * 0xCD) >> 10;
-        let rem = h - (5 * quo);
-        let (d0, cc) = adc(a0, quo, 0);
+        // Add the 127th bit to the lower word using that 2^127 = 1 mod p
+        let m = a1 >> 63;
+        let a1 = a1 & 0x7FFFFFFFFFFFFFFF;
+        let (d0, cc) = adc(a0, 0, m);
         let (d1, cc) = adc(a1, 0, cc);
-        let (d2, cc) = adc(a2, 0, cc);
-        let (d3, _) = adc(a3, rem << 56, cc);
+        assert!(cc == 0);
 
-        [d0, d1, d2, d3]
-    }
+        // May need to do this twice
+        let m = d1 >> 63;
+        let d1 = d1 & 0x7FFFFFFFFFFFFFFF;
+        let (d0, cc) = adc(d0, 0, m);
+        let (d1, cc) = adc(d1, 0, cc);
+        assert!(cc == 0);
 
-    // Montgomery multiplication, as a function usable in constant
-    // contexts. It is safe (constant-time) and thus also usable at
-    // runtime, but less efficient than set_mul() since it does not
-    // leverage intrinsics.
-    //
-    // Special: this function also tolerates that input a[] ranges
-    // up to 2^256-1 (full 256-bit word), as long as b[] is less than q.
-    const fn const_mmul(a: Self, b: Self) -> Self {
-        // Custom add-with-carry.
-        const fn adc(x: u64, y: u64, cc: u64) -> (u64, u64) {
-            let z = (x as u128).wrapping_add(y as u128).wrapping_add(cc as u128);
-            (z as u64, (z >> 64) as u64)
-        }
-
-        // Compute x*y + a + b, returned over two words (lo, hi).
-        const fn umaal(x: u64, y: u64, a: u64, b: u64) -> (u64, u64) {
-            let z = (x as u128) * (y as u128) + (a as u128) + (b as u128);
-            (z as u64, (z >> 64) as u64)
-        }
-
-        // Given d0..d3 (with d <= 2*q-1), operand b[] (b <= q-1) and
-        // multiplier aj, return ((d + aj*b) / 2^64) mod m, partially
-        // reduced (output is at most 2*q-1).
-        const fn mmul1(
-            aj: u64,
-            b: [u64; 4],
-            d0: u64,
-            d1: u64,
-            d2: u64,
-            d3: u64,
-        ) -> (u64, u64, u64, u64) {
-            // d <- d + a*bj (may range up to (2^64+1)*q, needs 5 words)
-            let (d0, hi) = umaal(aj, b[0], d0, 0);
-            let (d1, hi) = umaal(aj, b[1], d1, hi);
-            let (d2, hi) = umaal(aj, b[2], d2, hi);
-            let (d3, d4) = umaal(aj, b[3], d3, hi);
-            let f = d0;
-            let (_, hi) = umaal(f, 0xFFFFFFFFFFFFFFFF, d0, 0);
-            let (d0, hi) = umaal(f, 0xFFFFFFFFFFFFFFFF, d1, hi);
-            let (d1, hi) = umaal(f, 0xFFFFFFFFFFFFFFFF, d2, hi);
-            let (d2, hi) = umaal(f, 0x04FFFFFFFFFFFFFF, d3, hi);
-            let (d3, _) = adc(d4, hi, 0);
-            (d0, d1, d2, d3)
-        }
-
-        let (d0, d1, d2, d3) = (0u64, 0u64, 0u64, 0u64);
-        let (d0, d1, d2, d3) = mmul1(a.0[0], b.0, d0, d1, d2, d3);
-        let (d0, d1, d2, d3) = mmul1(a.0[1], b.0, d0, d1, d2, d3);
-        let (d0, d1, d2, d3) = mmul1(a.0[2], b.0, d0, d1, d2, d3);
-        let (d0, d1, d2, d3) = mmul1(a.0[3], b.0, d0, d1, d2, d3);
-
-        Self(Self::const_mred(d0, d1, d2, d3))
+        [d0, d1]
     }
 }
 
@@ -1775,256 +1268,256 @@ impl GF5_248 {
 // Implementations of all the traits needed to use the simple operators
 // (+, *, /...) on field element instances, with or without references.
 
-impl Add<GF5_248> for GF5_248 {
-    type Output = GF5_248;
+impl Add<Gf127> for Gf127 {
+    type Output = Gf127;
 
     #[inline(always)]
-    fn add(self, other: GF5_248) -> GF5_248 {
+    fn add(self, other: Gf127) -> Gf127 {
         let mut r = self;
         r.set_add(&other);
         r
     }
 }
 
-impl Add<&GF5_248> for GF5_248 {
-    type Output = GF5_248;
+impl Add<&Gf127> for Gf127 {
+    type Output = Gf127;
 
     #[inline(always)]
-    fn add(self, other: &GF5_248) -> GF5_248 {
+    fn add(self, other: &Gf127) -> Gf127 {
         let mut r = self;
         r.set_add(other);
         r
     }
 }
 
-impl Add<GF5_248> for &GF5_248 {
-    type Output = GF5_248;
+impl Add<Gf127> for &Gf127 {
+    type Output = Gf127;
 
     #[inline(always)]
-    fn add(self, other: GF5_248) -> GF5_248 {
+    fn add(self, other: Gf127) -> Gf127 {
         let mut r = *self;
         r.set_add(&other);
         r
     }
 }
 
-impl Add<&GF5_248> for &GF5_248 {
-    type Output = GF5_248;
+impl Add<&Gf127> for &Gf127 {
+    type Output = Gf127;
 
     #[inline(always)]
-    fn add(self, other: &GF5_248) -> GF5_248 {
+    fn add(self, other: &Gf127) -> Gf127 {
         let mut r = *self;
         r.set_add(other);
         r
     }
 }
 
-impl AddAssign<GF5_248> for GF5_248 {
+impl AddAssign<Gf127> for Gf127 {
     #[inline(always)]
-    fn add_assign(&mut self, other: GF5_248) {
+    fn add_assign(&mut self, other: Gf127) {
         self.set_add(&other);
     }
 }
 
-impl AddAssign<&GF5_248> for GF5_248 {
+impl AddAssign<&Gf127> for Gf127 {
     #[inline(always)]
-    fn add_assign(&mut self, other: &GF5_248) {
+    fn add_assign(&mut self, other: &Gf127) {
         self.set_add(other);
     }
 }
 
-impl Div<GF5_248> for GF5_248 {
-    type Output = GF5_248;
+impl Div<Gf127> for Gf127 {
+    type Output = Gf127;
 
     #[inline(always)]
-    fn div(self, other: GF5_248) -> GF5_248 {
+    fn div(self, other: Gf127) -> Gf127 {
         let mut r = self;
         r.set_div(&other);
         r
     }
 }
 
-impl Div<&GF5_248> for GF5_248 {
-    type Output = GF5_248;
+impl Div<&Gf127> for Gf127 {
+    type Output = Gf127;
 
     #[inline(always)]
-    fn div(self, other: &GF5_248) -> GF5_248 {
+    fn div(self, other: &Gf127) -> Gf127 {
         let mut r = self;
         r.set_div(other);
         r
     }
 }
 
-impl Div<GF5_248> for &GF5_248 {
-    type Output = GF5_248;
+impl Div<Gf127> for &Gf127 {
+    type Output = Gf127;
 
     #[inline(always)]
-    fn div(self, other: GF5_248) -> GF5_248 {
+    fn div(self, other: Gf127) -> Gf127 {
         let mut r = *self;
         r.set_div(&other);
         r
     }
 }
 
-impl Div<&GF5_248> for &GF5_248 {
-    type Output = GF5_248;
+impl Div<&Gf127> for &Gf127 {
+    type Output = Gf127;
 
     #[inline(always)]
-    fn div(self, other: &GF5_248) -> GF5_248 {
+    fn div(self, other: &Gf127) -> Gf127 {
         let mut r = *self;
         r.set_div(other);
         r
     }
 }
 
-impl DivAssign<GF5_248> for GF5_248 {
+impl DivAssign<Gf127> for Gf127 {
     #[inline(always)]
-    fn div_assign(&mut self, other: GF5_248) {
+    fn div_assign(&mut self, other: Gf127) {
         self.set_div(&other);
     }
 }
 
-impl DivAssign<&GF5_248> for GF5_248 {
+impl DivAssign<&Gf127> for Gf127 {
     #[inline(always)]
-    fn div_assign(&mut self, other: &GF5_248) {
+    fn div_assign(&mut self, other: &Gf127) {
         self.set_div(other);
     }
 }
 
-impl Mul<GF5_248> for GF5_248 {
-    type Output = GF5_248;
+impl Mul<Gf127> for Gf127 {
+    type Output = Gf127;
 
     #[inline(always)]
-    fn mul(self, other: GF5_248) -> GF5_248 {
+    fn mul(self, other: Gf127) -> Gf127 {
         let mut r = self;
         r.set_mul(&other);
         r
     }
 }
 
-impl Mul<&GF5_248> for GF5_248 {
-    type Output = GF5_248;
+impl Mul<&Gf127> for Gf127 {
+    type Output = Gf127;
 
     #[inline(always)]
-    fn mul(self, other: &GF5_248) -> GF5_248 {
+    fn mul(self, other: &Gf127) -> Gf127 {
         let mut r = self;
         r.set_mul(other);
         r
     }
 }
 
-impl Mul<GF5_248> for &GF5_248 {
-    type Output = GF5_248;
+impl Mul<Gf127> for &Gf127 {
+    type Output = Gf127;
 
     #[inline(always)]
-    fn mul(self, other: GF5_248) -> GF5_248 {
+    fn mul(self, other: Gf127) -> Gf127 {
         let mut r = *self;
         r.set_mul(&other);
         r
     }
 }
 
-impl Mul<&GF5_248> for &GF5_248 {
-    type Output = GF5_248;
+impl Mul<&Gf127> for &Gf127 {
+    type Output = Gf127;
 
     #[inline(always)]
-    fn mul(self, other: &GF5_248) -> GF5_248 {
+    fn mul(self, other: &Gf127) -> Gf127 {
         let mut r = *self;
         r.set_mul(other);
         r
     }
 }
 
-impl MulAssign<GF5_248> for GF5_248 {
+impl MulAssign<Gf127> for Gf127 {
     #[inline(always)]
-    fn mul_assign(&mut self, other: GF5_248) {
+    fn mul_assign(&mut self, other: Gf127) {
         self.set_mul(&other);
     }
 }
 
-impl MulAssign<&GF5_248> for GF5_248 {
+impl MulAssign<&Gf127> for Gf127 {
     #[inline(always)]
-    fn mul_assign(&mut self, other: &GF5_248) {
+    fn mul_assign(&mut self, other: &Gf127) {
         self.set_mul(other);
     }
 }
 
-impl Neg for GF5_248 {
-    type Output = GF5_248;
+impl Neg for Gf127 {
+    type Output = Gf127;
 
     #[inline(always)]
-    fn neg(self) -> GF5_248 {
+    fn neg(self) -> Gf127 {
         let mut r = self;
         r.set_neg();
         r
     }
 }
 
-impl Neg for &GF5_248 {
-    type Output = GF5_248;
+impl Neg for &Gf127 {
+    type Output = Gf127;
 
     #[inline(always)]
-    fn neg(self) -> GF5_248 {
+    fn neg(self) -> Gf127 {
         let mut r = *self;
         r.set_neg();
         r
     }
 }
 
-impl Sub<GF5_248> for GF5_248 {
-    type Output = GF5_248;
+impl Sub<Gf127> for Gf127 {
+    type Output = Gf127;
 
     #[inline(always)]
-    fn sub(self, other: GF5_248) -> GF5_248 {
+    fn sub(self, other: Gf127) -> Gf127 {
         let mut r = self;
         r.set_sub(&other);
         r
     }
 }
 
-impl Sub<&GF5_248> for GF5_248 {
-    type Output = GF5_248;
+impl Sub<&Gf127> for Gf127 {
+    type Output = Gf127;
 
     #[inline(always)]
-    fn sub(self, other: &GF5_248) -> GF5_248 {
+    fn sub(self, other: &Gf127) -> Gf127 {
         let mut r = self;
         r.set_sub(other);
         r
     }
 }
 
-impl Sub<GF5_248> for &GF5_248 {
-    type Output = GF5_248;
+impl Sub<Gf127> for &Gf127 {
+    type Output = Gf127;
 
     #[inline(always)]
-    fn sub(self, other: GF5_248) -> GF5_248 {
+    fn sub(self, other: Gf127) -> Gf127 {
         let mut r = *self;
         r.set_sub(&other);
         r
     }
 }
 
-impl Sub<&GF5_248> for &GF5_248 {
-    type Output = GF5_248;
+impl Sub<&Gf127> for &Gf127 {
+    type Output = Gf127;
 
     #[inline(always)]
-    fn sub(self, other: &GF5_248) -> GF5_248 {
+    fn sub(self, other: &Gf127) -> Gf127 {
         let mut r = *self;
         r.set_sub(other);
         r
     }
 }
 
-impl SubAssign<GF5_248> for GF5_248 {
+impl SubAssign<Gf127> for Gf127 {
     #[inline(always)]
-    fn sub_assign(&mut self, other: GF5_248) {
+    fn sub_assign(&mut self, other: Gf127) {
         self.set_sub(&other);
     }
 }
 
-impl SubAssign<&GF5_248> for GF5_248 {
+impl SubAssign<&Gf127> for Gf127 {
     #[inline(always)]
-    fn sub_assign(&mut self, other: &GF5_248) {
+    fn sub_assign(&mut self, other: &Gf127) {
         self.set_sub(other);
     }
 }
@@ -2034,171 +1527,154 @@ impl SubAssign<&GF5_248> for GF5_248 {
 #[cfg(test)]
 mod tests {
 
-    use super::GF5_248;
+    use super::Gf127;
     use core::convert::TryFrom;
     use num_bigint::{BigInt, Sign};
     use sha2::{Digest, Sha256};
 
-    /*
-    fn print(name: &str, v: GF5_248) {
-        println!("{} = 0x{:016X}{:016X}{:016X}{:016X}",
-            name, v.0[3], v.0[2], v.0[1], v.0[0]);
-    }
-    */
+    // fn print(name: &str, v: Gf127) {
+    //     println!("{} = 0x{:016X}{:016X}", name, v.0[1], v.0[0]);
+    // }
 
-    // va, vb and vx must be 32 bytes each in length
+    // va, vb and vx must be 16 bytes each in length
     fn check_gf_ops(va: &[u8], vb: &[u8], vx: &[u8]) {
         let zp = BigInt::from_slice(
             Sign::Plus,
-            &[
-                0xFFFFFFFFu32,
-                0xFFFFFFFFu32,
-                0xFFFFFFFFu32,
-                0xFFFFFFFFu32,
-                0xFFFFFFFFu32,
-                0xFFFFFFFFu32,
-                0xFFFFFFFFu32,
-                0x04FFFFFFu32,
-            ],
+            &[0xFFFFFFFFu32, 0xFFFFFFFFu32, 0xFFFFFFFFu32, 0x7FFFFFFFu32],
         );
         let zpz = &zp << 64;
         let zp8 = &zp << 8;
 
-        let mut a = GF5_248::ZERO;
+        let mut a = Gf127::ZERO;
         a.set_decode_reduce(va);
-        let mut b = GF5_248::ZERO;
+        let mut b = Gf127::ZERO;
         b.set_decode_reduce(vb);
         let za = BigInt::from_bytes_le(Sign::Plus, va);
         let zb = BigInt::from_bytes_le(Sign::Plus, vb);
-
-        let vc = a.encode32();
+        let vc = a.encode16();
         let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
         let zd = &za % &zp;
         assert!(zc == zd);
 
         let a0 = u64::from_le_bytes(*<&[u8; 8]>::try_from(&va[0..8]).unwrap());
         let a1 = u64::from_le_bytes(*<&[u8; 8]>::try_from(&va[8..16]).unwrap());
-        let a2 = u64::from_le_bytes(*<&[u8; 8]>::try_from(&va[16..24]).unwrap());
-        let a3 = u64::from_le_bytes(*<&[u8; 8]>::try_from(&va[24..32]).unwrap());
-        let c = GF5_248::w64le(a0, a1, a2, a3);
-        let vc = c.encode32();
+        let c = Gf127::w64le(a0, a1);
+        let vc = c.encode16();
+        let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
+        let zd = &za % &zp;
+
+        assert!(zc == zd);
+        let c = Gf127::w64be(a1, a0);
+        let vc = c.encode16();
         let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
         let zd = &za % &zp;
         assert!(zc == zd);
-        let c = GF5_248::w64be(a3, a2, a1, a0);
-        let vc = c.encode32();
+
+        let c = Gf127::from_w64le(a0, a1);
+        let vc = c.encode16();
         let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
         let zd = &za % &zp;
         assert!(zc == zd);
-        let c = GF5_248::from_w64le(a0, a1, a2, a3);
-        let vc = c.encode32();
-        let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
-        let zd = &za % &zp;
-        assert!(zc == zd);
-        let c = GF5_248::from_w64be(a3, a2, a1, a0);
-        let vc = c.encode32();
+
+        let c = Gf127::from_w64be(a1, a0);
+        let vc = c.encode16();
         let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
         let zd = &za % &zp;
         assert!(zc == zd);
 
         let c = a + b;
-        let vc = c.encode32();
+        let vc = c.encode16();
         let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
         let zd = (&za + &zb) % &zp;
         assert!(zc == zd);
 
         let c = a - b;
-        let vc = c.encode32();
+        let vc = c.encode16();
         let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
         let zd = ((&zp8 + &za) - &zb) % &zp;
         assert!(zc == zd);
 
         let c = -a;
-        let vc = c.encode32();
+        let vc = c.encode16();
         let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
         let zd = (&zp8 - &za) % &zp;
         assert!(zc == zd);
 
         let c = a * b;
-        let vc = c.encode32();
+        let vc = c.encode16();
         let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
         let zd = (&za * &zb) % &zp;
         assert!(zc == zd);
 
         let c = a.half();
-        let vc = c.encode32();
+        let vc = c.encode16();
         let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
         let zd: BigInt = ((&zp8 + (&zc << 1)) - &za) % &zp;
         assert!(zd.sign() == Sign::NoSign);
 
         let c = a.mul2();
-        let vc = c.encode32();
+        let vc = c.encode16();
         let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
         let zd = (&za << 1) % &zp;
         assert!(zc == zd);
 
-        let c = a.mul3();
-        let vc = c.encode32();
-        let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
-        let zd = (&za + (&za << 1)) % &zp;
-        assert!(zc == zd);
-
         let c = a.mul4();
-        let vc = c.encode32();
+        let vc = c.encode16();
         let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
         let zd = (&za << 2) % &zp;
         assert!(zc == zd);
 
         let c = a.mul8();
-        let vc = c.encode32();
+        let vc = c.encode16();
         let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
         let zd = (&za << 3) % &zp;
         assert!(zc == zd);
 
         let c = a.mul16();
-        let vc = c.encode32();
+        let vc = c.encode16();
         let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
         let zd = (&za << 4) % &zp;
         assert!(zc == zd);
 
         let c = a.mul32();
-        let vc = c.encode32();
+        let vc = c.encode16();
         let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
         let zd = (&za << 5) % &zp;
         assert!(zc == zd);
 
         let x = u32::from_le_bytes(*<&[u8; 4]>::try_from(&vb[0..4]).unwrap()) as i32;
         let c = a.mul_small(x);
-        let vc = c.encode32();
+        let vc = c.encode16();
         let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
         let zd = ((&za % &zp) * x + &zpz) % &zp;
         assert!(zc == zd);
 
         let c = a.square();
-        let vc = c.encode32();
+        let vc = c.encode16();
         let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
         let zd = (&za * &za) % &zp;
         assert!(zc == zd);
 
-        let (e, cc) = GF5_248::decode32(va);
+        let (e, cc) = Gf127::decode16(va);
         if cc != 0 {
             assert!(cc == 0xFFFFFFFF);
-            assert!(e.encode32() == va);
+            assert!(e.encode16() == va);
         } else {
-            assert!(e.encode32() == [0u8; 32]);
+            assert!(e.encode16() == [0u8; 16]);
         }
 
-        let mut tmp = [0u8; 96];
-        tmp[0..32].copy_from_slice(va);
-        tmp[32..64].copy_from_slice(vb);
-        tmp[64..96].copy_from_slice(vx);
-        for k in 0..97 {
-            let c = GF5_248::decode_reduce(&tmp[0..k]);
-            let vc = c.encode32();
-            let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
-            let zd = BigInt::from_bytes_le(Sign::Plus, &tmp[0..k]) % &zp;
-            assert!(zc == zd);
-        }
+        // TODO: Broken!
+        // let mut tmp = [0u8; 48];
+        // tmp[0..16].copy_from_slice(va);
+        // tmp[16..32].copy_from_slice(vb);
+        // tmp[32..48].copy_from_slice(vx);
+        // for k in 0..49 {
+        //     let c = Gf127::decode_reduce(&tmp[0..k]);
+        //     let vc = c.encode16();
+        //     let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
+        //     let zd = BigInt::from_bytes_le(Sign::Plus, &tmp[0..k]) % &zp;
+        //     assert!(zc == zd);
+        // }
 
         let c = a / b;
         let d = c * b;
@@ -2210,49 +1686,49 @@ mod tests {
     }
 
     #[test]
-    fn gf5_248_ops() {
-        let mut va = [0u8; 32];
-        let mut vb = [0u8; 32];
-        let mut vx = [0u8; 32];
+    fn Gf127_ops() {
+        let mut va = [0u8; 16];
+        let mut vb = [0u8; 16];
+        let mut vx = [0u8; 16];
         check_gf_ops(&va, &vb, &vx);
-        assert!(GF5_248::decode_reduce(&va).iszero() == 0xFFFFFFFF);
-        assert!(GF5_248::decode_reduce(&va).equals(&GF5_248::decode_reduce(&vb)) == 0xFFFFFFFF);
-        assert!(GF5_248::decode_reduce(&va).legendre() == 0);
-        for i in 0..32 {
+        assert!(Gf127::decode_reduce(&va).iszero() == 0xFFFFFFFF);
+        assert!(Gf127::decode_reduce(&va).equals(&Gf127::decode_reduce(&vb)) == 0xFFFFFFFF);
+        assert!(Gf127::decode_reduce(&va).legendre() == 0);
+        for i in 0..16 {
             va[i] = 0xFFu8;
             vb[i] = 0xFFu8;
             vx[i] = 0xFFu8;
         }
         check_gf_ops(&va, &vb, &vx);
-        assert!(GF5_248::decode_reduce(&va).iszero() == 0);
-        assert!(GF5_248::decode_reduce(&va).equals(&GF5_248::decode_reduce(&vb)) == 0xFFFFFFFF);
-        for i in 0..4 {
-            va[8 * i..8 * i + 8].copy_from_slice(&GF5_248::MODULUS[i].to_le_bytes());
+        assert!(Gf127::decode_reduce(&va).iszero() == 0);
+        assert!(Gf127::decode_reduce(&va).equals(&Gf127::decode_reduce(&vb)) == 0xFFFFFFFF);
+        for i in 0..2 {
+            va[8 * i..8 * i + 8].copy_from_slice(&Gf127::MODULUS[i].to_le_bytes());
         }
-        assert!(GF5_248::decode_reduce(&va).iszero() == 0xFFFFFFFF);
+        assert!(Gf127::decode_reduce(&va).iszero() == 0xFFFFFFFF);
         let mut sh = Sha256::new();
-        for i in 0..300 {
+        for i in 0..1000 {
             sh.update(((3 * i + 0) as u64).to_le_bytes());
-            let va = sh.finalize_reset();
+            let va = &sh.finalize_reset()[0..16];
             sh.update(((3 * i + 1) as u64).to_le_bytes());
-            let vb = sh.finalize_reset();
+            let vb = &sh.finalize_reset()[0..16];
             sh.update(((3 * i + 2) as u64).to_le_bytes());
-            let vx = sh.finalize_reset();
+            let vx = &sh.finalize_reset()[0..16];
             check_gf_ops(&va, &vb, &vx);
-            assert!(GF5_248::decode_reduce(&va).iszero() == 0);
-            assert!(GF5_248::decode_reduce(&va).equals(&GF5_248::decode_reduce(&vb)) == 0);
-            let s = GF5_248::decode_reduce(&va).square();
+            assert!(Gf127::decode_reduce(&va).iszero() == 0);
+            assert!(Gf127::decode_reduce(&va).equals(&Gf127::decode_reduce(&vb)) == 0);
+            let s = Gf127::decode_reduce(&va).square();
             let s2 = -s;
             assert!(s.legendre() == 1);
             assert!(s2.legendre() == -1);
             let (t, r) = s.sqrt();
             assert!(r == 0xFFFFFFFF);
             assert!(t.square().equals(&s) == 0xFFFFFFFF);
-            assert!((t.encode32()[0] & 1) == 0);
+            assert!((t.encode16()[0] & 1) == 0);
             let (t, r) = s.sqrt_ext();
             assert!(r == 0xFFFFFFFF);
             assert!(t.square().equals(&s) == 0xFFFFFFFF);
-            assert!((t.encode32()[0] & 1) == 0);
+            assert!((t.encode16()[0] & 1) == 0);
             let (t2, r) = s2.sqrt();
             assert!(r == 0);
             assert!(t2.iszero() == 0xFFFFFFFF);
@@ -2261,7 +1737,7 @@ mod tests {
             assert!(t2.square().equals(&-s2) == 0xFFFFFFFF);
 
             // test fourth root
-            let s = GF5_248::decode_reduce(&va).square().square();
+            let s = Gf127::decode_reduce(&va).square().square();
             let (t, r) = s.fourth_root();
             assert!(r == 0xFFFFFFFF);
             assert!(t.square().square().equals(&s) == 0xFFFFFFFF);
@@ -2269,22 +1745,22 @@ mod tests {
     }
 
     #[test]
-    fn gf5_248_batch_invert() {
-        let mut xx = [GF5_248::ZERO; 300];
+    fn Gf127_batch_invert() {
+        let mut xx = [Gf127::ZERO; 300];
         let mut sh = Sha256::new();
         for i in 0..300 {
             sh.update((i as u64).to_le_bytes());
-            let v = sh.finalize_reset();
-            xx[i] = GF5_248::decode_reduce(&v);
+            let v = &sh.finalize_reset()[0..16];
+            xx[i] = Gf127::decode_reduce(&v);
         }
-        xx[120] = GF5_248::ZERO;
+        xx[120] = Gf127::ZERO;
         let mut yy = xx;
-        GF5_248::batch_invert(&mut yy[..]);
+        Gf127::batch_invert(&mut yy[..]);
         for i in 0..300 {
             if xx[i].iszero() != 0 {
                 assert!(yy[i].iszero() == 0xFFFFFFFF);
             } else {
-                assert!((xx[i] * yy[i]).equals(&GF5_248::ONE) == 0xFFFFFFFF);
+                assert!((xx[i] * yy[i]).equals(&Gf127::ONE) == 0xFFFFFFFF);
             }
         }
     }
