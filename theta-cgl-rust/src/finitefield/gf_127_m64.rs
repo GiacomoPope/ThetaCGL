@@ -487,14 +487,17 @@ impl Gf127 {
         r
     }
 
+    // The only issue we have is when self = 2^127 - 1
+    // in which case we want to subtract p.
+    // Here we check if self is the modulus and swap for
+    // zero if this is true...
+    // TODO: I think this is probably slow...
     #[inline]
     fn set_normalized(&mut self) {
-        // TODO!!!!
-        if self.0[0] == Self::MODULUS[0] && self.0[1] == Self::MODULUS[1] {
-            self.0[0] = 0;
-            self.0[1] = 0;
-        }
-        assert!(self.0[1] >> 63 == 0);
+        let t: u64 = (self.0[0] ^ Self::MODULUS[0]) | (self.0[1] ^ Self::MODULUS[1]);
+        let r: u64 = t | t.wrapping_neg();
+        let c: u32 = ((r >> 63) as u32).wrapping_sub(1);
+        self.set_cond(&Self::ZERO, c);
     }
 
     // Set this value to u*f+v*g (with 'u' being self). Parameters f and g
