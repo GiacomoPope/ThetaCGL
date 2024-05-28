@@ -130,7 +130,7 @@ pub mod Fp921 {
     pub type Fp = GF255<921>;
 }
 
-pub mod Fp5 {
+pub mod Fp64 {
     pub use crate::finitefield::gf64_257::GFp;
     pub type Fp = GFp;
 }
@@ -173,8 +173,8 @@ pub mod Fp921Ext {
     }
 }
 
-pub mod Fp5Ext {
-    use super::Fp5::Fp;
+pub mod Fp64Ext {
+    use super::Fp64::Fp;
 
     const NQR_RE: Fp = Fp::from_u64_reduce(0xF3139B9D0738D2D1);
 

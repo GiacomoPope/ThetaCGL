@@ -19,8 +19,8 @@ mod util;
 // ============================================================
 
 pub mod thp64 {
-    pub type Fp = crate::fields::Fp5::Fp;
-    pub type Fq = crate::fields::Fp5Ext::Fp2;
+    pub type Fp = crate::fields::Fp64::Fp;
+    pub type Fq = crate::fields::Fp64Ext::Fp2;
 
     //
     // WARNING!!
