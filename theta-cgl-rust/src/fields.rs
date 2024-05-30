@@ -15,13 +15,6 @@ pub mod Fp127 {
     const P0I: u64 = 1;
     const TFIXDIV_VAL: [u64; N] = [0x0000000000000100, 0x0000000000000000];
     const TDEC_VAL: [u64; N] = [0x0000000000000000, 0x0000000000000002];
-    // Old window
-    // const WIN_LEN: usize = 5;
-    // const SQRT_EH: [u8; 1] = [1];
-    // const SQRT_EL: usize = 25;
-    // const FOURTH_ROOT_EH: [u8; 1] = [16];
-    // const FOURTH_ROOT_EL: usize = 24;
-    // New window
     const WIN_LEN: usize = 4;
     const SQRT_EH: [u8; 1] = [2];
     const SQRT_EL: usize = 31;
@@ -36,6 +29,11 @@ pub mod Fp127 {
     mod tests {
         crate::finitefield::fp_gen::define_fp_tests! {}
     }
+}
+
+pub mod Fp127New {
+    pub use crate::finitefield::gf_127_m64::Gf127;
+    pub type Fp = Gf127;
 }
 
 // 79*2**247 - 1
@@ -103,11 +101,6 @@ pub mod Fp254 {
         0x7B23A5440CF6474A,
         0x2000000000000006,
     ];
-    // const WIN_LEN: usize = 5;
-    // const SQRT_EH: [u8; 2] = [15, 2];
-    // const SQRT_EL: usize = 49;
-    // const FOURTH_ROOT_EH: [u8; 3] = [16, 7, 1];
-    // const FOURTH_ROOT_EL: usize = 48;
     const WIN_LEN: usize = 4;
     const SQRT_EH: [u8; 2] = [14, 9];
     const SQRT_EL: usize = 61;
@@ -130,9 +123,25 @@ pub mod Fp921 {
     pub type Fp = GF255<921>;
 }
 
+pub mod Fp5248 {
+    pub use crate::finitefield::gf5_248_m64::GF5_248;
+    pub type Fp = GF5_248;
+}
+
 pub mod Fp127Ext {
     use super::Fp127::Fp;
     const NQR_RE: Fp = Fp::new([0xE1F195E63EF9998E, 0x025681E8E25E14E8]);
+
+    crate::finitefield::fp2_gen::define_fp2_core! {}
+    #[cfg(test)]
+    mod tests {
+        crate::finitefield::fp2_gen::define_fp2_tests! {}
+    }
+}
+
+pub mod Fp127NewExt {
+    use super::Fp127New::Fp;
+    const NQR_RE: Fp = Fp::w64le(2, 0);
 
     crate::finitefield::fp2_gen::define_fp2_core! {}
     #[cfg(test)]
@@ -160,6 +169,17 @@ pub mod Fp254Ext {
 pub mod Fp921Ext {
     use super::Fp921::Fp;
     const NQR_RE: Fp = Fp::w64le(2, 0, 0, 0);
+
+    crate::finitefield::fp2_gen::define_fp2_core! {}
+    #[cfg(test)]
+    mod tests {
+        crate::finitefield::fp2_gen::define_fp2_tests! {}
+    }
+}
+
+pub mod Fp5248Ext {
+    use super::Fp5248::Fp;
+    const NQR_RE: Fp = Fp::w64le(5, 0, 0, 0);
 
     crate::finitefield::fp2_gen::define_fp2_core! {}
     #[cfg(test)]
