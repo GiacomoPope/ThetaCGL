@@ -1,4 +1,5 @@
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use rand_core::{CryptoRng, RngCore};
 
 // ========================================================================
 // GF(p)
@@ -219,39 +220,39 @@ impl GFp {
         self * rhs.invert()
     }
 
-    /// Test of equality with zero; return value is 0xFFFFFFFFFFFFFFFF
+    /// Test of equality with zero; return value is 0xFFFFFFFF
     /// if this value is equal to zero, or 0 otherwise.
     #[inline(always)]
-    pub const fn iszero(self) -> u64 {
+    pub const fn iszero(self) -> u32 {
         // Since values are always canonicalized internally, 0 in GF(p)
         // is always represented by the integer 0.
         // x == 0 if and only if both x and -x have their high bit equal to 0.
-        !((((self.0 | self.0.wrapping_neg()) as i64) >> 63) as u64)
+        !((((self.0 | self.0.wrapping_neg()) as i64) >> 63) as u32)
     }
 
     /// Test of equality with one; return value is 0xFFFFFFFFFFFFFFFF
     /// if this value is equal to one, or 0 otherwise.
     #[inline(always)]
-    pub const fn isone(self) -> u64 {
-        self.equals(GFp::ONE)
+    pub const fn isone(self) -> u32 {
+        self.equals(&GFp::ONE)
     }
 
     /// Test of equality with minus one; return value is 0xFFFFFFFFFFFFFFFF
     /// if this value is equal to -1 mod p, or 0 otherwise.
     #[inline(always)]
-    pub const fn isminusone(self) -> u64 {
-        self.equals(GFp::MINUS_ONE)
+    pub const fn isminusone(self) -> u32 {
+        self.equals(&GFp::MINUS_ONE)
     }
 
     /// Test of equality between two GF(p) elements; return value is
-    /// 0xFFFFFFFFFFFFFFFF if the two values are equal, or 0 otherwise.
+    /// 0xFFFFFFFF if the two values are equal, or 0 otherwise.
     #[inline(always)]
-    pub const fn equals(self, rhs: Self) -> u64 {
+    pub const fn equals(self, rhs: &Self) -> u32 {
         // Since internal representation is canonical, we can simply
         // do a xor between the two operands, and then use the same
         // expression as iszero().
         let t = self.0 ^ rhs.0;
-        !((((t | t.wrapping_neg()) as i64) >> 63) as u64)
+        !((((t | t.wrapping_neg()) as i64) >> 63) as u32)
     }
 
     /// Legendre symbol: return x^((p-1)/2) (as a GF(p) element).
@@ -285,15 +286,15 @@ impl GFp {
 
     pub fn legendre(self) -> i32 {
         let l = self.legendre_gfp();
-        let c1 = l.equals(GFp::ONE);
-        let c2 = l.equals(GFp::MINUS_ONE);
+        let c1 = l.equals(&GFp::ONE);
+        let c2 = l.equals(&GFp::MINUS_ONE);
         let cc1 = (c1 & 1) as i32;
         let cc2 = (c2 & 1) as i32;
 
         cc1 - cc2
     }
 
-    pub fn sqrt(self) -> (Self, u64) { 
+    pub fn sqrt(self) -> (Self, u32) { 
         // Make a window.
         let mut ww = [self; (1usize << GFp::WIN_LEN) - 1];
         for i in 1..ww.len() {
@@ -317,6 +318,7 @@ impl GFp {
                 x = x.mul(ww[(GFp::SQRT_EH[i] as usize) - 1]);
             }
         }
+
         // Low 126 digits are all zero.
         for _ in 0..(GFp::WIN_LEN * GFp::SQRT_EL) {
             x = x.square()
@@ -325,14 +327,14 @@ impl GFp {
         // Check that the obtained value is indeed a square root of the
         // source value (which is still in ww[0]); if not, clear this
         // value.
-        let r = x.square().equals(ww[0]);
-        let rw = (r as u64) | ((r as u64) << 32);
-        x.0 &= rw;
+        let r = x.square().equals(&ww[0]);
+        let r_64 = (r as u64) | ((r as u64) << 32);
+        x.0 &= r_64;
 
         // Conditionally negate this value, so that the chosen root
         // follows the expected convention.
         let ctl = ((self.encode()[0] as u64) & 1).wrapping_neg();
-        x.set_condneg(ctl);
+        x.set_condneg(ctl as u32);
 
         (x, r)
     }
@@ -342,7 +344,7 @@ impl GFp {
     /// 0x0000000000000000 otherwise. On success, the chosen root is the one whose
     /// least significant bit (as an integer in [0..p-1]) is zero. On
     /// failure, this value is set to 0.
-    pub fn fourth_root(self) -> (Self, u64) {
+    pub fn fourth_root(self) -> (Self, u32) {
         // Make a window.
         let mut ww = [self; (1usize << GFp::WIN_LEN) - 1];
         for i in 1..ww.len() {
@@ -374,29 +376,55 @@ impl GFp {
         // Check that the obtained value is indeed a fourth root of the
         // source value (which is still in ww[0]); if not, clear this
         // value.
-        let r = x.square().square().equals(ww[0]);
+        let r = x.square().square().equals(&ww[0]);
         let rw = (r as u64) | ((r as u64) << 32);
         x.0 &= rw;
 
         // Conditionally negate this value, so that the chosen root
         // follows the expected convention.
         let ctl = ((self.encode()[0] as u64) & 1).wrapping_neg();
-        x.set_condneg(ctl);
+
+        x.set_condneg(ctl as u32);
 
         (x, r)
     }
 
     /// Select a value: this function returns x0 if c == 0, or x1 if
-    /// c == 0xFFFFFFFFFFFFFFFF.
+    /// c == 0xFFFFFFFF.
     #[inline(always)]
-    pub fn select(c: u64, x0: GFp, x1: GFp) -> GFp {
-        GFp(x0.0 ^ (c & (x0.0 ^ x1.0)))
+    pub fn select(x0: &GFp, x1: &GFp, c: u32) -> GFp {
+        let c_64 = (c as u64) | ((c as u64) << 32);
+        GFp(x0.0 ^ (c_64 & (x0.0 ^ x1.0)))
     }
 
     /// Negate this value.
     #[inline]
     pub fn set_neg(&mut self) {
         self.0 = self.neg().0;
+    }
+
+    /// Multiplication in GF(p) by a small integer (less than 2^31).
+    #[inline(always)]
+    pub fn mul_small(self, rhs: i32) -> Self {
+        // Since the 'rhs' value is not in Montgomery representation,
+        // we need to do a manual reduction instead.
+        let x = (self.0 as u128) * (rhs as u128);
+        let xl = x as u64;
+        let xh = (x >> 64) as u64;
+
+        // Since rhs <= 2^31 - 1, we have xh <= 2^31 - 2, and
+        // p - xh >= 2^64 - 2^31 - 2^8 - 3, which is close to 2^64;
+        // thus, even if xl was not lower than p, the subtraction
+        // will bring back the value in the proper range, and the
+        // normal subtraction in GF(p) yields the proper result.
+        let (r, c) = xl.overflowing_sub(GFp::MOD - ((xh << 8) + xh));
+        let adj = ((c as u64) << 8) + (c as u64);
+        GFp(r.wrapping_sub(adj))
+    }
+
+    pub fn set_mul_small(&mut self, rhs: i32) {
+        let r = self.mul_small(rhs);
+        self.0 = r.0;
     }
 
     /// Double this value.
@@ -444,41 +472,44 @@ impl GFp {
     }
 
     /// Set this value to either a or b, depending on whether the control
-    /// word ctl is 0x0000000000000000 or 0xFFFFFFFFFFFFFFFF, respectively.
-    /// The value of ctl MUST be either 0x0000000000000000 or 0xFFFFFFFFFFFFFFFF.
+    /// word ctl is 0x00000000 or 0xFFFFFFFF, respectively.
+    /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
     #[inline]
-    pub fn set_select(&mut self, a: &Self, b: &Self, c: u64) {
-        self.0 = GFp::select(c, *a, *b).0;
+    pub fn set_select(&mut self, a: &Self, b: &Self, ctl: u32) {
+        self.0 = GFp::select(a, b, ctl).0;
     }
 
-    /// Set this value to rhs if ctl is 0xFFFFFFFFFFFFFFFF; leave it unchanged if
-    /// ctl is 0x0000000000000000.
-    /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFFFFFFFFFF.
+    /// Set this value to rhs if ctl is 0xFFFFFFFF; leave it unchanged if
+    /// ctl is 0x00000000.
+    /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
     #[inline]
-    pub fn set_cond(&mut self, rhs: &Self, ctl: u64) {
+    pub fn set_cond(&mut self, rhs: &Self, ctl: u32) {
         let wa = self.0;
         let wb = rhs.0;
-        self.0 = wa ^ (ctl & (wa ^ wb));
+        let ctl_64 = (ctl as u64) | ((ctl as u64) << 32);
+        self.0 = wa ^ (ctl_64 & (wa ^ wb));
     }
 
-    /// Set this value to rhs if ctl is 0x0000000000000000; leave it unchanged if
-    /// ctl is 0xFFFFFFFFFFFFFFFF.
-    /// The value of ctl MUST be either 0x0000000000000000 or 0xFFFFFFFFFFFFFFFF.
+    /// Set this value to rhs if ctl is 0x00000000; leave it unchanged if
+    /// ctl is 0xFFFFFFFF.
+    /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
     #[inline]
-    pub fn set_cond_inv(&mut self, rhs: &Self, ctl: u64) {
+    pub fn set_cond_inv(&mut self, rhs: &Self, ctl: u32) {
         let wa = rhs.0;
         let wb = self.0;
-        self.0 = wa ^ (ctl & (wa ^ wb));
+        let ctl_64 = (ctl as u64) | ((ctl as u64) << 32);
+        self.0 = wa ^ (ctl_64 & (wa ^ wb));
     }
 
-    /// Exchange the values of a and b is ctl is 0xFFFFFFFFFFFFFFFF; leave both
-    /// values unchanged if ctl is 0x0000000000000000.
-    /// The value of ctl MUST be either 0x0000000000000000 or 0xFFFFFFFFFFFFFFFF.
+    /// Exchange the values of a and b is ctl is 0xFFFFFFFF; leave both
+    /// values unchanged if ctl is 0x00000000.
+    /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
     #[inline]
-    pub fn condswap(a: &mut Self, b: &mut Self, c: u64) {
+    pub fn condswap(a: &mut Self, b: &mut Self, c: u32) {
         let wa = a.0;
         let wb = b.0;
-        let wc = c & (wa ^ wb);
+        let c_64 = (c as u64) | ((c as u64) << 32);
+        let wc = c_64 & (wa ^ wb);
         a.0 = wa ^ wc;
         b.0 = wb ^ wc;
     }
@@ -487,11 +518,11 @@ impl GFp {
         self.0 = self.invert().0;
     }
 
-    /// Negate this value if ctl is 0xFFFFFFFFFFFFFFFF; leave it unchanged if
-    /// ctl is 0x0000000000000000.
-    /// The value of ctl MUST be either 0x0000000000000000 or 0xFFFFFFFFFFFFFFFF.
+    /// Negate this value if ctl is 0xFFFFFFFF; leave it unchanged if
+    /// ctl is 0x00000000.
+    /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
     #[inline]
-    pub fn set_condneg(&mut self, ctl: u64) {
+    pub fn set_condneg(&mut self, ctl: u32) {
         let v = self.neg();
         self.set_cond(&v, ctl);
     }
@@ -552,6 +583,27 @@ impl GFp {
         x
     }
 
+    pub fn set_decode_reduce(&mut self, buf: &[u8]) {
+        let r = Self::decode_reduce(buf);
+        self.0 = r.0;
+    }
+
+    /// Set this structure to a random field element (indistinguishable
+    /// from uniform generation).
+    pub fn set_rand<T: CryptoRng + RngCore>(&mut self, rng: &mut T) {
+        let mut tmp = [0u8; Self::ENCODED_LENGTH + 16];
+        rng.fill_bytes(&mut tmp);
+        self.set_decode_reduce(&tmp);
+    }
+
+    /// Return a new random field element (indistinguishable from
+    /// uniform generation).
+    pub fn rand<T: CryptoRng + RngCore>(rng: &mut T) -> Self {
+        let mut x = Self::ZERO;
+        x.set_rand(rng);
+        x
+    }
+
 }
 
 // We implement all the needed traits to allow use of the arithmetic
@@ -566,10 +618,44 @@ impl Add<GFp> for GFp {
     }
 }
 
+impl Add<&GFp> for GFp {
+    type Output = GFp;
+
+    #[inline(always)]
+    fn add(self, other: &GFp) -> GFp {
+        GFp::add(self, *other)
+    }
+}
+
+impl Add<GFp> for &GFp {
+    type Output = GFp;
+
+    #[inline(always)]
+    fn add(self, other: GFp) -> GFp {
+        GFp::add(*self, other)
+    }
+}
+
+impl Add<&GFp> for &GFp {
+    type Output = GFp;
+
+    #[inline(always)]
+    fn add(self, other: &GFp) -> GFp {
+        GFp::add(*self, *other)
+    }
+}
+
 impl AddAssign<GFp> for GFp {
     #[inline(always)]
     fn add_assign(&mut self, other: GFp) {
         *self = GFp::add(*self, other);
+    }
+}
+
+impl AddAssign<&GFp> for GFp {
+    #[inline(always)]
+    fn add_assign(&mut self, other: &GFp) {
+        *self = GFp::add(*self, *other);
     }
 }
 
@@ -582,10 +668,44 @@ impl Sub<GFp> for GFp {
     }
 }
 
+impl Sub<&GFp> for GFp {
+    type Output = GFp;
+
+    #[inline(always)]
+    fn sub(self, other: &GFp) -> GFp {
+        GFp::sub(self, *other)
+    }
+}
+
+impl Sub<GFp> for &GFp {
+    type Output = GFp;
+
+    #[inline(always)]
+    fn sub(self, other: GFp) -> GFp {
+        GFp::sub(*self, other)
+    }
+}
+
+impl Sub<&GFp> for &GFp {
+    type Output = GFp;
+
+    #[inline(always)]
+    fn sub(self, other: &GFp) -> GFp {
+        GFp::sub(*self, *other)
+    }
+}
+
 impl SubAssign<GFp> for GFp {
     #[inline(always)]
     fn sub_assign(&mut self, other: GFp) {
         *self = GFp::sub(*self, other);
+    }
+}
+
+impl SubAssign<&GFp> for GFp {
+    #[inline(always)]
+    fn sub_assign(&mut self, other: &GFp) {
+        *self = GFp::sub(*self, *other);
     }
 }
 
@@ -598,6 +718,15 @@ impl Neg for GFp {
     }
 }
 
+impl Neg for &GFp {
+    type Output = GFp;
+
+    #[inline(always)]
+    fn neg(self) -> GFp {
+        GFp::neg(*self)
+    }
+}
+
 impl Mul<GFp> for GFp {
     type Output = GFp;
 
@@ -607,10 +736,45 @@ impl Mul<GFp> for GFp {
     }
 }
 
+impl Mul<&GFp> for GFp {
+    type Output = GFp;
+
+    #[inline(always)]
+    fn mul(self, other: &GFp) -> GFp {
+        GFp::mul(self, *other)
+    }
+}
+
+impl Mul<GFp> for &GFp {
+    type Output = GFp;
+
+    #[inline(always)]
+    fn mul(self, other: GFp) -> GFp {
+        GFp::mul(*self, other)
+    }
+}
+
+impl Mul<&GFp> for &GFp {
+    type Output = GFp;
+
+    #[inline(always)]
+    fn mul(self, other: &GFp) -> GFp {
+        GFp::mul(*self, *other)
+    }
+}
+
+
 impl MulAssign<GFp> for GFp {
     #[inline(always)]
     fn mul_assign(&mut self, other: GFp) {
         *self = GFp::mul(*self, other);
+    }
+}
+
+impl MulAssign<&GFp> for GFp {
+    #[inline(always)]
+    fn mul_assign(&mut self, other: &GFp) {
+        *self = GFp::mul(*self, *other);
     }
 }
 
@@ -623,10 +787,26 @@ impl Div<GFp> for GFp {
     }
 }
 
+impl Div<&GFp> for GFp {
+    type Output = GFp;
+
+    #[inline(always)]
+    fn div(self, other: &GFp) -> GFp {
+        GFp::div(self, *other)
+    }
+}
+
 impl DivAssign<GFp> for GFp {
     #[inline(always)]
     fn div_assign(&mut self, other: GFp) {
         *self = GFp::div(*self, other);
+    }
+}
+
+impl DivAssign<&GFp> for GFp {
+    #[inline(always)]
+    fn div_assign(&mut self, other: &GFp) {
+        *self = GFp::div(*self, *other);
     }
 }
 
@@ -687,7 +867,7 @@ mod tests {
         } else {
             check_gfp_eq(x * x.invert(), 1);
         }
-        assert!(x.half().double().equals(x) == 0xFFFFFFFFFFFFFFFF);
+        assert!(x.half().double().equals(&x) == 0xFFFFFFFF);
     }
 
     #[test]
@@ -726,20 +906,20 @@ mod tests {
             let b = prng.next_u64();
             test_gfp_ops(a, b);
         }
-        assert!(GFp::ZERO.legendre_gfp().iszero() == 0xFFFFFFFFFFFFFFFF);
+        assert!(GFp::ZERO.legendre_gfp().iszero() == 0xFFFFFFFF);
         let (s0, c0) = GFp::ZERO.sqrt();
         check_gfp_eq(s0, 0);
-        assert!(c0 == 0xFFFFFFFFFFFFFFFF);
+        assert!(c0 == 0xFFFFFFFF);
         for _ in 0..1000 {
             let x = GFp::from_u64_reduce((prng.next_u64() >> 1) + 1).square();
-            assert!(x.legendre_gfp().equals(GFp::ONE) == 0xFFFFFFFFFFFFFFFF);
+            assert!(x.legendre_gfp().equals(&GFp::ONE) == 0xFFFFFFFF);
             let (r1, c1) = x.sqrt();
-            assert!(r1.square().equals(x) == 0xFFFFFFFFFFFFFFFF);
-            assert!(c1 == 0xFFFFFFFFFFFFFFFF);
+            assert!(r1.square().equals(&x) == 0xFFFFFFFF);
+            assert!(c1 == 0xFFFFFFFF);
             let y = x * GFp::from_u64_reduce(7);
-            assert!(y.legendre_gfp().equals(GFp::MINUS_ONE) == 0xFFFFFFFFFFFFFFFF);
+            assert!(y.legendre_gfp().equals(&GFp::MINUS_ONE) == 0xFFFFFFFF);
             let (r2, c2) = y.sqrt();
-            assert!(r2.iszero() == 0xFFFFFFFFFFFFFFFF);
+            assert!(r2.iszero() == 0xFFFFFFFF);
             assert!(c2 == 0);
         }
     }

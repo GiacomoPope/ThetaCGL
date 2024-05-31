@@ -92,7 +92,7 @@ macro_rules! define_dim_three_theta_core {
 
                 let mut lam = Fq::ZERO;
 
-                let AA_is_non_zero = AA.iszero() ^ 0xFFFFFFFFFFFFFFFF;
+                let AA_is_non_zero = AA.iszero() ^ 0xFFFFFFFF;
                 lam.set_cond(&AA, AA_is_non_zero);
                 let mut non_zero_found = AA_is_non_zero;
 
@@ -100,8 +100,8 @@ macro_rules! define_dim_three_theta_core {
 
                 let mut set_lam = |x: Fq| {
                     let x_is_zero = x.iszero();
-                    let x_is_non_zero = x_is_zero ^ 0xFFFFFFFFFFFFFFFF;
-                    let non_zero_not_found = non_zero_found ^ 0xFFFFFFFFFFFFFFFF;
+                    let x_is_non_zero = x_is_zero ^ 0xFFFFFFFF;
+                    let non_zero_not_found = non_zero_found ^ 0xFFFFFFFF;
                     lam.set_cond(&x, non_zero_not_found & x_is_non_zero);
                     non_zero_found = non_zero_found | x_is_non_zero;
                     all_non_zero = all_non_zero & x_is_non_zero;
@@ -115,7 +115,7 @@ macro_rules! define_dim_three_theta_core {
                 set_lam(GG);
                 set_lam(HH);
 
-                assert!(non_zero_found == 0xFFFFFFFFFFFFFFFF);
+                assert!(non_zero_found == 0xFFFFFFFF);
 
                 let AAAA = lam * AA;
                 let AABB = lam * BB;
@@ -142,22 +142,22 @@ macro_rules! define_dim_three_theta_core {
                 is_some_zero = is_some_zero | AF.iszero();
                 is_some_zero = is_some_zero | AG.iszero();
 
-                let ctl1 = ((bits[0] as u64) & 1).wrapping_neg();
+                let ctl1 = ((bits[0] as u32) & 1).wrapping_neg();
                 AB.set_condneg(ctl1);
 
-                let ctl2 = ((bits[1] as u64) & 1).wrapping_neg();
+                let ctl2 = ((bits[1] as u32) & 1).wrapping_neg();
                 AC.set_condneg(ctl2);
 
-                let ctl3 = ((bits[2] as u64) & 1).wrapping_neg();
+                let ctl3 = ((bits[2] as u32) & 1).wrapping_neg();
                 AD.set_condneg(ctl3);
 
-                let ctl4 = ((bits[3] as u64) & 1).wrapping_neg();
+                let ctl4 = ((bits[3] as u32) & 1).wrapping_neg();
                 AE.set_condneg(ctl4);
 
-                let ctl5 = ((bits[4] as u64) & 1).wrapping_neg();
+                let ctl5 = ((bits[4] as u32) & 1).wrapping_neg();
                 AF.set_condneg(ctl5);
 
-                let ctl6 = ((bits[5] as u64) & 1).wrapping_neg();
+                let ctl6 = ((bits[5] as u32) & 1).wrapping_neg();
                 AG.set_condneg(ctl6);
 
                 let mut AH = AAHH.sqrt().0;
@@ -207,7 +207,7 @@ macro_rules! define_dim_three_theta_core {
                 mut x5: Fq,
                 mut x6: Fq,
                 lam: Fq,
-                all_non_zero: u64,
+                all_non_zero: u32,
             ) -> (Fq, Fq, Fq, Fq, Fq, Fq, Fq, Fq) {
                 let (a0, a1, a2, a3, a4, a5, a6, a7) =
                     self.to_hadamard(c0, c1, c2, c3, c4, c5, c6, c7);
@@ -247,7 +247,7 @@ macro_rules! define_dim_three_theta_core {
                 let tmp = -l / (x0 * x1 * x2 * x3 * x4 * x5 * x6);
                 x7.set_cond(&tmp, den_is_zero & all_non_zero & cnd1);
 
-                let den_is_not_zero = den_is_zero ^ 0xFFFFFFFFFFFFFFFF;
+                let den_is_not_zero = den_is_zero ^ 0xFFFFFFFF;
                 x0.set_cond(&(den * x0), den_is_not_zero);
                 x1.set_cond(&(den * x1), den_is_not_zero);
                 x2.set_cond(&(den * x2), den_is_not_zero);

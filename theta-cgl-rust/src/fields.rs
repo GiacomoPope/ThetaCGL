@@ -178,9 +178,9 @@ pub mod Fp64Ext {
 
     const NQR_RE: Fp = Fp::from_u64_reduce(0xF3139B9D0738D2D1);
 
-    crate::finitefield::fp2_64_gen::define_fp2_core! {}
+    crate::finitefield::fp2_gen::define_fp2_core! {}
     #[cfg(test)]
     mod tests {
-        crate::finitefield::fp2_64_gen::define_fp2_tests! {}
+        crate::finitefield::fp2_gen::define_fp2_tests! {}
     }
 }
