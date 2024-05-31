@@ -82,7 +82,7 @@ m1 = [
     1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1
 ]
 
-if True:
+if False:
     p = 79 * 2**247 - 1
     F = GF(p**2, name="i", modulus=[1, 0, 1])
     E0 = EllipticCurve(F, [1, 0])
@@ -140,6 +140,36 @@ if True:
     print(out)
 
 if True:
+    p = 5 * 2**248 - 1
+    F = GF(p**2, name="i", modulus=[1, 0, 1])
+    E0 = EllipticCurve(F, [1, 0])
+
+
+    print_info(f"Example dimension 1 radical 2 in p254")
+
+    O0 = ThetaCGL(E0, sqrt_function=sqrt_Fp2)
+    out = O0.hash(m1)
+    print(out)
+
+    a, b = O0.domain
+    print(f"Theta coordinates as hex strings: ")
+    print(to_hex_str(a))
+    print(to_hex_str(b))
+
+    print(f"Theta coordinates as u64 arrays (MONTGOMERY FORM): ")
+    print(to_little_u64(a[0]))
+    print(to_little_u64(a[1]))
+    print(to_little_u64(b[0]))
+    print(to_little_u64(b[1]))
+    print()
+
+    print_info(f"Example dimension 1 radical 4 in p254")
+    zeta = F.gen()
+    O0 = ThetaCGLRadical4(E0, zeta4=zeta, fourth_root_function=fourth_Fp2)
+    out = O0.hash(m1)
+    print(out)
+
+if False:
     p = 2**127 - 1
     F = GF(p**2, name="i", modulus=[1, 0, 1])
     zeta = F.gen()
