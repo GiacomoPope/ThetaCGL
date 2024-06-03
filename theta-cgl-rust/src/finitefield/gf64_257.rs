@@ -230,14 +230,14 @@ impl GFp {
         !((((self.0 | self.0.wrapping_neg()) as i64) >> 63) as u32)
     }
 
-    /// Test of equality with one; return value is 0xFFFFFFFFFFFFFFFF
+    /// Test of equality with one; return value is 0xFFFFFFFF
     /// if this value is equal to one, or 0 otherwise.
     #[inline(always)]
     pub const fn isone(self) -> u32 {
         self.equals(&GFp::ONE)
     }
 
-    /// Test of equality with minus one; return value is 0xFFFFFFFFFFFFFFFF
+    /// Test of equality with minus one; return value is 0xFFFFFFFF
     /// if this value is equal to -1 mod p, or 0 otherwise.
     #[inline(always)]
     pub const fn isminusone(self) -> u32 {
@@ -339,9 +339,9 @@ impl GFp {
         (x, r)
     }
 
-    /// Set this value to its fourth root. Returned value is 0xFFFFFFFFFFFFFFFF if
+    /// Set this value to its fourth root. Returned value is 0xFFFFFFFF if
     /// the operation succeeded (value was indeed some element to the power of four), or
-    /// 0x0000000000000000 otherwise. On success, the chosen root is the one whose
+    /// 0x00000000 otherwise. On success, the chosen root is the one whose
     /// least significant bit (as an integer in [0..p-1]) is zero. On
     /// failure, this value is set to 0.
     pub fn fourth_root(self) -> (Self, u32) {
