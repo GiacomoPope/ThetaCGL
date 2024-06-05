@@ -18,7 +18,8 @@
 """
 
 # p = 79*2**247 - 1
-p = 2**127 - 1
+# p = 2**127 - 1
+p = 2**64 - 257
 
 BITLEN = p.nbits()
 N = ceil(BITLEN / 64)
@@ -32,6 +33,7 @@ for w in range(3, 8):
             break
         SQRT_EL -= 1
 
+    # e = SQRT_EH * 2^(w*SQRT_EL)
     SQRT_EH = e // 2^(w*SQRT_EL)
     SQRT_EH = SQRT_EH.digits(2**w)
 
@@ -47,13 +49,15 @@ for w in range(3, 8):
     FOURTH_ROOT_EH = FOURTH_ROOT_EH.digits(2**w)
 
     print(f"{w = }")
+    print(f"{e = }")
+    print(f"{BITLEN = }")
     print(f"{SQRT_EL = }")
     print(f"{SQRT_EH = }")
     print(f"{FOURTH_ROOT_EL = }")
     print(f"{FOURTH_ROOT_EH = }")
     print()
 
-exit()
+# exit()
 
 def to_little_u64(n):
     res = []
@@ -131,7 +135,6 @@ FOURTH_ROOT_EH = FOURTH_ROOT_EH.digits(2**5)
 P1 = floor(p // 2**(BITLEN - 32))
 # P1DIV_M = 1 + floor((2**32 - P1)*2**64 / P1)
 P1DIV_M = 1 + ((2**32 - P1)*2**64 // P1)
-
 
 F.<i> = GF(p**2, modulus=[1,0,1])
 while True:

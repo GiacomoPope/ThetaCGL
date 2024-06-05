@@ -13,9 +13,56 @@ pub mod finitefield;
 
 mod dimension_one;
 mod dimension_two;
+mod dimension_three;
 mod util;
 
 // ============================================================
+
+pub mod thp64 {
+    pub type Fp = crate::fields::Fp64::Fp;
+    pub type Fq = crate::fields::Fp64Ext::Fp2;
+
+    //
+    // WARNING!!
+    // The theta coordinates constructed here are assumed to already be
+    // in Montgomery form!!!
+    //
+    const X0_re: Fp = Fp::from_u64_reduce(0);
+    const X0_im: Fp = Fp::from_u64_reduce(0x748E28D491B95FB6);
+
+    const Z0_re: Fp = Fp::from_u64_reduce(0x0000000000000002);
+    const Z0_im: Fp = Fp::from_u64_reduce(0xFFFFFFFFFFFFFEFD);
+
+    const U0_re: Fp = Fp::from_u64_reduce(0x0000000000000002);
+    const U0_im: Fp = Fp::from_u64_reduce(0xFFFFFFFFFFFFFEFD);
+
+    const V0_re: Fp = Fp::from_u64_reduce(0x8B71D72B6E469F49);
+    const V0_im: Fp = Fp::from_u64_reduce(0);
+
+    const G_re: Fp = Fp::from_u64_reduce(0x0000000000000002);
+    const G_im: Fp = Fp::from_u64_reduce(0xFFFFFFFFFFFFFEFD);
+
+    const H_re: Fp = Fp::from_u64_reduce(0x8B71D72B6E469F49);
+    const H_im: Fp = Fp::from_u64_reduce(0);
+
+    const I_re: Fp = Fp::from_u64_reduce(0x8B71D72B6E469F49);
+    const I_im: Fp = Fp::from_u64_reduce(0);
+
+    const J_re: Fp = Fp::from_u64_reduce(0x0000000000000002);
+    const J_im: Fp = Fp::from_u64_reduce(0x0000000000000002);
+
+    const X0: Fq = Fq::new(&X0_re, &X0_im);
+    const Z0: Fq = Fq::new(&Z0_re, &Z0_im);
+    const U0: Fq = Fq::new(&U0_re, &U0_im);
+    const V0: Fq = Fq::new(&V0_re, &V0_im);
+
+    const G0: Fq = Fq::new(&G_re, &G_im);
+    const H0: Fq = Fq::new(&H_re, &H_im);
+    const I0: Fq = Fq::new(&I_re, &I_im);
+    const J0: Fq = Fq::new(&J_re, &J_im);
+
+    crate::dimension_three::define_dim_three_theta_core! {}
+}
 
 pub mod thp127 {
     pub type Fp = crate::fields::Fp127::Fp;
