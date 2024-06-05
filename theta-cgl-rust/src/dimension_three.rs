@@ -78,14 +78,14 @@ macro_rules! define_dim_three_theta_core {
             pub fn radical_two_isogeny(self, bits: Vec<u8>) -> ThetaPointDim3 {
                 let (a, b, c, d, e, f, g, h) = self.coords();
 
-                let aa = a * a;
-                let bb = b * b;
-                let cc = c * c;
-                let dd = d * d;
-                let ee = e * e;
-                let ff = f * f;
-                let gg = g * g;
-                let hh = h * h;
+                let aa = a.square();
+                let bb = b.square();
+                let cc = c.square();
+                let dd = d.square();
+                let ee = e.square();
+                let ff = f.square();
+                let gg = g.square();
+                let hh = h.square();
 
                 let (mut AA, BB, CC, DD, EE, FF, GG, HH) =
                     self.to_hadamard(aa, bb, cc, dd, ee, ff, gg, hh);
@@ -160,9 +160,7 @@ macro_rules! define_dim_three_theta_core {
                 let ctl6 = ((bits[5] as u32) & 1).wrapping_neg();
                 AG.set_condneg(ctl6);
 
-                let mut AH = AAHH.sqrt().0;
-                AH.set_condneg(is_some_zero & AB_is_zero);
-
+                let AH;
                 (AA, AB, AC, AD, AE, AF, AG, AH) = self.last_sqrt(
                     AAAA,
                     AABB,
@@ -244,8 +242,18 @@ macro_rules! define_dim_three_theta_core {
                 let mut x7 = c7.sqrt().0;
                 let den_is_zero = den.iszero();
 
+
                 let tmp = -l / (x0 * x1 * x2 * x3 * x4 * x5 * x6);
                 x7.set_cond(&tmp, den_is_zero & all_non_zero & cnd1);
+                let p = x0 * x1 * x2 * x3 * x4 * x5 * x6;
+                x7.set_cond(&(-l), den_is_zero & all_non_zero & cnd1);
+                x0.set_cond(&(p * x0), den_is_zero & all_non_zero & cnd1);
+                x1.set_cond(&(p * x1), den_is_zero & all_non_zero & cnd1);
+                x2.set_cond(&(p * x2), den_is_zero & all_non_zero & cnd1);
+                x3.set_cond(&(p * x3), den_is_zero & all_non_zero & cnd1);
+                x4.set_cond(&(p * x4), den_is_zero & all_non_zero & cnd1);
+                x5.set_cond(&(p * x5), den_is_zero & all_non_zero & cnd1);
+                x6.set_cond(&(p * x6), den_is_zero & all_non_zero & cnd1);
 
                 let den_is_not_zero = den_is_zero ^ 0xFFFFFFFF;
                 x0.set_cond(&(den * x0), den_is_not_zero);
@@ -255,7 +263,6 @@ macro_rules! define_dim_three_theta_core {
                 x4.set_cond(&(den * x4), den_is_not_zero);
                 x5.set_cond(&(den * x5), den_is_not_zero);
                 x6.set_cond(&(den * x6), den_is_not_zero);
-
                 x7.set_cond(&num, den_is_not_zero);
 
                 (x0, x1, x2, x3, x4, x5, x6, x7)

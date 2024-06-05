@@ -295,48 +295,27 @@ impl GFp {
     }
 
     pub fn sqrt(self) -> (Self, u32) { 
-        // Make a window.
-        let mut ww = [self; (1usize << GFp::WIN_LEN) - 1];
-        for i in 1..ww.len() {
-            if ((i + 1) & 1) == 0 {
-                ww[i] = ww[i >> 1].square();
-            } else {
-                let z = ww[i] * ww[i - 1];
-                ww[i] = z;
-            }
-        }
+        // We use that p = 3 mod 4 to compute the square root by
+        // x^((p+1)/4) mod p. We have (p+1)/4 = 2^62 - 2^6
+        // In the instructions below, we call 'xj' the value x^(2^j-1).
+        let x = self;
+        let x2 = x * x.square();
+        let x4 = x2 * x2.msquare(2);
+        let x6 = x2 * x4.msquare(2);
+        let x7 = x * x6.square();
+        let x14 = x7 * x7.msquare(7);
+        let x28 = x14 * x14.msquare(14);
+        let x56 = x28 * x28.msquare(28);
+        let mut y = x56.msquare(6);
 
-        // Square and multiply algorithm, with exponent e = (p + 1)/4.
-        // The exponent is not secret; we can do non-constant-time
-        // lookups in the window, and omit multiplications for null digits.
-        let mut x = ww[(GFp::SQRT_EH[GFp::SQRT_EH.len() - 1] as usize) - 1];
-        for i in (0..(GFp::SQRT_EH.len() - 1)).rev() {
-            for _ in 0..GFp::WIN_LEN {
-                x = x.square();
-            }
-            if GFp::SQRT_EH[i] != 0 {
-                x = x.mul(ww[(GFp::SQRT_EH[i] as usize) - 1]);
-            }
-        }
-
-        // Low 126 digits are all zero.
-        for _ in 0..(GFp::WIN_LEN * GFp::SQRT_EL) {
-            x = x.square()
-        }
-
-        // Check that the obtained value is indeed a square root of the
-        // source value (which is still in ww[0]); if not, clear this
-        // value.
-        let r = x.square().equals(&ww[0]);
-        let r_64 = (r as u64) | ((r as u64) << 32);
-        x.0 &= r_64;
-
-        // Conditionally negate this value, so that the chosen root
-        // follows the expected convention.
         let ctl = ((self.encode()[0] as u64) & 1).wrapping_neg();
-        x.set_condneg(ctl as u32);
+        y.set_condneg(ctl as u32);
 
-        (x, r)
+        let r = y.square().equals(&self);
+        let r_64 = (r as u64) | ((r as u64) << 32);
+        y.0 &= r_64;
+
+        (y, r)
     }
 
     /// Set this value to its fourth root. Returned value is 0xFFFFFFFF if
