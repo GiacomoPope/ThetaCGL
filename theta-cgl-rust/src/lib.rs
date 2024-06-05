@@ -12,8 +12,8 @@ pub mod fields;
 pub mod finitefield;
 
 mod dimension_one;
-mod dimension_two;
 mod dimension_three;
+mod dimension_two;
 mod util;
 
 // ============================================================
@@ -64,9 +64,9 @@ pub mod thp64 {
     crate::dimension_three::define_dim_three_theta_core! {}
 }
 
-pub mod thp127 {
-    pub type Fp = crate::fields::Fp127::Fp;
-    pub type Fq = crate::fields::Fp127Ext::Fp2;
+pub mod thp127old {
+    pub type Fp = crate::fields::Fp127Old::Fp;
+    pub type Fq = crate::fields::Fp127OldExt::Fp2;
 
     //
     // WARNING!!
@@ -90,15 +90,9 @@ pub mod thp127 {
     crate::dimension_two::define_dim_two_theta_core! {}
 }
 
-pub mod thp127new {
-    pub type Fp = crate::fields::Fp127New::Fp;
-    pub type Fq = crate::fields::Fp127NewExt::Fp2;
-
-    //
-    // WARNING!!
-    // The theta coordinates constructed here are assumed to already be
-    // in Montgomery form!!!
-    //
+pub mod thp127 {
+    pub type Fp = crate::fields::Fp127::Fp;
+    pub type Fq = crate::fields::Fp127Ext::Fp2;
 
     const X0_re: Fp = Fp::w64le(0xFFFFFFFFFFFFFFFD, 0x7FFFFFFFFFFFFFFF);
     const X0_im: Fp = Fp::w64le(0, 0);

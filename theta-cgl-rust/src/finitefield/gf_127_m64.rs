@@ -139,6 +139,17 @@ impl Gf127 {
         self.0[1] ^= cw & (self.0[1] ^ a.0[1]);
     }
 
+    // Conditionally copy the provided value ('a') into self:
+    //  - If ctl == 0, then the value of 'a' is copied into self.
+    //  - If ctl == 0xFFFFFFFF, then the value of self is unchanged.
+    // ctl MUST be equal to 0 or 0xFFFFFFFF.
+    #[inline(always)]
+    pub fn set_cond_inv(&mut self, a: &Self, ctl: u32) {
+        let cw = ((ctl as i32) as i64) as u64;
+        self.0[0] = a.0[0] ^ (cw & (a.0[0] ^ self.0[0]));
+        self.0[1] = a.0[1] ^ (cw & (a.0[1] ^ self.0[1]));
+    }
+
     /// Negate this value if ctl is 0xFFFFFFFF; leave it unchanged if
     /// ctl is 0x00000000.
     /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.

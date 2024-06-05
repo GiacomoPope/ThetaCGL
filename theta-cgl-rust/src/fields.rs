@@ -2,6 +2,11 @@
 #![allow(non_upper_case_globals)]
 
 pub mod Fp127 {
+    pub use crate::finitefield::gf_127_m64::Gf127;
+    pub type Fp = Gf127;
+}
+
+pub mod Fp127Old {
     const N: usize = 2;
     const BITLEN: usize = 127;
     const MODULUS: [u64; N] = [0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF];
@@ -15,13 +20,6 @@ pub mod Fp127 {
     const P0I: u64 = 1;
     const TFIXDIV_VAL: [u64; N] = [0x0000000000000100, 0x0000000000000000];
     const TDEC_VAL: [u64; N] = [0x0000000000000000, 0x0000000000000002];
-    // Old window
-    // const WIN_LEN: usize = 5;
-    // const SQRT_EH: [u8; 1] = [1];
-    // const SQRT_EL: usize = 25;
-    // const FOURTH_ROOT_EH: [u8; 1] = [16];
-    // const FOURTH_ROOT_EL: usize = 24;
-    // New window
     const WIN_LEN: usize = 4;
     const SQRT_EH: [u8; 1] = [2];
     const SQRT_EL: usize = 31;
@@ -130,6 +128,11 @@ pub mod Fp921 {
     pub type Fp = GF255<921>;
 }
 
+pub mod Fp5248 {
+    pub use crate::finitefield::gf5_248_m64::GF5_248;
+    pub type Fp = GF5_248;
+}
+
 pub mod Fp64 {
     pub use crate::finitefield::gf64_257::GFp;
     pub type Fp = GFp;
@@ -137,6 +140,17 @@ pub mod Fp64 {
 
 pub mod Fp127Ext {
     use super::Fp127::Fp;
+    const NQR_RE: Fp = Fp::w64le(2, 0);
+
+    crate::finitefield::fp2_gen::define_fp2_core! {}
+    #[cfg(test)]
+    mod tests {
+        crate::finitefield::fp2_gen::define_fp2_tests! {}
+    }
+}
+
+pub mod Fp127OldExt {
+    use super::Fp127Old::Fp;
     const NQR_RE: Fp = Fp::new([0xE1F195E63EF9998E, 0x025681E8E25E14E8]);
 
     crate::finitefield::fp2_gen::define_fp2_core! {}
@@ -165,6 +179,17 @@ pub mod Fp254Ext {
 pub mod Fp921Ext {
     use super::Fp921::Fp;
     const NQR_RE: Fp = Fp::w64le(2, 0, 0, 0);
+
+    crate::finitefield::fp2_gen::define_fp2_core! {}
+    #[cfg(test)]
+    mod tests {
+        crate::finitefield::fp2_gen::define_fp2_tests! {}
+    }
+}
+
+pub mod Fp5248Ext {
+    use super::Fp5248::Fp;
+    const NQR_RE: Fp = Fp::w64le(5, 0, 0, 0);
 
     crate::finitefield::fp2_gen::define_fp2_core! {}
     #[cfg(test)]

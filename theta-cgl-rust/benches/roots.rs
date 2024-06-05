@@ -1,7 +1,7 @@
 mod fpcore;
 use criterion::{criterion_group, criterion_main, Criterion};
 use std::time::Duration;
-use theta_cgl_rust::fields::Fp127::Fp;
+use theta_cgl_rust::fields::Fp127Old::Fp;
 
 fn sqrt(c: &mut Criterion) {
     let a = Fp::new([0x0123456789abcdef, 0xfedcba9876543210]);
