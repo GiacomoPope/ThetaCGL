@@ -117,12 +117,12 @@ macro_rules! define_fp_bench {
             for i in 0..10 {
                 let begin = core_cycles();
                 for _ in 0..1000 {
-                    x.set_square();
-                    x.set_square();
-                    x.set_square();
-                    x.set_square();
-                    x.set_square();
-                    x.set_square();
+                    x = x.square();
+                    x = x.square();
+                    x = x.square();
+                    x = x.square();
+                    x = x.square();
+                    x = x.square();
                 }
                 let end = core_cycles();
                 tt[i] = end.wrapping_sub(begin);

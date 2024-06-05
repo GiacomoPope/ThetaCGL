@@ -26,8 +26,18 @@ criterion = { version = "0.4", features = ["html_reports"] }
 # harness = false
 
 # [[bench]]
+# name = "p64"
+# path = "benches/p64.rs"
+# harness = false
+
+# [[bench]]
 # name = "p127"
 # path = "benches/p127.rs"
+# harness = false
+
+# [[bench]]
+# name = "p5248"
+# path = "benches/p5248.rs"
 # harness = false
 
 # [[bench]]
@@ -45,20 +55,20 @@ name = "th127"
 path = "benches/th127.rs"
 harness = false
 
-[[bench]]
-name = "th127_old"
-path = "benches/th127_old.rs"
-harness = false
+# [[bench]]
+# name = "th127_old"
+# path = "benches/th127_old.rs"
+# harness = false
 
-[[bench]]
-name = "th254"
-path = "benches/th254.rs"
-harness = false
+# [[bench]]
+# name = "th254"
+# path = "benches/th254.rs"
+# harness = false
 
-[[bench]]
-name = "th921"
-path = "benches/th921.rs"
-harness = false
+# [[bench]]
+# name = "th921"
+# path = "benches/th921.rs"
+# harness = false
 
 [[bench]]
 name = "th5248"
