@@ -294,18 +294,6 @@ impl<const MQ: u64> GF255<MQ> {
         self.0[3] ^= cw & (self.0[3] ^ a.0[3]);
     }
 
-    /// Set this value to rhs if ctl is 0x00000000; leave it unchanged if
-    /// ctl is 0xFFFFFFFF.
-    /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
-    #[inline]
-    pub fn set_cond_inv(&mut self, a: &Self, ctl: u32) {
-        let cw = (((ctl ^ 0xFFFFFFFF) as i32) as i64) as u64;
-        self.0[0] ^= cw & (self.0[0] ^ a.0[0]);
-        self.0[1] ^= cw & (self.0[1] ^ a.0[1]);
-        self.0[2] ^= cw & (self.0[2] ^ a.0[2]);
-        self.0[3] ^= cw & (self.0[3] ^ a.0[3]);
-    }
-
     /// Negate this value if ctl is 0xFFFFFFFF; leave it unchanged if
     /// ctl is 0x00000000.
     /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.

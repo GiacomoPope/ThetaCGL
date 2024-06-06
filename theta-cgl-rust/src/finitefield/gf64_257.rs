@@ -44,8 +44,8 @@ impl GFp {
 
     const P_PLUS_ONE_HALF: u64 = 0x7fffffffffffff80;
 
-    // // TODO: experiment with other reductions
-    // // Reduction modulo p
+    // TODO: experiment with other reductions
+    // Reduction modulo p = 2^64 - 2^8 - 1
     #[inline(always)]
     const fn fp_reduction(x: u128) -> u64 {
         // x = x_lo + 2^64 * x_hi
@@ -61,29 +61,9 @@ impl GFp {
         let v_hi = (v >> 64) as u64;
 
         let (r, c) = v_lo.overflowing_sub(GFp::MOD - ((v_hi << 8) + v_hi));
-        // let adj = ((c as u64) << 8) + (c as u64);
-        let adj = (c as u64).wrapping_neg() & 257;
+        let adj = ((c as u16).wrapping_neg() & 257) as u64;
         r.wrapping_sub(adj)
     }
-
-    // TODO: experiment with other reductions
-    // Reduction modulo p
-    // #[inline(always)]
-    // const fn fp_reduction(x: u128) -> u64 {
-    //     // x = x_lo + 2^64 * x_hi
-    //     //   = x_lo + x_hi + 2^8*x_hi
-    //     //
-    //     // The resulting v will have 64 + 9 bits max
-    //     let q = (x >> 64) + (x >> 120);
-    //     let v = x.wrapping_sub(q << 64).wrapping_add(q << 8).wrapping_add(q);
-
-    //     let v_lo = v as u64;
-    //     let v_hi = (v >> 64) as u64;
-
-    //     let (r, c) = v_lo.overflowing_sub(GFp::MOD - ((v_hi << 8) + v_hi));
-    //     let adj = ((c as u64) << 8) + (c as u64);
-    //     r.wrapping_sub(adj)
-    // }
 
     /// Build a GF(p) element from a 64-bit integer. Returned values
     /// are (r, c). If the source value v is lower than the modulus,
@@ -338,7 +318,7 @@ impl GFp {
         // will bring back the value in the proper range, and the
         // normal subtraction in GF(p) yields the proper result.
         let (r, c) = xl.overflowing_sub(GFp::MOD - ((xh << 8) + xh));
-        let adj = ((c as u64) << 8) + (c as u64);
+        let adj = ((c as u16).wrapping_neg() & 257) as u64;
         GFp(r.wrapping_sub(adj))
     }
 
@@ -406,17 +386,6 @@ impl GFp {
     pub fn set_cond(&mut self, rhs: &Self, ctl: u32) {
         let wa = self.0;
         let wb = rhs.0;
-        let ctl_64 = (ctl as u64) | ((ctl as u64) << 32);
-        self.0 = wa ^ (ctl_64 & (wa ^ wb));
-    }
-
-    /// Set this value to rhs if ctl is 0x00000000; leave it unchanged if
-    /// ctl is 0xFFFFFFFF.
-    /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
-    #[inline]
-    pub fn set_cond_inv(&mut self, rhs: &Self, ctl: u32) {
-        let wa = rhs.0;
-        let wb = self.0;
         let ctl_64 = (ctl as u64) | ((ctl as u64) << 32);
         self.0 = wa ^ (ctl_64 & (wa ^ wb));
     }

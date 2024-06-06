@@ -610,19 +610,6 @@ macro_rules! define_fp_core {
                 }
             }
 
-            /// Set this value to rhs if ctl is 0x00000000; leave it unchanged if
-            /// ctl is 0xFFFFFFFF.
-            /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
-            #[inline]
-            pub fn set_cond_inv(&mut self, rhs: &Self, ctl: u32) {
-                let c = (ctl as u64) | ((ctl as u64) << 32);
-                for i in 0..N {
-                    let wa = rhs.0[i];
-                    let wb = self.0[i];
-                    self.0[i] = wa ^ (c & (wa ^ wb));
-                }
-            }
-
             /// Negate this value if ctl is 0xFFFFFFFF; leave it unchanged if
             /// ctl is 0x00000000.
             /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.
