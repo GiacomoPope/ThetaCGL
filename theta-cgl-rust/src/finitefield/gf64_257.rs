@@ -70,7 +70,8 @@ impl GFp {
     /// then r contains the value v as an element of GF(p), and c is
     /// equal to 0xFFFFFFFFFFFFFFFF; otherwise, r contains zero (in
     /// GF(p)) and c is 0.
-    pub fn from_u64(v: u64) -> (GFp, u64) {
+    #[inline(always)]
+    pub fn from_u64(v: u64) -> (Self, u64) {
         // Computation of c is a constant-time lower-than operation:
         // If v < 2^63 then v < p and its high bit is 0.
         // If v >= 2^63 then its high bit is 1, and v < p if and only if
@@ -83,7 +84,7 @@ impl GFp {
     /// Build a GF(p) element from a 64-bit integer. The provided
     /// integer is implicitly reduced modulo p.
     #[inline(always)]
-    pub const fn from_u64_reduce(v: u64) -> GFp {
+    pub const fn from_u64_reduce(v: u64) -> Self {
         GFp(GFp::fp_reduction(v as u128))
     }
 
@@ -150,6 +151,7 @@ impl GFp {
     }
 
     /// Multiple squarings in GF(p): return x^(2^n)
+    #[inline(always)]
     pub fn msquare(self, n: u32) -> Self {
         let mut x = self;
         for _ in 0..n {
@@ -159,12 +161,14 @@ impl GFp {
     }
 
     /// Inversion in GF(p); if the input is zero, then zero is returned.
+    #[inline(always)]
     pub fn invert(self) -> Self {
         // This uses Fermat's little theorem: 1/x = x^(p-2) mod p.
         let x = self.exp_p_minus_three_div_four();
         self * x.msquare(2)
     }
 
+    #[inline(always)]
     fn div(self, rhs: Self) -> Self {
         self * rhs.invert()
     }
@@ -206,8 +210,7 @@ impl GFp {
 
     // Compute a^((p-3)/4), used for inversion and Legendre
     // to compute a^(p-2) and a^((p-1)/2)
-    #[inline(always)]
-    fn exp_p_minus_three_div_four(self) -> GFp {
+    fn exp_p_minus_three_div_four(self) -> Self {
         let x = self;
         let x2 = x * x.square(); // x^(2^2 - 1)
         let x3 = x * x2.square(); // x^(2^3 - 1)
@@ -292,13 +295,13 @@ impl GFp {
     /// Select a value: this function returns x0 if c == 0, or x1 if
     /// c == 0xFFFFFFFF.
     #[inline(always)]
-    pub fn select(x0: &GFp, x1: &GFp, c: u32) -> GFp {
+    pub fn select(x0: &Self, x1: &Self, c: u32) -> Self {
         let c_64 = (c as u64) | ((c as u64) << 32);
         GFp(x0.0 ^ (c_64 & (x0.0 ^ x1.0)))
     }
 
     /// Negate this value.
-    #[inline]
+    #[inline(always)]
     pub fn set_neg(&mut self) {
         self.0 = self.neg().0;
     }
@@ -322,13 +325,14 @@ impl GFp {
         GFp(r.wrapping_sub(adj))
     }
 
+    #[inline(always)]
     pub fn set_mul_small(&mut self, rhs: i32) {
         let r = self.mul_small(rhs);
         self.0 = r.0;
     }
 
     /// Double this value.
-    #[inline]
+    #[inline(always)]
     pub fn set_mul2(&mut self) {
         let r = self.double();
         self.0 = r.0;
@@ -403,6 +407,7 @@ impl GFp {
         b.0 = wb ^ wc;
     }
 
+    #[inline]
     pub fn set_invert(&mut self) {
         self.0 = self.invert().0;
     }
