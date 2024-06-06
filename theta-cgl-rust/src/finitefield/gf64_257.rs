@@ -176,33 +176,8 @@ impl GFp {
     /// Inversion in GF(p); if the input is zero, then zero is returned.
     pub fn invert(self) -> Self {
         // This uses Fermat's little theorem: 1/x = x^(p-2) mod p.
-        // We have p-2 = 0xFFFFFFFEFFFFFFFF. In the instructions below,
-        // we call 'xj' the value x^(2^j-1).
-        // We call 'yj' the value x^(2^j).
-        let x = self;
-        let y1 = x.square(); // x^2
-        let y2 = y1.square(); // x^4
-        let y3 = y2.square(); // x^8
-
-        let x2 = x * x.square(); // x^3
-        let x4 = x2 * x2.msquare(2); // x^15
-        let x5 = x * x4.square(); // x^31
-        let x7 = x2 * x5.msquare(2); // x^(2^7 - 1)
-        let x10 = x5 * x5.msquare(5); // x^(2^10 - 1)
-        let x15 = x5 * x10.msquare(5); // x^(2^15 - 1)
-        let x16 = x * x15.square(); // x^(2^16 - 1)
-        let x31 = x15 * x16.msquare(15); // x^(2^31 - 1)
-        let x32 = x * x31.square(); // x^(2^32 - 1)
-
-        // 2^64 - 257 - 2 = (2^32 - 1) * 2^32 + 2^32 - 259 = (2^32 - 1) * 2^32 + (2^16 - 1) * 2^16 + 2^16 - 259
-        // c1 = 2^8 - 3 = (2^4 - 1) * 2^4 + 13
-        let c1 = x4.msquare(4) * y3 * y2 * x;
-        // c2 = 2^16 - 259 = 2^16 - 2^8 - 3 = (2^7 - 1) * 2^9 + 2^8 - 3
-        let c2 = x7.msquare(9) * c1;
-        let c3 = x16.msquare(16);
-        let c4 = x32.msquare(32);
-
-        return c4 * c3 * c2;
+        let x = self.exp_p_minus_three_div_four();
+        self * x.msquare(2)
     }
 
     fn div(self, rhs: Self) -> Self {
@@ -244,37 +219,27 @@ impl GFp {
         !((((t | t.wrapping_neg()) as i64) >> 63) as u32)
     }
 
-    /// Legendre symbol: return x^((p-1)/2) (as a GF(p) element).
-    pub fn legendre_gfp(self) -> GFp {
-        // (p-1)/2 = 0x7fffffffffffff7f
+    // Compute a^((p-3)/4), used for inversion and Legendre
+    // to compute a^(p-2) and a^((p-1)/2)
+    #[inline(always)]
+    fn exp_p_minus_three_div_four(self) -> GFp {
         let x = self;
-        let y1 = x.square(); // x^2
-
-        let x2 = x * x.square(); // x^3
-        let x4 = x2 * x2.msquare(2); // x^15
-        let x5 = x * x4.square(); // x^31
-        let x8 = x4 * x4.msquare(4);
-        let x10 = x5 * x5.msquare(5); // x^(2^10 - 1)
-        let x15 = x5 * x10.msquare(5); // x^(2^15 - 1)
-        let x16 = x * x15.square(); // x^(2^16 - 1)
-        let x31 = x15 * x16.msquare(15); // x^(2^31 - 1)
-
-        // 2**63 - 129 = (2**31 - 1) * 2**32 + 2**32 - 129
-        // = (2**31 - 1) * 2**32 + (2**16 - 1) * 2**16 + 2**16 - 129
-        // = (2**31 - 1) * 2**32 + (2**16 - 1) * 2**16 + (2**8 - 1) * 2**8 + 2**8 - 129
-        // = (2**31 - 1) * 2**32 + (2**16 - 1) * 2**16 + (2**8 - 1) * 2**8 + 127
-
-        // 2^7 - 1 = (2**5 - 1) * 2**2 + 3
-        let c1 = x5.msquare(2) * y1 * x;
-        let c2 = x8.msquare(8);
-        let c3 = x16.msquare(16);
-        let c4 = x31.msquare(32);
-
-        c4 * c3 * c2 * c1
+        let x2 = x * x.square(); // x^(2^2 - 1)
+        let x3 = x * x2.square(); // x^(2^3 - 1)
+        let x6 = x3 * x3.msquare(3); // x^(2^6 - 1)
+        let x12 = x6 * x6.msquare(6); // x^(2^12 - 1)
+        let x24 = x12 * x12.msquare(12); // x^(2^24 - 1)
+        let x48 = x24 * x24.msquare(24); // x^(2^48 - 1)
+        let x54 = x6 * x48.msquare(6); // x^(2^54 - 1)
+        let x55 = x * x54.square(); // x^(2^55 - 1)
+        x6 * x55.msquare(7) // x^(2^62 - 2**7) + (2^6 - 1) =
+                            // x^(2^62 - 2**6 - 1) = (p-3)/4
     }
 
     pub fn legendre(self) -> i32 {
-        let l = self.legendre_gfp();
+        let mut l = self.exp_p_minus_three_div_four();
+        l = self * l.square();
+
         let c1 = l.equals(&GFp::ONE);
         let c2 = l.equals(&GFp::MINUS_ONE);
         let cc1 = (c1 & 1) as i32;
@@ -842,18 +807,18 @@ mod tests {
             let b = prng.next_u64();
             test_gfp_ops(a, b);
         }
-        assert!(GFp::ZERO.legendre_gfp().iszero() == 0xFFFFFFFF);
+        assert!(GFp::ZERO.legendre() == 0);
         let (s0, c0) = GFp::ZERO.sqrt();
         check_gfp_eq(s0, 0);
         assert!(c0 == 0xFFFFFFFF);
         for _ in 0..1000 {
             let x = GFp::from_u64_reduce((prng.next_u64() >> 1) + 1).square();
-            assert!(x.legendre_gfp().equals(&GFp::ONE) == 0xFFFFFFFF);
+            assert!(x.legendre() == 1);
             let (r1, c1) = x.sqrt();
             assert!(r1.square().equals(&x) == 0xFFFFFFFF);
             assert!(c1 == 0xFFFFFFFF);
             let y = x * GFp::from_u64_reduce(7);
-            assert!(y.legendre_gfp().equals(&GFp::MINUS_ONE) == 0xFFFFFFFF);
+            assert!(y.legendre() == -1);
             let (r2, c2) = y.sqrt();
             assert!(r2.iszero() == 0xFFFFFFFF);
             assert!(c2 == 0);
