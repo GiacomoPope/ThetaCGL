@@ -38,43 +38,31 @@ impl GFp {
     /// Element -1 in GF(p).
     pub const MINUS_ONE: GFp = GFp::from_u64_reduce(GFp::MOD - 1);
 
-    pub const R_VAL: u64 = 0x0000000000000101;
-    pub const MINUS_R_VAL: u64 = 0xFFFFFFFFFFFFFDFE;
-    const DR_VAL: u64 = 0x0000000000000202;
-    pub const TR_VAL: u64 = 0x0000000000000303;
-    pub const QR_VAL: u64 = 0x0000000000000404;
-    pub const R2_VAL: u64 = 0x0000000000010201;
-    pub const P0I: u64 = 18374966859414961921;
-    pub const TFIXDIV_VAL: u64 = 0x0000000410181004;
-    pub const TDEC_VAL: u64 = 0x0000000000000101;
+    pub const TWO: Self = GFp::from_u64_reduce(2);
+    pub const THREE: Self = GFp::from_u64_reduce(3);
+    pub const FOUR: Self = GFp::from_u64_reduce(4);
 
-    pub const TWO: Self = GFp::from_u64_reduce(GFp::DR_VAL);
-    pub const THREE: Self = GFp::from_u64_reduce(GFp::TR_VAL);
-    pub const FOUR: Self = GFp::from_u64_reduce(GFp::QR_VAL);
-    pub const TDEC: Self = GFp::from_u64_reduce(GFp::TDEC_VAL);
-
-    // R2 = 2^128 mod p.
-    const R2: u64 = 0x10201;
-    const MU: u64 = 0xff00ff00ff00ff01;
-
-    // p = 2^64 - C
-    pub const C: u64 = 257;
     const P_PLUS_ONE_HALF: u64 = 0x7fffffffffffff80;
 
-    // Montgomery reduction: given x <= p*2^64 - 1,
-    // return x/2^64 mod p (in the 0 to p-1 range).
+    // TODO: experiment with other reductions
+    // Reduction modulo p
     #[inline(always)]
-    const fn montyred(x: u128) -> u64 {
-        let r0 = x as u64;
-        let q = (GFp::MU as u128 * r0 as u128) as u64;
+    const fn fp_reduction(x: u128) -> u64 {
+        // x = x_lo + 2^64 * x_hi
+        //   = x_lo + x_hi + 2^8*x_hi
+        //
+        // The resulting v will have 64 + 9 bits max
+        let x_lo = (x as u64) as u128;
+        let x_hi = x >> 64;
+        let v: u128 = x_lo + x_hi + (x_hi << 8);
 
-        let qp = q as u128 * GFp::MOD as u128;
-        let (o, c1) = x.overflowing_add(qp);
-        let mut r = o >> 64 as u64;
-        r = r as u128 + (c1 as u128 * 1 << 64 as u128);
-        let r1 = (r % GFp::MOD as u128) as u64;
+        // Now we need to fold in these pieces where cc < 2^9
+        let v_lo = v as u64;
+        let v_hi = (v >> 64) as u64;
 
-        r1
+        let (r, c) = v_lo.overflowing_sub(GFp::MOD - ((v_hi << 8) + v_hi));
+        let adj = ((c as u64) << 8) + (c as u64);
+        r.wrapping_sub(adj)
     }
 
     /// Build a GF(p) element from a 64-bit integer. Returned values
@@ -96,10 +84,7 @@ impl GFp {
     /// integer is implicitly reduced modulo p.
     #[inline(always)]
     pub const fn from_u64_reduce(v: u64) -> GFp {
-        // R^2 = 2^64 - 2^33 + 1 mod p.
-        // With v < 2^64, we have R**2 * v < 2^128 - 2^97 + 2^64, which is in
-        // range of montyred().
-        GFp(GFp::montyred((v as u128) * (GFp::R2 as u128)))
+        GFp(GFp::fp_reduction(v as u128))
     }
 
     /// Get the element as an integer, normalized in the 0..p-1
@@ -107,9 +92,9 @@ impl GFp {
     #[inline(always)]
     pub const fn to_u64(self) -> u64 {
         // Conversion back to normal representation is only a matter of
-        // dividing by 2^64 modulo p, and that is exactly what montyred()
+        // dividing by 2^64 modulo p, and that is exactly what fp_reduction()
         // computes.
-        GFp::montyred(self.0 as u128)
+        GFp::fp_reduction(self.0 as u128)
     }
 
     /// Addition in GF(p)
@@ -117,16 +102,16 @@ impl GFp {
     const fn add(self, rhs: Self) -> Self {
         // We compute a + b = a - (p - b).
         let (x1, c1) = self.0.overflowing_sub(GFp::MOD - rhs.0);
-        let t = c1 as u64 * GFp::C;
+        let t = (c1 as u64) + ((c1 as u64) << 8);
         GFp(x1.wrapping_sub(t as u64))
     }
 
     /// Subtraction in GF(p)
     #[inline(always)]
     const fn sub(self, rhs: Self) -> Self {
-        // See montyred() for details on the subtraction.
+        // See fp_reduction() for details on the subtraction.
         let (x1, c1) = self.0.overflowing_sub(rhs.0);
-        let t = c1 as u64 * GFp::C;
+        let t = (c1 as u64) + ((c1 as u64) << 8);
         GFp(x1.wrapping_sub(t as u64))
     }
 
@@ -154,8 +139,8 @@ impl GFp {
     #[inline(always)]
     const fn mul(self, rhs: Self) -> Self {
         // If x < p and y < p, then x*y <= (p-1)^2, and is thus in
-        // range of montyred().
-        GFp(GFp::montyred((self.0 as u128) * (rhs.0 as u128)))
+        // range of fp_reduction().
+        GFp(GFp::fp_reduction((self.0 as u128) * (rhs.0 as u128)))
     }
 
     /// Squaring in GF(p)
@@ -491,7 +476,6 @@ impl GFp {
             n -= CLEN;
             tmp[..CLEN].copy_from_slice(&buf[n..(n + CLEN)]);
             let (d, _) = GFp::decode(&tmp);
-            x = x * Self::TDEC;
             x = x + d;
         }
 
