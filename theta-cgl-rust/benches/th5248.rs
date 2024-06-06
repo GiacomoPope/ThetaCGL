@@ -25,7 +25,7 @@ fn two_radical_5248(c: &mut Criterion) {
 
 fn four_radical_5248(c: &mut Criterion) {
     let cgl = thp5248::CGLDim1Rad4::new();
-    c.bench_function("CGL Hash: using p5248 and two radical isogeny", |b| {
+    c.bench_function("CGL Hash: using p5248 and four radical isogeny", |b| {
         b.iter(|| cgl.hash(black_box(MSG.to_vec())))
     });
 }

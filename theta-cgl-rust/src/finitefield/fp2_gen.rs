@@ -461,17 +461,11 @@ macro_rules! define_fp2_core {
 
                 // Now we can take the sqrt no problem, for all
                 // cases!
-                let (y0, mut r3) = y02.sqrt();
+                let (y0, r3) = y02.sqrt();
 
                 // y1 is computed from y0 with an inversion for
                 // all cases, except when x1 = 0 (see below)
                 let mut y1 = self.x1 / (y0 * disc_sqrt.mul4());
-
-                // r3 = 0 when n is not a square, this means y_0 = 0 and
-                // we compute y1 = self.x0.fourth_root()
-                let (x0_fourth_root, r4) = self.x0.fourth_root();
-                y1.set_cond_inv(&x0_fourth_root, r3);
-                r3 = r3 | r4;
 
                 // The final check comes from the case when x1 = 0
                 // Generally, we have that:

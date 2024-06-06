@@ -70,10 +70,10 @@ harness = false
 # path = "benches/th921.rs"
 # harness = false
 
-# [[bench]]
-# name = "th5248"
-# path = "benches/th5248.rs"
-# harness = false
+[[bench]]
+name = "th5248"
+path = "benches/th5248.rs"
+harness = false
 
 [[bench]]
 name = "th64"

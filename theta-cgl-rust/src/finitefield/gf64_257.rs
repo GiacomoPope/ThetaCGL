@@ -44,8 +44,8 @@ impl GFp {
 
     const P_PLUS_ONE_HALF: u64 = 0x7fffffffffffff80;
 
-    // TODO: experiment with other reductions
-    // Reduction modulo p
+    // // TODO: experiment with other reductions
+    // // Reduction modulo p
     #[inline(always)]
     const fn fp_reduction(x: u128) -> u64 {
         // x = x_lo + 2^64 * x_hi
@@ -61,9 +61,29 @@ impl GFp {
         let v_hi = (v >> 64) as u64;
 
         let (r, c) = v_lo.overflowing_sub(GFp::MOD - ((v_hi << 8) + v_hi));
-        let adj = ((c as u64) << 8) + (c as u64);
+        // let adj = ((c as u64) << 8) + (c as u64);
+        let adj = (c as u64).wrapping_neg() & 257;
         r.wrapping_sub(adj)
     }
+
+    // TODO: experiment with other reductions
+    // Reduction modulo p
+    // #[inline(always)]
+    // const fn fp_reduction(x: u128) -> u64 {
+    //     // x = x_lo + 2^64 * x_hi
+    //     //   = x_lo + x_hi + 2^8*x_hi
+    //     //
+    //     // The resulting v will have 64 + 9 bits max
+    //     let q = (x >> 64) + (x >> 120);
+    //     let v = x.wrapping_sub(q << 64).wrapping_add(q << 8).wrapping_add(q);
+
+    //     let v_lo = v as u64;
+    //     let v_hi = (v >> 64) as u64;
+
+    //     let (r, c) = v_lo.overflowing_sub(GFp::MOD - ((v_hi << 8) + v_hi));
+    //     let adj = ((c as u64) << 8) + (c as u64);
+    //     r.wrapping_sub(adj)
+    // }
 
     /// Build a GF(p) element from a 64-bit integer. Returned values
     /// are (r, c). If the source value v is lower than the modulus,
@@ -247,8 +267,8 @@ impl GFp {
         let x56 = x28 * x28.msquare(28);
         let mut y = x56.msquare(6);
 
-        let ctl = ((self.encode()[0] as u64) & 1).wrapping_neg();
-        y.set_condneg(ctl as u32);
+        let ctl = ((y.0 as u32) & 1).wrapping_neg();
+        y.set_condneg(ctl);
 
         let r = y.square().equals(&self);
         let r_64 = (r as u64) | ((r as u64) << 32);
@@ -282,9 +302,9 @@ impl GFp {
 
         // Conditionally negate this value, so that the chosen root
         // follows the expected convention.
-        let ctl = ((self.encode()[0] as u64) & 1).wrapping_neg();
+        let ctl = ((y.0 as u32) & 1).wrapping_neg();
 
-        y.set_condneg(ctl as u32);
+        y.set_condneg(ctl);
 
         (y, r)
     }
