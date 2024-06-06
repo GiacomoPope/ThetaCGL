@@ -436,7 +436,7 @@ macro_rules! define_fp2_core {
                 // y0^2 = [8n + sqrt(32(n^2 + x0))] / 16
                 // disc = 32(n^2 + x0)
                 let disc = (n.square() + self.x0).half();
- 
+
                 // This has a solution, so we can always take a sqrt
                 let (disc_sqrt, r2) = disc.sqrt();
 
@@ -492,7 +492,7 @@ macro_rules! define_fp2_core {
                 // now return the fourth root. If any of the r are
                 // falsey, we return 0
                 let r = r1 & r2 & r3;
-                
+
                 self.x0.set_select(&Fp::ZERO, &y0, r);
                 self.x1.set_select(&Fp::ZERO, &y1, r);
 
@@ -503,7 +503,7 @@ macro_rules! define_fp2_core {
                 self.set_condneg(x0odd | (x0z & x1odd));
 
                 return r;
-            } 
+            }
 
             pub fn fourth_root(self) -> (Self, u32) {
                 let mut y = self;

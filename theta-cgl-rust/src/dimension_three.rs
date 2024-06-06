@@ -133,14 +133,16 @@ macro_rules! define_dim_three_theta_core {
                 let mut AF = AAFF.sqrt().0;
                 let mut AG = AAGG.sqrt().0;
 
-                let AB_is_zero = AB.iszero();
+                // TODO
+                // This seems to be unused?
 
-                let mut is_some_zero = AB_is_zero;
-                is_some_zero = is_some_zero | AC.iszero();
-                is_some_zero = is_some_zero | AD.iszero();
-                is_some_zero = is_some_zero | AE.iszero();
-                is_some_zero = is_some_zero | AF.iszero();
-                is_some_zero = is_some_zero | AG.iszero();
+                // let AB_is_zero = AB.iszero();
+                // let mut is_some_zero = AB_is_zero;
+                // is_some_zero = is_some_zero | AC.iszero();
+                // is_some_zero = is_some_zero | AD.iszero();
+                // is_some_zero = is_some_zero | AE.iszero();
+                // is_some_zero = is_some_zero | AF.iszero();
+                // is_some_zero = is_some_zero | AG.iszero();
 
                 let ctl1 = ((bits[0] as u32) & 1).wrapping_neg();
                 AB.set_condneg(ctl1);
@@ -241,7 +243,6 @@ macro_rules! define_dim_three_theta_core {
 
                 let mut x7 = c7.sqrt().0;
                 let den_is_zero = den.iszero();
-
 
                 let tmp = -l / (x0 * x1 * x2 * x3 * x4 * x5 * x6);
                 x7.set_cond(&tmp, den_is_zero & all_non_zero & cnd1);

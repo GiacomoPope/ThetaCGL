@@ -9,7 +9,6 @@ use rand_core::{CryptoRng, RngCore};
 pub struct GFp(u64);
 
 impl GFp {
-
     // IMPLEMENTATION NOTES:
     // ---------------------
     //
@@ -28,9 +27,7 @@ impl GFp {
 
     /// GF(p) modulus: p = 2^64 - 257
     pub const MOD: u64 = 0xfffffffffffffeff;
-    pub const MODULUS: [u64; GFp::N] = [
-        0xFFFFFFFFFFFFFEFF
-    ];
+    pub const MODULUS: [u64; GFp::N] = [0xFFFFFFFFFFFFFEFF];
 
     /// Element 0 in GF(p).
     pub const ZERO: GFp = GFp::from_u64_reduce(0);
@@ -39,7 +36,7 @@ impl GFp {
     pub const ONE: GFp = GFp::from_u64_reduce(1);
 
     /// Element -1 in GF(p).
-    pub const MINUS_ONE: GFp = GFp::from_u64_reduce(GFp::MOD - 1); 
+    pub const MINUS_ONE: GFp = GFp::from_u64_reduce(GFp::MOD - 1);
 
     pub const R_VAL: u64 = 0x0000000000000101;
     pub const MINUS_R_VAL: u64 = 0xFFFFFFFFFFFFFDFE;
@@ -50,13 +47,6 @@ impl GFp {
     pub const P0I: u64 = 18374966859414961921;
     pub const TFIXDIV_VAL: u64 = 0x0000000410181004;
     pub const TDEC_VAL: u64 = 0x0000000000000101;
-
-    const WIN_LEN: i32 = 4;
-    const SQRT_EL: i32 = 1;
-    const SQRT_EH: [i32; 15] = [12, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 3];
-
-    const FOURTH_ROOT_EL: i32 = 1;
-    const FOURTH_ROOT_EH: [i32; 15] = [14, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 1];
 
     pub const TWO: Self = GFp::from_u64_reduce(GFp::DR_VAL);
     pub const THREE: Self = GFp::from_u64_reduce(GFp::TR_VAL);
@@ -81,11 +71,11 @@ impl GFp {
         let qp = q as u128 * GFp::MOD as u128;
         let (o, c1) = x.overflowing_add(qp);
         let mut r = o >> 64 as u64;
-        r = r as u128 + (c1 as u128 * 1<<64 as u128);
+        r = r as u128 + (c1 as u128 * 1 << 64 as u128);
         let r1 = (r % GFp::MOD as u128) as u64;
 
         r1
-    } 
+    }
 
     /// Build a GF(p) element from a 64-bit integer. Returned values
     /// are (r, c). If the source value v is lower than the modulus,
@@ -151,8 +141,7 @@ impl GFp {
     pub const fn half(self) -> Self {
         // If x is even, then this returned x/2.
         // If x is odd, then this returns (x-1)/2 + (p+1)/2 = (x+p)/2.
-        GFp((self.0 >> 1).wrapping_add(
-            (self.0 & 1).wrapping_neg() & GFp::P_PLUS_ONE_HALF))
+        GFp((self.0 >> 1).wrapping_add((self.0 & 1).wrapping_neg() & GFp::P_PLUS_ONE_HALF))
     }
 
     /// Doubling in GF(p) (multiplication by 2).
@@ -294,7 +283,7 @@ impl GFp {
         cc1 - cc2
     }
 
-    pub fn sqrt(self) -> (Self, u32) { 
+    pub fn sqrt(self) -> (Self, u32) {
         // We use that p = 3 mod 4 to compute the square root by
         // x^((p+1)/4) mod p. We have (p+1)/4 = 2^62 - 2^6
         // In the instructions below, we call 'xj' the value x^(2^j-1).
@@ -324,48 +313,30 @@ impl GFp {
     /// least significant bit (as an integer in [0..p-1]) is zero. On
     /// failure, this value is set to 0.
     pub fn fourth_root(self) -> (Self, u32) {
-        // Make a window.
-        let mut ww = [self; (1usize << GFp::WIN_LEN) - 1];
-        for i in 1..ww.len() {
-            if ((i + 1) & 1) == 0 {
-                ww[i] = ww[i >> 1].square();
-            } else {
-                let z = ww[i] * ww[i - 1];
-                ww[i] = z;
-            }
-        }
-
-        // Square and multiply algorithm, with exponent e = (p + 1)/8.
-        // The exponent is not secret; we can do non-constant-time
-        // lookups in the window, and omit multiplications for null digits.
-        let mut x = ww[(GFp::FOURTH_ROOT_EH[GFp::FOURTH_ROOT_EH.len() - 1] as usize) - 1];
-        for i in (0..(GFp::FOURTH_ROOT_EH.len() - 1)).rev() {
-            for _ in 0..GFp::WIN_LEN {
-                x = x.square();
-            }
-            if GFp::FOURTH_ROOT_EH[i] != 0 {
-                x = x.mul(ww[(GFp::FOURTH_ROOT_EH[i] as usize) - 1]);
-            }
-        }
-        // Low 126 digits are all zero.
-        for _ in 0..(GFp::WIN_LEN * GFp::FOURTH_ROOT_EL) {
-            x = x.square();
-        }
+        let x = self;
+        let x2 = x * x.square();
+        let x4 = x2 * x2.msquare(2);
+        let x6 = x2 * x4.msquare(2);
+        let x7 = x * x6.square();
+        let x14 = x7 * x7.msquare(7);
+        let x28 = x14 * x14.msquare(14);
+        let x56 = x28 * x28.msquare(28);
+        let mut y = x56.msquare(5);
 
         // Check that the obtained value is indeed a fourth root of the
         // source value (which is still in ww[0]); if not, clear this
         // value.
-        let r = x.square().square().equals(&ww[0]);
+        let r = y.square().square().equals(&x);
         let rw = (r as u64) | ((r as u64) << 32);
-        x.0 &= rw;
+        y.0 &= rw;
 
         // Conditionally negate this value, so that the chosen root
         // follows the expected convention.
         let ctl = ((self.encode()[0] as u64) & 1).wrapping_neg();
 
-        x.set_condneg(ctl as u32);
+        y.set_condneg(ctl as u32);
 
-        (x, r)
+        (y, r)
     }
 
     /// Select a value: this function returns x0 if c == 0, or x1 if
@@ -509,9 +480,7 @@ impl GFp {
     pub fn encode(self) -> [u8; Self::ENCODED_LENGTH] {
         let r = self.to_u64();
         let mut d = [0u8; Self::ENCODED_LENGTH];
-        d[0..].copy_from_slice(
-            &(r.to_le_bytes()[..Self::ENCODED_LENGTH]),
-        );
+        d[0..].copy_from_slice(&(r.to_le_bytes()[..Self::ENCODED_LENGTH]));
         d
     }
 
@@ -519,7 +488,9 @@ impl GFp {
         if buf.len() != Self::ENCODED_LENGTH {
             return (GFp::ZERO, 0);
         }
-        GFp::from_u64(u64::from_le_bytes(*<&[u8; 8]>::try_from(&buf[0.. 8]).unwrap()))
+        GFp::from_u64(u64::from_le_bytes(
+            *<&[u8; 8]>::try_from(&buf[0..8]).unwrap(),
+        ))
     }
 
     /// Get the "hash" of the value (64 bits of the Montgomery
@@ -582,7 +553,6 @@ impl GFp {
         x.set_rand(rng);
         x
     }
-
 }
 
 // We implement all the needed traits to allow use of the arithmetic
@@ -742,7 +712,6 @@ impl Mul<&GFp> for &GFp {
     }
 }
 
-
 impl MulAssign<GFp> for GFp {
     #[inline(always)]
     fn mul_assign(&mut self, other: GFp) {
@@ -812,18 +781,6 @@ mod tests {
         fn next_u64(&mut self) -> u64 {
             self.0 = PRNG::A.wrapping_mul(self.0).wrapping_add(PRNG::B);
             (self.0 >> 64) as u64
-        }
-
-        // Fill buf[] with pseudo-random bytes.
-        fn next(&mut self, buf: &mut [u8]) {
-            let mut acc: u64 = 0;
-            for i in 0..buf.len() {
-                if (i & 7) == 0 {
-                    acc = self.next_u64();
-                }
-                buf[i] = acc as u8;
-                acc >>= 8;
-            }
         }
     }
 
@@ -900,7 +857,11 @@ mod tests {
             let (r2, c2) = y.sqrt();
             assert!(r2.iszero() == 0xFFFFFFFF);
             assert!(c2 == 0);
+
+            let z = x.square();
+            let (r3, c3) = z.fourth_root();
+            assert!(r3.msquare(2).equals(&z) == 0xFFFFFFFF);
+            assert!(c3 == 0xFFFFFFFF);
         }
     }
-
 }
