@@ -54,14 +54,6 @@ pub(crate) const fn umull_add(x: u64, y: u64, z: u64) -> (u64, u64) {
     (t as u64, (t >> 64) as u64)
 }
 
-// Compute x*y+z1+z2 over 128 bits, returned as two 64-bit words (lo, hi)
-#[inline(always)]
-pub(crate) const fn umull_add2(x: u64, y: u64, z1: u64, z2: u64) -> (u64, u64) {
-    let t = ((x as u128) * (y as u128))
-        .wrapping_add(z1 as u128).wrapping_add(z2 as u128);
-    (t as u64, (t >> 64) as u64)
-}
-
 // Compute x1*y1+x2*y2 over 128 bits, returned as two 64-bit words (lo, hi)
 #[inline(always)]
 pub(crate) const fn umull_x2(x1: u64, y1: u64, x2: u64, y2: u64) -> (u64, u64) {
@@ -102,7 +94,7 @@ pub(crate) const fn sgnw(x: u64) -> u64 {
 #[cfg(any(
     all(target_arch = "x86_64", target_feature = "lzcnt"),
     target_arch = "aarch64",
-    ))]
+))]
 #[inline(always)]
 pub(crate) const fn lzcnt(x: u64) -> u32 {
     x.leading_zeros()
@@ -111,7 +103,7 @@ pub(crate) const fn lzcnt(x: u64) -> u32 {
 #[cfg(not(any(
     all(target_arch = "x86_64", target_feature = "lzcnt"),
     target_arch = "aarch64",
-    )))]
+)))]
 pub(crate) const fn lzcnt(x: u64) -> u32 {
     let m = sgnw((x >> 32).wrapping_sub(1));
     let s = m & 32;
@@ -121,24 +113,24 @@ pub(crate) const fn lzcnt(x: u64) -> u32 {
     let s = s | (m & 16);
     let x = (x >> 16) ^ (m & (x ^ (x >> 16)));
 
-    let m = sgnw((x >>  8).wrapping_sub(1));
-    let s = s | (m &  8);
-    let x = (x >>  8) ^ (m & (x ^ (x >>  8)));
+    let m = sgnw((x >> 8).wrapping_sub(1));
+    let s = s | (m & 8);
+    let x = (x >> 8) ^ (m & (x ^ (x >> 8)));
 
-    let m = sgnw((x >>  4).wrapping_sub(1));
-    let s = s | (m &  4);
-    let x = (x >>  4) ^ (m & (x ^ (x >>  4)));
+    let m = sgnw((x >> 4).wrapping_sub(1));
+    let s = s | (m & 4);
+    let x = (x >> 4) ^ (m & (x ^ (x >> 4)));
 
-    let m = sgnw((x >>  2).wrapping_sub(1));
-    let s = s | (m &  2);
-    let x = (x >>  2) ^ (m & (x ^ (x >>  2)));
+    let m = sgnw((x >> 2).wrapping_sub(1));
+    let s = s | (m & 2);
+    let x = (x >> 2) ^ (m & (x ^ (x >> 2)));
 
     // At this point, x fits on 2 bits. Number of leading zeros is then:
     //   x = 0   -> 2
     //   x = 1   -> 1
     //   x = 2   -> 0
     //   x = 3   -> 0
-    let s = s.wrapping_add(2u64.wrapping_sub(x) & ((x.wrapping_sub(3) >> 2)));
+    let s = s.wrapping_add(2u64.wrapping_sub(x) & (x.wrapping_sub(3) >> 2));
 
     s as u32
 }

@@ -1442,20 +1442,6 @@ impl GF5_248 {
         self.0[0]
     }
 
-    /* TODO? Not very useful on this field.
-    // Compute two signed integers (c0, c1) such that this self = c0/c1 in
-    // the ring. The two returned values may range up to about 1.2*2^126
-    // each (in absolute value).
-    //
-    // THIS FUNCTION IS NOT CONSTANT-TIME. It shall be used only for a
-    // public source element.
-    pub fn split_vartime(self) -> (i128, i128) {
-        let mut k = self;
-        k.set_normalized();
-        lagrange253_vartime(&k.0, &Self::MODULUS)
-    }
-    */
-
     // Equality check between two field elements (constant-time);
     // returned value is 0xFFFFFFFF on equality, 0 otherwise.
     #[inline(always)]
