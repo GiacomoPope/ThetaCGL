@@ -1167,7 +1167,7 @@ mod tests {
     // }
 
     // va, vb and vx must be 16 bytes each in length
-    fn check_gf_ops(va: &[u8], vb: &[u8], vx: &[u8]) {
+    fn check_gf_ops(va: &[u8], vb: &[u8]) {
         let zp = BigInt::from_slice(
             Sign::Plus,
             &[0xFFFFFFFFu32, 0xFFFFFFFFu32, 0xFFFFFFFFu32, 0x7FFFFFFFu32],
@@ -1293,19 +1293,6 @@ mod tests {
             assert!(e.encode16() == [0u8; 16]);
         }
 
-        // TODO: Broken!
-        // let mut tmp = [0u8; 48];
-        // tmp[0..16].copy_from_slice(va);
-        // tmp[16..32].copy_from_slice(vb);
-        // tmp[32..48].copy_from_slice(vx);
-        // for k in 0..49 {
-        //     let c = Gf127::decode_reduce(&tmp[0..k]);
-        //     let vc = c.encode16();
-        //     let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
-        //     let zd = BigInt::from_bytes_le(Sign::Plus, &tmp[0..k]) % &zp;
-        //     assert!(zc == zd);
-        // }
-
         let c = a / b;
         let d = c * b;
         if b.iszero() != 0 {
@@ -1319,17 +1306,15 @@ mod tests {
     fn Gf127_ops() {
         let mut va = [0u8; 16];
         let mut vb = [0u8; 16];
-        let mut vx = [0u8; 16];
-        check_gf_ops(&va, &vb, &vx);
+        check_gf_ops(&va, &vb);
         assert!(Gf127::decode_reduce(&va).iszero() == 0xFFFFFFFF);
         assert!(Gf127::decode_reduce(&va).equals(&Gf127::decode_reduce(&vb)) == 0xFFFFFFFF);
         assert!(Gf127::decode_reduce(&va).legendre() == 0);
         for i in 0..16 {
             va[i] = 0xFFu8;
             vb[i] = 0xFFu8;
-            vx[i] = 0xFFu8;
         }
-        check_gf_ops(&va, &vb, &vx);
+        check_gf_ops(&va, &vb);
         assert!(Gf127::decode_reduce(&va).iszero() == 0);
         assert!(Gf127::decode_reduce(&va).equals(&Gf127::decode_reduce(&vb)) == 0xFFFFFFFF);
         for i in 0..2 {
@@ -1338,13 +1323,11 @@ mod tests {
         assert!(Gf127::decode_reduce(&va).iszero() == 0xFFFFFFFF);
         let mut sh = Sha256::new();
         for i in 0..1000 {
-            sh.update(((3 * i + 0) as u64).to_le_bytes());
+            sh.update(((2 * i + 0) as u64).to_le_bytes());
             let va = &sh.finalize_reset()[0..16];
-            sh.update(((3 * i + 1) as u64).to_le_bytes());
+            sh.update(((2 * i + 1) as u64).to_le_bytes());
             let vb = &sh.finalize_reset()[0..16];
-            sh.update(((3 * i + 2) as u64).to_le_bytes());
-            let vx = &sh.finalize_reset()[0..16];
-            check_gf_ops(&va, &vb, &vx);
+            check_gf_ops(&va, &vb);
             assert!(Gf127::decode_reduce(&va).iszero() == 0);
             assert!(Gf127::decode_reduce(&va).equals(&Gf127::decode_reduce(&vb)) == 0);
             let s = Gf127::decode_reduce(&va).square();

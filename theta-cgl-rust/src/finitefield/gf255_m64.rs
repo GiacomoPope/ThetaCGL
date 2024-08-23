@@ -1856,7 +1856,7 @@ impl<const MQ: u64> GF255<MQ> {
     /// Set this structure to a random field element (indistinguishable
     /// from uniform generation).
     pub fn set_rand<T: CryptoRng + RngCore>(&mut self, rng: &mut T) {
-        let mut tmp = [0u8; Self::ENCODED_LENGTH + 16];
+        let mut tmp = [0u8; 48];
         rng.fill_bytes(&mut tmp);
         self.set_decode_reduce(&tmp);
     }
