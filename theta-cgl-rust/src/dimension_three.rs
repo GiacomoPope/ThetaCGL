@@ -233,38 +233,37 @@ macro_rules! define_dim_three_theta_core {
 
                 let r0 = (&R1 + &R3 - &t0);
                 let num = r0.square() + (c0246 * c1357).mul_small(16384) - (R1 * R3).mul4();
-                let den = r0.mul_small(256) * x0 * x1 * x2 * x3 * x4 * x5 * x6;
+                let p = x0 * x1 * x2 * x3 * x4 * x5 * x6;
+                let den = r0.mul_small(256) * p;
 
                 //
-                // TODO: there's a lot of chaos here which I think we can clean...
+                // TODO: there's a lot of chaos here which I think we can clean up...
                 //
                 let (y0, y1, y2, y3, y4, y5, y6, y7) = self.coords();
                 let yy = y0 * y1 * y2 * y3 * y4 * y5 * y6 * y7;
 
-                let lam_to_4 = lam * lam * lam * lam;
-                let mut l = lam_to_4 * yy;
-                l = l.mul_small(64);
-                let cnd1 = (c0246 * c1357).equals(&(l * l));
+                let lam_to_4 = lam.square().square();
+                let l = (lam_to_4 * yy).mul_small(64);
+                let cnd1 = (c0246 * c1357).equals(&l.square());
 
-                let mut x7 = c7.sqrt().0;
+                // I don't think we ever need this...
+                // let mut x7 = c7.sqrt().0;
+                let mut x7 = Fq::ZERO;
                 let den_is_zero = den.iszero();
+                // TODO: i think this is only ever true on the first step...
+                // which means we could save a bunch of operations for *most*
+                // steps
+                let check_all = den_is_zero & all_non_zero & cnd1;
+                x7.set_cond(&(-l), check_all);
+                x0.set_cond(&(p * x0), check_all);
+                x1.set_cond(&(p * x1), check_all);
+                x2.set_cond(&(p * x2), check_all);
+                x3.set_cond(&(p * x3), check_all);
+                x4.set_cond(&(p * x4), check_all);
+                x5.set_cond(&(p * x5), check_all);
+                x6.set_cond(&(p * x6), check_all);
 
-                // println!("Step... c1: {}, den is zero: {}, all non zero: {}", cnd1, den_is_zero, all_non_zero);
-
-                let tmp = -l / (x0 * x1 * x2 * x3 * x4 * x5 * x6);
-                x7.set_cond(&tmp, den_is_zero & all_non_zero & cnd1);
-
-                let p = x0 * x1 * x2 * x3 * x4 * x5 * x6;
-                x7.set_cond(&(-l), den_is_zero & all_non_zero & cnd1);
-                x0.set_cond(&(p * x0), den_is_zero & all_non_zero & cnd1);
-                x1.set_cond(&(p * x1), den_is_zero & all_non_zero & cnd1);
-                x2.set_cond(&(p * x2), den_is_zero & all_non_zero & cnd1);
-                x3.set_cond(&(p * x3), den_is_zero & all_non_zero & cnd1);
-                x4.set_cond(&(p * x4), den_is_zero & all_non_zero & cnd1);
-                x5.set_cond(&(p * x5), den_is_zero & all_non_zero & cnd1);
-                x6.set_cond(&(p * x6), den_is_zero & all_non_zero & cnd1);
-
-                let den_is_not_zero = den_is_zero ^ 0xFFFFFFFF;
+                let den_is_not_zero = !den_is_zero;
                 x0.set_cond(&(den * x0), den_is_not_zero);
                 x1.set_cond(&(den * x1), den_is_not_zero);
                 x2.set_cond(&(den * x2), den_is_not_zero);
