@@ -33,7 +33,12 @@ macro_rules! define_dim_two_theta_core {
 
             // Compute the Hadamard transform
             fn to_hadamard(self, X: Fq, Z: Fq, U: Fq, V: Fq) -> (Fq, Fq, Fq, Fq) {
-                (X + Z + U + V, X - Z + U - V, X + Z - U - V, X - Z - U + V)
+                let t1 = X + Z;
+                let t2 = X - Z;
+                let t3 = U + V;
+                let t4 = U - V;
+                
+                (&t1 + &t3, &t2 + &t4, &t1 - &t3, &t2 - &t4)
             }
 
             // Squared theta first squares the coords
