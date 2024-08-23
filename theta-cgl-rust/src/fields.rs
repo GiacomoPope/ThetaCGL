@@ -6,36 +6,6 @@ pub mod Fp127 {
     pub type Fp = Gf127;
 }
 
-pub mod Fp127Old {
-    const N: usize = 2;
-    const BITLEN: usize = 127;
-    const MODULUS: [u64; N] = [0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF];
-    const HALF_MODULUS: [u64; N] = [0x0000000000000000, 0x4000000000000000];
-    const R_VAL: [u64; N] = [0x0000000000000002, 0x0000000000000000];
-    const MINUS_R_VAL: [u64; N] = [0xFFFFFFFFFFFFFFFD, 0x7FFFFFFFFFFFFFFF];
-    const DR_VAL: [u64; N] = [0x0000000000000004, 0x0000000000000000];
-    const TR_VAL: [u64; N] = [0x0000000000000006, 0x0000000000000000];
-    const QR_VAL: [u64; N] = [0x0000000000000008, 0x0000000000000000];
-    const R2_VAL: [u64; N] = [0x0000000000000004, 0x0000000000000000];
-    const P0I: u64 = 1;
-    const TFIXDIV_VAL: [u64; N] = [0x0000000000000100, 0x0000000000000000];
-    const TDEC_VAL: [u64; N] = [0x0000000000000000, 0x0000000000000002];
-    const WIN_LEN: usize = 4;
-    const SQRT_EH: [u8; 1] = [2];
-    const SQRT_EL: usize = 31;
-    const FOURTH_ROOT_EH: [u8; 1] = [1];
-    const FOURTH_ROOT_EL: usize = 31;
-    const P1: u64 = 4294967295;
-    const P1DIV_M: u64 = 1;
-
-    crate::finitefield::fp_gen::define_fp_core! {}
-
-    #[cfg(test)]
-    mod tests {
-        crate::finitefield::fp_gen::define_fp_tests! {}
-    }
-}
-
 // 79*2**247 - 1
 pub mod Fp254 {
     const N: usize = 4;
@@ -141,17 +111,6 @@ pub mod Fp64 {
 pub mod Fp127Ext {
     use super::Fp127::Fp;
     const NQR_RE: Fp = Fp::w64le(2, 0);
-
-    crate::finitefield::fp2_gen::define_fp2_core! {}
-    #[cfg(test)]
-    mod tests {
-        crate::finitefield::fp2_gen::define_fp2_tests! {}
-    }
-}
-
-pub mod Fp127OldExt {
-    use super::Fp127Old::Fp;
-    const NQR_RE: Fp = Fp::new([0xE1F195E63EF9998E, 0x025681E8E25E14E8]);
 
     crate::finitefield::fp2_gen::define_fp2_core! {}
     #[cfg(test)]

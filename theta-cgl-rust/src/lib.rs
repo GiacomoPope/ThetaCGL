@@ -64,32 +64,6 @@ pub mod thp64 {
     crate::dimension_three::define_dim_three_theta_core! {}
 }
 
-pub mod thp127old {
-    pub type Fp = crate::fields::Fp127Old::Fp;
-    pub type Fq = crate::fields::Fp127OldExt::Fp2;
-
-    //
-    // WARNING!!
-    // The theta coordinates constructed here are assumed to already be
-    // in Montgomery form!!!
-    //
-    const X0_re: Fp = Fp::new([0xFFFFFFFFFFFFFFFB, 0x7FFFFFFFFFFFFFFF]);
-    const X0_im: Fp = Fp::new([0, 0]);
-    const Z0_re: Fp = Fp::new([0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFD]);
-    const Z0_im: Fp = Fp::new([0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFD]);
-    const U0_re: Fp = Fp::new([0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFD]);
-    const U0_im: Fp = Fp::new([0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFD]);
-    const V0_re: Fp = Fp::new([0, 0]);
-    const V0_im: Fp = Fp::new([0xFFFFFFFFFFFFFFFB, 0x7FFFFFFFFFFFFFFF]);
-
-    const X0: Fq = Fq::new(&X0_re, &X0_im);
-    const Z0: Fq = Fq::new(&Z0_re, &Z0_im);
-    const U0: Fq = Fq::new(&U0_re, &U0_im);
-    const V0: Fq = Fq::new(&V0_re, &V0_im);
-
-    crate::dimension_two::define_dim_two_theta_core! {}
-}
-
 pub mod thp127 {
     pub type Fp = crate::fields::Fp127::Fp;
     pub type Fq = crate::fields::Fp127Ext::Fp2;
