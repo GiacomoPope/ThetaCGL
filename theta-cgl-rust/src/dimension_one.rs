@@ -25,7 +25,7 @@ macro_rules! define_dim_one_theta_core {
             }
 
             // Compute the Hadamard transform
-            fn to_hadamard(self, X: Fq, Z: Fq) -> (Fq, Fq) {
+            fn to_hadamard(self, X: &Fq, Z: &Fq) -> (Fq, Fq) {
                 let X_new = X + Z;
                 let Z_new = X - Z;
 
@@ -39,26 +39,26 @@ macro_rules! define_dim_one_theta_core {
                 let XX = self.X.square();
                 let ZZ = self.Z.square();
 
-                self.to_hadamard(XX, ZZ)
+                self.to_hadamard(&XX, &ZZ)
             }
 
             // Compute the two isogeny
             pub fn radical_two_isogeny(self, bit: u8) -> ThetaPointDim1 {
                 let (AA, BB) = self.squared_theta();
-                let AABB = AA * BB;
+                let AABB = &AA * &BB;
                 let (mut AB, _) = AABB.sqrt();
 
                 let ctl = ((bit as u32) & 1).wrapping_neg();
                 AB.set_condneg(ctl);
 
-                let (X_new, Z_new) = self.to_hadamard(AA, AB);
+                let (X_new, Z_new) = self.to_hadamard(&AA, &AB);
 
                 Self { X: X_new, Z: Z_new }
             }
 
             pub fn radical_four_isogeny(self, bits: Vec<u8>) -> ThetaPointDim1 {
                 let (AA, BB) = self.squared_theta();
-                let AABB = AA * BB;
+                let AABB = &AA * &BB;
                 let (mut factor, check) = AABB.fourth_root();
                 if check == 0 {
                     panic!("Something has gone wrong with the isogeny chain.")
@@ -66,7 +66,7 @@ macro_rules! define_dim_one_theta_core {
 
                 // if the second bit is zero, we multiply by zeta
                 let ctl2 = ((bits[1] as u32) & 1).wrapping_neg();
-                factor.set_cond(&(factor * Fq::ZETA), ctl2);
+                factor.set_cond(&(&factor * &Fq::ZETA), ctl2);
 
                 // if the first bit is zero, we negate the result
                 let ctl1 = ((bits[0] as u32) & 1).wrapping_neg();
@@ -74,7 +74,7 @@ macro_rules! define_dim_one_theta_core {
 
                 let X_new = self.X + factor;
                 let Z_new = self.X - factor;
-                let (X_new, Z_new) = self.to_hadamard(X_new, Z_new);
+                let (X_new, Z_new) = self.to_hadamard(&X_new, &Z_new);
 
                 Self { X: X_new, Z: Z_new }
             }

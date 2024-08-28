@@ -19,17 +19,19 @@ const MSG: [u8; 256] = [
 fn two_radical_127(c: &mut Criterion) {
     let cgl = thp127::CGLDim2Rad2::new();
 
-    c.bench_function("CGL Hash: using p127 and two radical isogeny", |b| {
-        b.iter(|| cgl.hash(black_box(MSG.to_vec())))
-    });
+    c.bench_function(
+        "CGL Hash: using p127 and two radical isogeny and new arithmetic",
+        |b| b.iter(|| cgl.hash(black_box(MSG.to_vec()))),
+    );
 }
 
 fn four_radical_127(c: &mut Criterion) {
     let cgl = thp127::CGLDim2Rad4::new();
 
-    c.bench_function("CGL Hash: using p127 and four radical isogeny", |b| {
-        b.iter(|| cgl.hash(black_box(MSG.to_vec())))
-    });
+    c.bench_function(
+        "CGL Hash: using p127 and four radical isogeny and new arithmetic",
+        |b| b.iter(|| cgl.hash(black_box(MSG.to_vec()))),
+    );
 }
 
 criterion_group! {

@@ -2,7 +2,7 @@ use core::convert::TryFrom;
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use rand_core::{CryptoRng, RngCore};
 
-use super::utils64::{addcarry_u64, lzcnt, sgnw, subborrow_u64, umull, umull_x2, umull_x2_add};
+use super::utils64::{addcarry_u64, subborrow_u64, umull};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Gf127([u64; 2]);
@@ -23,7 +23,7 @@ impl Gf127 {
     pub const MODULUS: [u64; 2] = [0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF];
     pub const ZERO: Self = Self([0, 0]);
     pub const ONE: Self = Self([1, 0]);
-    pub const MINUS_ONE: Self = Self([0x7FFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFE]);
+    pub const MINUS_ONE: Self = Self([0xFFFFFFFFFFFFFFFE, 0x7FFFFFFFFFFFFFFF]);
 
     // TODO: these are extra constants I needed for the extension
     // construction... Maybe these should be shifted to a specialised
@@ -500,282 +500,42 @@ impl Gf127 {
         self.set_cond(&Self::ZERO, c);
     }
 
-    // Set this value to u*f+v*g (with 'u' being self). Parameters f and g
-    // are provided as u64, but they are signed integers in the -2^62..+2^62
-    // range.
-    #[inline]
-    fn set_lin(&mut self, u: &Self, v: &Self, f: u64, g: u64) {
-        // Make sure f is nonnegative, by negating it if necessary, and
-        // also negating u in that case to keep u*f unchanged.
-        let sf = sgnw(f);
-        let f = (f ^ sf).wrapping_sub(sf);
-        let tu = Self::select(u, &-u, sf as u32);
-
-        // Same treatment for g and v.
-        let sg = sgnw(g);
-        let g = (g ^ sg).wrapping_sub(sg);
-        let tv = Self::select(v, &-v, sg as u32);
-
-        // Compute the linear combination on plain integers. Since f and
-        // g are at most 2^62 each, intermediate 128-bit products cannot
-        // overflow.
-        let (d0, t) = umull_x2(tu.0[0], f, tv.0[0], g);
-        let (d1, t) = umull_x2_add(tu.0[1], f, tv.0[1], g, t);
-
-        self.0[0] = d0;
-        self.0[1] = d1;
-
-        // The upper word t can be at most 63 bits
-        self.set_reduce_small(t)
-    }
-
+    // Compute a^((p-3)/4), used for inversion and Legendre
+    // to compute a^(p-2) and a^((p-1)/2)
     #[inline(always)]
-    fn lin(a: &Self, b: &Self, f: u64, g: u64) -> Self {
-        let mut r = Self::ZERO;
-        r.set_lin(a, b, f, g);
-        r
-    }
-
-    // Set this value to abs((a*f+b*g)/2^31). Values a and b are interpreted
-    // as unsigned 256-bit integers. Coefficients f and g are provided as u64,
-    // but they really are signed integers in the -2^31..+2^31 range
-    // (inclusive). The low 31 bits are dropped (i.e. the division is assumed
-    // to be exact). The result is assumed to fit in 256 bits (including the
-    // sign bit) (otherwise, truncation occurs).
-    //
-    // Returned value is -1 (u64) if (a*f+b*g) was negative, 0 otherwise.
-    #[inline]
-    fn set_lindiv31abs(&mut self, a: &Self, b: &Self, f: u64, g: u64) -> u64 {
-        // Replace f and g with abs(f) and abs(g), but remember the
-        // original signs.
-        let sf = sgnw(f);
-        let f = (f ^ sf).wrapping_sub(sf);
-        let sg = sgnw(g);
-        let g = (g ^ sg).wrapping_sub(sg);
-
-        // Apply the signs of f and g to the source operands.
-        let (a0, cc) = subborrow_u64(a.0[0] ^ sf, sf, 0);
-        let (a1, cc) = subborrow_u64(a.0[1] ^ sf, sf, cc);
-        let (a2, _) = subborrow_u64(0, 0, cc);
-        let (b0, cc) = subborrow_u64(b.0[0] ^ sg, sg, 0);
-        let (b1, cc) = subborrow_u64(b.0[1] ^ sg, sg, cc);
-        let (b2, _) = subborrow_u64(0, 0, cc);
-
-        // Compute a*f+b*g into d0:d1:t. Since f and g are at
-        // most 2^31, we can add two 128-bit products with no overflow.
-        let (d0, t) = umull_x2(a0, f, b0, g);
-        let (d1, t) = umull_x2_add(a1, f, b1, g, t);
-        // d2 <- a2*f + b2*g + t; a2 and b2 can be only 0 or -1
-        let d2 = t.wrapping_sub(a2 & f).wrapping_sub(b2 & g);
-
-        // Shift-right the value by 31 bits.
-        let d0 = (d0 >> 31) | (d1 << 33);
-        let d1 = (d1 >> 31) | (d2 << 33);
-
-        // If the result is negative, then negate it.
-        let t = sgnw(d2);
-        let (d0, cc) = subborrow_u64(d0 ^ t, t, 0);
-        let (d1, _) = subborrow_u64(d1 ^ t, t, cc);
-
-        self.0[0] = d0;
-        self.0[1] = d1;
-        assert!(d1 >> 63 == 0);
-        // TODO: do I need this?
-        // self.set_reduce_small(0);
-        t
-    }
-
-    #[inline(always)]
-    fn lindiv31abs(a: &Self, b: &Self, f: u64, g: u64) -> (Self, u64) {
-        let mut r = Self::ZERO;
-        let ng = r.set_lindiv31abs(a, b, f, g);
-        (r, ng)
-    }
-
-    fn set_div(&mut self, y: &Self) {
-        // Extended binary GCD:
-        //
-        //   a <- y
-        //   b <- q (modulus)
-        //   u <- x (self)
-        //   v <- 0
-        //
-        // Value a is normalized (in the 0..q-1 range). Values a and b are
-        // then considered as (signed) integers. Values u and v are field
-        // elements.
-        //
-        // Invariants:
-        //    a*x = y*u mod q
-        //    b*x = y*v mod q
-        //    b is always odd
-        //
-        // At each step:
-        //    if a is even, then:
-        //        a <- a/2, u <- u/2 mod q
-        //    else:
-        //        if a < b:
-        //            (a, u, b, v) <- (b, v, a, u)
-        //        a <- (a-b)/2, u <- (u-v)/2 mod q
-        //
-        // What we implement below is the optimized version of this
-        // algorithm, as described in https://eprint.iacr.org/2020/972
-
-        let mut a = *y;
-        a.set_normalized();
-        let mut b = Self(Self::MODULUS);
-        let mut u = *self;
-        let mut v = Self::ZERO;
-
-        // Generic loop does 7*31 = 217 inner iterations.
-        for _ in 0..7 {
-            // Get approximations of a and b over 64 bits:
-            //  - If len(a) <= 64 and len(b) <= 64, then we just use
-            //    their values (low limbs).
-            //  - Otherwise, with n = max(len(a), len(b)), we use:
-            //       (a mod 2^31) + 2^31*floor(a / 2^(n - 33))
-            //       (b mod 2^31) + 2^31*floor(b / 2^(n - 33))
-
-            let m1 = a.0[1] | b.0[1];
-            let tnz1 = sgnw(m1 | m1.wrapping_neg());
-            let tnzm = m1 & tnz1;
-            let tnza = a.0[1] & tnz1;
-            let tnzb = b.0[1] & tnz1;
-            let snza = a.0[0] & tnz1;
-            let snzb = b.0[0] & tnz1;
-
-            // If both len(a) <= 64 and len(b) <= 64, then:
-            //    tnzm = 0
-            //    tnza = 0, snza = 0, tnzb = 0, snzb = 0
-            // Otherwise:
-            //    tnzm != 0
-            //    tnza contains the top non-zero limb of a
-            //    snza contains the limb right below tnza
-            //    tnzb contains the top non-zero limb of a
-            //    snzb contains the limb right below tnzb
-            //
-            // We count the number of leading zero bits in tnzm:
-            //  - If s <= 31, then the top 31 bits can be extracted from
-            //    tnza and tnzb alone.
-            //  - If 32 <= s <= 63, then we need some bits from snza and
-            //    snzb as well.
-            let s = lzcnt(tnzm);
-            let sm = (31_i32.wrapping_sub(s as i32) >> 31) as u64;
-            let tnza = tnza ^ (sm & (tnza ^ ((tnza << 32) | (snza >> 32))));
-            let tnzb = tnzb ^ (sm & (tnzb ^ ((tnzb << 32) | (snzb >> 32))));
-            let s = s - (32 & (sm as u32));
-            let tnza = tnza << s;
-            let tnzb = tnzb << s;
-
-            // At this point:
-            //  - If len(a) <= 64 and len(b) <= 64, then:
-            //       tnza = 0
-            //       tnzb = 0
-            //       tnz1 = tnz2 = tnz3 = 0
-            //       we want to use the entire low words of a and b
-            //  - Otherwise, we want to use the top 33 bits of tnza and
-            //    tnzb, and the low 31 bits of the low words of a and b.
-            let tzx = !tnz1;
-            let tnza = tnza | (a.0[0] & tzx);
-            let tnzb = tnzb | (b.0[0] & tzx);
-            let mut xa = (a.0[0] & 0x7FFFFFFF) | (tnza & 0xFFFFFFFF80000000);
-            let mut xb = (b.0[0] & 0x7FFFFFFF) | (tnzb & 0xFFFFFFFF80000000);
-
-            // Compute the 31 inner iterations on xa and xb.
-            let mut fg0 = 1u64;
-            let mut fg1 = 1u64 << 32;
-            for _ in 0..31 {
-                let a_odd = (xa & 1).wrapping_neg();
-                let (_, cc) = subborrow_u64(xa, xb, 0);
-                let swap = a_odd & (cc as u64).wrapping_neg();
-                let t1 = swap & (xa ^ xb);
-                xa ^= t1;
-                xb ^= t1;
-                let t2 = swap & (fg0 ^ fg1);
-                fg0 ^= t2;
-                fg1 ^= t2;
-                xa = xa.wrapping_sub(a_odd & xb);
-                fg0 = fg0.wrapping_sub(a_odd & fg1);
-                xa >>= 1;
-                fg1 <<= 1;
-            }
-            fg0 = fg0.wrapping_add(0x7FFFFFFF7FFFFFFF);
-            fg1 = fg1.wrapping_add(0x7FFFFFFF7FFFFFFF);
-            let f0 = (fg0 & 0xFFFFFFFF).wrapping_sub(0x7FFFFFFF);
-            let g0 = (fg0 >> 32).wrapping_sub(0x7FFFFFFF);
-            let f1 = (fg1 & 0xFFFFFFFF).wrapping_sub(0x7FFFFFFF);
-            let g1 = (fg1 >> 32).wrapping_sub(0x7FFFFFFF);
-
-            // Propagate updates to a, b, u and v.
-            let (na, nega) = Self::lindiv31abs(&a, &b, f0, g0);
-            let (nb, negb) = Self::lindiv31abs(&a, &b, f1, g1);
-            let f0 = (f0 ^ nega).wrapping_sub(nega);
-            let g0 = (g0 ^ nega).wrapping_sub(nega);
-            let f1 = (f1 ^ negb).wrapping_sub(negb);
-            let g1 = (g1 ^ negb).wrapping_sub(negb);
-            let nu = Self::lin(&u, &v, f0, g0);
-            let nv = Self::lin(&u, &v, f1, g1);
-            a = na;
-            b = nb;
-            u = nu;
-            v = nv;
-        }
-
-        // If y is invertible, then the final GCD is 1, and
-        // len(a) + len(b) <= 37, so we can end the computation with
-        // the low words directly. We only need 35 iterations to reach
-        // the point where b = 1.
-        //
-        // If y is zero, then v is unchanged (hence zero) and none of
-        // the subsequent iterations will change it either, so we get
-        // 0 on output, which is what we want.
-        let mut xa = a.0[0];
-        let mut xb = b.0[0];
-        let mut f0 = 1u64;
-        let mut g0 = 0u64;
-        let mut f1 = 0u64;
-        let mut g1 = 1u64;
-        for _ in 0..35 {
-            let a_odd = (xa & 1).wrapping_neg();
-            let (_, cc) = subborrow_u64(xa, xb, 0);
-            let swap = a_odd & (cc as u64).wrapping_neg();
-            let t1 = swap & (xa ^ xb);
-            xa ^= t1;
-            xb ^= t1;
-            let t2 = swap & (f0 ^ f1);
-            f0 ^= t2;
-            f1 ^= t2;
-            let t3 = swap & (g0 ^ g1);
-            g0 ^= t3;
-            g1 ^= t3;
-            xa = xa.wrapping_sub(a_odd & xb);
-            f0 = f0.wrapping_sub(a_odd & f1);
-            g0 = g0.wrapping_sub(a_odd & g1);
-            xa >>= 1;
-            f1 <<= 1;
-            g1 <<= 1;
-        }
-
-        self.set_lin(&u, &v, f1, g1);
-
-        // At the point:
-        //  - We have injected 31*7+35 = 252 extra factors of 2, hence we
-        //    must divide the result by 2^252.
-        // Computing 2^(-252) mod p = 4
-        self.set_mul4();
+    fn set_exp_p_minus_three_div_four(&mut self) {
+        let x = *self;
+        let x2 = x * x.square();
+        let x3 = x * x2.square();
+        let x5 = x2 * x3.xsquare(2);
+        let x10 = x5 * x5.xsquare(5);
+        let x15 = x5 * x10.xsquare(5);
+        let x30 = x15 * x15.xsquare(15);
+        let x60 = x30 * x30.xsquare(30);
+        let x120 = x60 * x60.xsquare(60);
+        *self = x5 * x120.xsquare(5);
     }
 
     // TODO added
     pub fn set_invert(&mut self) {
-        let r = *self;
-        *self = Self::ONE;
-        self.set_div(&r);
+        // from another file
+        let mut x = *self;
+        x.set_exp_p_minus_three_div_four();
+        x.set_xsquare(2);
+        *self *= x;
     }
 
     // TODO added
     pub fn invert(self) -> Self {
-        let mut r = Self::ONE;
-        r.set_div(&self);
+        let mut r = self;
+        r.set_invert();
         r
+    }
+
+    // TODO added
+    pub fn set_div(&mut self, y: &Self) {
+        let y_inv = y.invert();
+        self.set_mul(&y_inv)
     }
 
     // Perform a batch inversion of some elements. All elements of
@@ -821,150 +581,17 @@ impl Gf127 {
     //  +1   if this value is a non-zero quadratic residue
     //  -1   if this value is not a quadratic residue
     pub fn legendre(self) -> i32 {
-        // The algorithm is very similar to the optimized binary GCD that
-        // is implemented in set_div(), with the following differences:
-        //  - We do not keep track of the 'u' and 'v' values.
-        //  - In each inner iteration, the running symbol value is
-        //    adjusted, taking into account the low 2 or 3 bits of the
-        //    involved values.
-        //  - Since we need a couple of bits of look-ahead, we can only
-        //    run 29 iterations in the inner loop, and we need an extra
-        //    recomputation step for the next 2.
-        // Otherwise, the 'a' and 'b' values are modified exactly as in
-        // the binary GCD, so that we get the same guaranteed convergence
-        // in a total of 510 iterations.
+        let mut l = self;
+        l.set_exp_p_minus_three_div_four();
+        l.set_square();
+        l.set_mul(&self);
 
-        let mut a = self;
-        a.set_normalized();
-        let mut b = Self(Self::MODULUS);
-        let mut ls = 0u64; // running symbol information in the low bit
+        let c1 = l.equals(&Self::ONE);
+        let c2 = l.equals(&Self::MINUS_ONE);
+        let cc1 = (c1 & 1) as i32;
+        let cc2 = (c2 & 1) as i32;
 
-        // Outer loop
-        for _ in 0..7 {
-            // Get approximations of a and b over 64 bits.
-            let m1 = a.0[1] | b.0[1];
-            let tnz1 = sgnw(m1 | m1.wrapping_neg());
-            let tnzm = m1 & tnz1;
-            let tnza = a.0[1] & tnz1;
-            let tnzb = b.0[1] & tnz1;
-            let snza = a.0[0] & tnz1;
-            let snzb = b.0[0] & tnz1;
-
-            let s = lzcnt(tnzm);
-            let sm = (31_i32.wrapping_sub(s as i32) >> 31) as u64;
-            let tnza = tnza ^ (sm & (tnza ^ ((tnza << 32) | (snza >> 32))));
-            let tnzb = tnzb ^ (sm & (tnzb ^ ((tnzb << 32) | (snzb >> 32))));
-            let s = s - (32 & (sm as u32));
-            let tnza = tnza << s;
-            let tnzb = tnzb << s;
-
-            let tzx = !tnz1;
-            let tnza = tnza | (a.0[0] & tzx);
-            let tnzb = tnzb | (b.0[0] & tzx);
-            let mut xa = (a.0[0] & 0x7FFFFFFF) | (tnza & 0xFFFFFFFF80000000);
-            let mut xb = (b.0[0] & 0x7FFFFFFF) | (tnzb & 0xFFFFFFFF80000000);
-
-            // First 29 inner iterations.
-            let mut fg0 = 1u64;
-            let mut fg1 = 1u64 << 32;
-            for _ in 0..29 {
-                let a_odd = (xa & 1).wrapping_neg();
-                let (_, cc) = subborrow_u64(xa, xb, 0);
-                let swap = a_odd & (cc as u64).wrapping_neg();
-                ls ^= swap & ((xa & xb) >> 1);
-                let t1 = swap & (xa ^ xb);
-                xa ^= t1;
-                xb ^= t1;
-                let t2 = swap & (fg0 ^ fg1);
-                fg0 ^= t2;
-                fg1 ^= t2;
-                xa = xa.wrapping_sub(a_odd & xb);
-                fg0 = fg0.wrapping_sub(a_odd & fg1);
-                xa >>= 1;
-                fg1 <<= 1;
-                ls ^= xb.wrapping_add(2) >> 2;
-            }
-
-            // Compute the updated a and b (low words only) to get enough
-            // bits for the next two iterations.
-            let fg0z = fg0.wrapping_add(0x7FFFFFFF7FFFFFFF);
-            let fg1z = fg1.wrapping_add(0x7FFFFFFF7FFFFFFF);
-            let f0 = (fg0z & 0xFFFFFFFF).wrapping_sub(0x7FFFFFFF);
-            let g0 = (fg0z >> 32).wrapping_sub(0x7FFFFFFF);
-            let f1 = (fg1z & 0xFFFFFFFF).wrapping_sub(0x7FFFFFFF);
-            let g1 = (fg1z >> 32).wrapping_sub(0x7FFFFFFF);
-            let mut a0 = a.0[0]
-                .wrapping_mul(f0)
-                .wrapping_add(b.0[0].wrapping_mul(g0))
-                >> 29;
-            let mut b0 = a.0[0]
-                .wrapping_mul(f1)
-                .wrapping_add(b.0[0].wrapping_mul(g1))
-                >> 29;
-            for _ in 0..2 {
-                let a_odd = (xa & 1).wrapping_neg();
-                let (_, cc) = subborrow_u64(xa, xb, 0);
-                let swap = a_odd & (cc as u64).wrapping_neg();
-                ls ^= swap & ((a0 & b0) >> 1);
-                let t1 = swap & (xa ^ xb);
-                xa ^= t1;
-                xb ^= t1;
-                let t2 = swap & (fg0 ^ fg1);
-                fg0 ^= t2;
-                fg1 ^= t2;
-                let t3 = swap & (a0 ^ b0);
-                a0 ^= t3;
-                b0 ^= t3;
-                xa = xa.wrapping_sub(a_odd & xb);
-                fg0 = fg0.wrapping_sub(a_odd & fg1);
-                a0 = a0.wrapping_sub(a_odd & b0);
-                xa >>= 1;
-                fg1 <<= 1;
-                a0 >>= 1;
-                ls ^= b0.wrapping_add(2) >> 2;
-            }
-
-            // Propagate updates to a and b.
-            fg0 = fg0.wrapping_add(0x7FFFFFFF7FFFFFFF);
-            fg1 = fg1.wrapping_add(0x7FFFFFFF7FFFFFFF);
-            let f0 = (fg0 & 0xFFFFFFFF).wrapping_sub(0x7FFFFFFF);
-            let g0 = (fg0 >> 32).wrapping_sub(0x7FFFFFFF);
-            let f1 = (fg1 & 0xFFFFFFFF).wrapping_sub(0x7FFFFFFF);
-            let g1 = (fg1 >> 32).wrapping_sub(0x7FFFFFFF);
-
-            let (na, nega) = Self::lindiv31abs(&a, &b, f0, g0);
-            let (nb, _) = Self::lindiv31abs(&a, &b, f1, g1);
-            ls ^= nega & (nb.0[0] >> 1);
-            a = na;
-            b = nb;
-        }
-
-        // Final iterations: values are at most 37 bits now. We do not
-        // need to keep track of update coefficients. Just like the GCD,
-        // we need only 35 iterations, because after 35 iterations,
-        // value a is 0 or 1, and b is 1, and no further modification to
-        // the Legendre symbol may happen.
-        let mut xa = a.0[0];
-        let mut xb = b.0[0];
-        for _ in 0..35 {
-            let a_odd = (xa & 1).wrapping_neg();
-            let (_, cc) = subborrow_u64(xa, xb, 0);
-            let swap = a_odd & (cc as u64).wrapping_neg();
-            ls ^= swap & ((xa & xb) >> 1);
-            let t1 = swap & (xa ^ xb);
-            xa ^= t1;
-            xb ^= t1;
-            xa = xa.wrapping_sub(a_odd & xb);
-            xa >>= 1;
-            ls ^= xb.wrapping_add(2) >> 2;
-        }
-
-        // At this point, if the source value was not zero, then the low
-        // bit of ls contains the QR status (0 = square, 1 = non-square),
-        // which we need to convert to the expected value (+1 or -1).
-        // If y == 0, then we return 0, per the API.
-        let r = 1u32.wrapping_sub(((ls as u32) & 1) << 1);
-        (r & !(self.iszero() as u32)) as i32
+        cc1 - cc2
     }
 
     // Set this value to its square root. Returned value is 0xFFFFFFFF
@@ -1540,7 +1167,7 @@ mod tests {
     // }
 
     // va, vb and vx must be 16 bytes each in length
-    fn check_gf_ops(va: &[u8], vb: &[u8], vx: &[u8]) {
+    fn check_gf_ops(va: &[u8], vb: &[u8]) {
         let zp = BigInt::from_slice(
             Sign::Plus,
             &[0xFFFFFFFFu32, 0xFFFFFFFFu32, 0xFFFFFFFFu32, 0x7FFFFFFFu32],
@@ -1666,19 +1293,6 @@ mod tests {
             assert!(e.encode16() == [0u8; 16]);
         }
 
-        // TODO: Broken!
-        // let mut tmp = [0u8; 48];
-        // tmp[0..16].copy_from_slice(va);
-        // tmp[16..32].copy_from_slice(vb);
-        // tmp[32..48].copy_from_slice(vx);
-        // for k in 0..49 {
-        //     let c = Gf127::decode_reduce(&tmp[0..k]);
-        //     let vc = c.encode16();
-        //     let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
-        //     let zd = BigInt::from_bytes_le(Sign::Plus, &tmp[0..k]) % &zp;
-        //     assert!(zc == zd);
-        // }
-
         let c = a / b;
         let d = c * b;
         if b.iszero() != 0 {
@@ -1692,17 +1306,15 @@ mod tests {
     fn Gf127_ops() {
         let mut va = [0u8; 16];
         let mut vb = [0u8; 16];
-        let mut vx = [0u8; 16];
-        check_gf_ops(&va, &vb, &vx);
+        check_gf_ops(&va, &vb);
         assert!(Gf127::decode_reduce(&va).iszero() == 0xFFFFFFFF);
         assert!(Gf127::decode_reduce(&va).equals(&Gf127::decode_reduce(&vb)) == 0xFFFFFFFF);
         assert!(Gf127::decode_reduce(&va).legendre() == 0);
         for i in 0..16 {
             va[i] = 0xFFu8;
             vb[i] = 0xFFu8;
-            vx[i] = 0xFFu8;
         }
-        check_gf_ops(&va, &vb, &vx);
+        check_gf_ops(&va, &vb);
         assert!(Gf127::decode_reduce(&va).iszero() == 0);
         assert!(Gf127::decode_reduce(&va).equals(&Gf127::decode_reduce(&vb)) == 0xFFFFFFFF);
         for i in 0..2 {
@@ -1711,13 +1323,11 @@ mod tests {
         assert!(Gf127::decode_reduce(&va).iszero() == 0xFFFFFFFF);
         let mut sh = Sha256::new();
         for i in 0..1000 {
-            sh.update(((3 * i + 0) as u64).to_le_bytes());
+            sh.update(((2 * i + 0) as u64).to_le_bytes());
             let va = &sh.finalize_reset()[0..16];
-            sh.update(((3 * i + 1) as u64).to_le_bytes());
+            sh.update(((2 * i + 1) as u64).to_le_bytes());
             let vb = &sh.finalize_reset()[0..16];
-            sh.update(((3 * i + 2) as u64).to_le_bytes());
-            let vx = &sh.finalize_reset()[0..16];
-            check_gf_ops(&va, &vb, &vx);
+            check_gf_ops(&va, &vb);
             assert!(Gf127::decode_reduce(&va).iszero() == 0);
             assert!(Gf127::decode_reduce(&va).equals(&Gf127::decode_reduce(&vb)) == 0);
             let s = Gf127::decode_reduce(&va).square();

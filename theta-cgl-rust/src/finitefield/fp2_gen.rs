@@ -374,7 +374,7 @@ macro_rules! define_fp2_core {
                 (y, r)
             }
 
-            /// Set this value to its fourth root. Returned value is 0xFFFFFFFF if
+            /// Set this value to its fourth root. Returned value is 0xFFFFFFFFFFFFFFFF if
             /// the operation succeeded (value was indeed a fourth root), or
             /// 0x00000000 otherwise. On success, the chosen root is the one whose
             /// sign is 0 (i.e. if the "real part" is non-zero, then it is an even
@@ -455,7 +455,7 @@ macro_rules! define_fp2_core {
                 n.set_condneg(nqr);
 
                 // When y0^2 is zero, the correct value
-                // is insead n, so we can do a conditional
+                // is instead n, so we can do a conditional
                 // swap
                 y02.set_cond(&n, y02.iszero());
 
@@ -486,6 +486,7 @@ macro_rules! define_fp2_core {
                 // now return the fourth root. If any of the r are
                 // falsey, we return 0
                 let r = r1 & r2 & r3;
+
                 self.x0.set_select(&Fp::ZERO, &y0, r);
                 self.x1.set_select(&Fp::ZERO, &y1, r);
 
@@ -561,9 +562,10 @@ macro_rules! define_fp2_core {
                 let (mut x0, c0) = Fp::decode(&buf[..Fp::ENCODED_LENGTH]);
                 let (mut x1, c1) = Fp::decode(&buf[Fp::ENCODED_LENGTH..]);
                 let cx = c0 & c1;
-                x0.set_cond(&Fp::ZERO, !cx);
-                x1.set_cond(&Fp::ZERO, !cx);
-                (Self { x0, x1 }, cx)
+                let cx_32 = cx as u32;
+                x0.set_cond(&Fp::ZERO, !cx_32);
+                x1.set_cond(&Fp::ZERO, !cx_32);
+                (Self { x0, x1 }, cx_32)
             }
 
             /// Set this structure to a random field element (indistinguishable

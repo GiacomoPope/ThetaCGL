@@ -100,8 +100,13 @@ class ThetaCGLDim3(CGL):
 
                 if c0246 * c1357 == (2**6 * lam**4 * yy) ** 2:
                     # why the minus sign?
-                    x7 = -(lam**4) * 2**6 * (yy) / (x0 * x1 * x2 * x3 * x4 * x5 * x6)
-                    assert x7 * x7 == c7
+
+                    # x7 = -(lam**4) * 2**6 * (yy) / (x0 * x1 * x2 * x3 * x4 * x5 * x6)
+                    # assert x7 * x7 == c7
+                    # Swap an inversion for 7 multiplications:
+                    x7 = -(lam**4) * 2**6 * (yy)
+                    p = x0 * x1 * x2 * x3 * x4 * x5 * x6
+                    x0, x1, x2, x3, x4, x5, x6 = [p * x for x in [x0, x1, x2, x3, x4, x5, x6]]
                 else:
                     print("this case should not appear", self.label())
                     # print("c",[c0**2,c1**2,c2**2,c3**2,c4**2,c5**2,c6**2,c7**2])
@@ -214,6 +219,7 @@ class ThetaCGLDim3(CGL):
         ff = f * f
         gg = g * g
         hh = h * h
+
         AA, BB, CC, DD, EE, FF, GG, HH = ThetaCGLDim3.hadamard(
             aa, bb, cc, dd, ee, ff, gg, hh
         )
