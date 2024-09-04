@@ -49,6 +49,7 @@ def sqrt_Fp(x):
 
 
 def sqrt_Fp2(x):
+    # assert x.is_square(), "Trying to take a square-root of a non-square..."
     F = x.parent()
     x0, x1 = x.list()
 
