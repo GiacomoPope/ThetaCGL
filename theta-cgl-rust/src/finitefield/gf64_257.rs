@@ -46,22 +46,12 @@ impl GFp {
     // Full reduction modulo p = 2^64 - 2^8 - 1
     // produces a canonical result in [0, p-1]
     #[inline(always)]
-    const fn fp_reduction(x: u128) -> u64 {
-        // x = x_lo + 2^64 * x_hi
-        //   = x_lo + x_hi + 2^8*x_hi
-        //
-        // The resulting v will have 64 + 9 bits max
-        let x_lo = (x as u64) as u128;
-        let x_hi = x >> 64;
-        let v: u128 = x_lo + x_hi + (x_hi << 8);
-
-        // Now we need to fold in these pieces where cc < 2^9
-        let v_lo = v as u64;
-        let v_hi = (v >> 64) as u64;
-
-        let (r, c) = v_lo.overflowing_sub(GFp::MOD - ((v_hi << 8) + v_hi));
-        let adj = ((c as u16).wrapping_neg() & 257) as u64;
-        r.wrapping_sub(adj)
+    const fn fp_normalized(x: u64) -> u64 {
+        // Subtract the modulus and add it back if there was an
+        // overflow
+        let (r, cc) = x.overflowing_sub(GFp::MOD);
+        let m = (cc as u64).wrapping_neg();
+        r.wrapping_add(Self::MOD & m)
     }
 
     /// Build a GF(p) element from a 64-bit integer. Returned values
@@ -84,14 +74,14 @@ impl GFp {
     /// integer is implicitly reduced modulo p.
     #[inline(always)]
     pub const fn from_u64_reduce(v: u64) -> Self {
-        GFp(GFp::fp_reduction(v as u128))
+        GFp(GFp::fp_normalized(v))
     }
 
     /// Get the element as an integer, normalized in the 0..p-1
     /// range.
     #[inline(always)]
     pub const fn to_u64(self) -> u64 {
-        GFp::fp_reduction(self.0 as u128)
+        GFp::fp_normalized(self.0)
     }
 
     /// Addition in GF(p)
