@@ -22,22 +22,29 @@ pub mod thp64 {
     pub type Fp = crate::fields::Fp64::Fp;
     pub type Fq = crate::fields::Fp64Ext::Fp2;
 
-    const X0_re: Fp = Fp::from_u64_reduce(0);
-    const X0_im: Fp = Fp::from_u64_reduce(0x748E28D491B95FB6);
-    const Z0_re: Fp = Fp::from_u64_reduce(0x0000000000000002);
-    const Z0_im: Fp = Fp::from_u64_reduce(0xFFFFFFFFFFFFFEFD);
-    const U0_re: Fp = Fp::from_u64_reduce(0x0000000000000002);
-    const U0_im: Fp = Fp::from_u64_reduce(0xFFFFFFFFFFFFFEFD);
-    const V0_re: Fp = Fp::from_u64_reduce(0x8B71D72B6E469F49);
-    const V0_im: Fp = Fp::from_u64_reduce(0);
-    const G0_re: Fp = Fp::from_u64_reduce(0x0000000000000002);
-    const G0_im: Fp = Fp::from_u64_reduce(0xFFFFFFFFFFFFFEFD);
-    const H0_re: Fp = Fp::from_u64_reduce(0x8B71D72B6E469F49);
-    const H0_im: Fp = Fp::from_u64_reduce(0);
-    const I0_re: Fp = Fp::from_u64_reduce(0x8B71D72B6E469F49);
-    const I0_im: Fp = Fp::from_u64_reduce(0);
-    const J0_re: Fp = Fp::from_u64_reduce(0x0000000000000002);
-    const J0_im: Fp = Fp::from_u64_reduce(0x0000000000000002);
+    const X0_re: Fp = Fp::from_u64_reduce(1);
+    const X0_im: Fp = Fp::from_u64_reduce(0);
+
+    const Z0_re: Fp = Fp::from_u64_reduce(0xDC5596E1A8BD61A6);
+    const Z0_im: Fp = Fp::from_u64_reduce(0x27975EF03960B799);
+
+    const U0_re: Fp = Fp::from_u64_reduce(0x4C78D44019CAA57B);
+    const U0_im: Fp = Fp::from_u64_reduce(0x631CC21ECF776EA1);
+    
+    const V0_re: Fp = Fp::from_u64_reduce(0xFC257B234A441A12);
+    const V0_im: Fp = Fp::from_u64_reduce(0xCC9BD67E3708856A);
+
+    const G0_re: Fp = Fp::from_u64_reduce(0x2C35E4555BF6F161);
+    const G0_im: Fp = Fp::from_u64_reduce(0xA73405376A64ECF8);
+    
+    const H0_re: Fp = Fp::from_u64_reduce(0xB1122F78FAA9BFF3);
+    const H0_im: Fp = Fp::from_u64_reduce(0xA0F357B1C4183714);
+    
+    const I0_re: Fp = Fp::from_u64_reduce(0x009D1194B44A6CE4);
+    const I0_im: Fp = Fp::from_u64_reduce(0xBD8B7727A38AE735);
+    
+    const J0_re: Fp = Fp::from_u64_reduce(0x3C8E925EE4A4A528);
+    const J0_im: Fp = Fp::from_u64_reduce(0x6C671FF6C8B712D2);
 
     const X0: Fq = Fq::new(&X0_re, &X0_im);
     const Z0: Fq = Fq::new(&Z0_re, &Z0_im);
@@ -172,13 +179,13 @@ mod cgl_tests {
         let (h1, h2, h3, h4, h5, h6, h7) = cgl.hash(MSG.to_vec());
 
         // TODO: don't compare strings! haha
-        let ex1 = "i*8195311847842562697 + 15367522950815623545";
-        let ex2 = "i*5509503292246740166 + 3363830550895998170";
-        let ex3 = "i*6222483436527344390 + 5906729632957704994";
-        let ex4 = "i*9457393622803510435 + 14560144086626072899";
-        let ex5 = "i*12039521041378489879 + 15342103277418457660";
-        let ex6 = "i*7403012461811820402 + 12518067020380020935";
-        let ex7 = "i*14662549957566082920 + 1196490411222064188";
+        let ex1 = "i*9131022502302392460 + 8047160213627555690";
+        let ex2 = "i*4009428002838015941 + 8894398257467059120";
+        let ex3 = "i*2554299219589503533 + 1205992271966875535";
+        let ex4 = "i*13544911288836066678 + 14775662367645206447";
+        let ex5 = "i*13250694430739928298 + 10506884765976621283";
+        let ex6 = "i*17561772940977990423 + 12895187849928915004";
+        let ex7 = "i*17712918206892277537 + 63058281213942031";
 
         assert_eq!(ex1, format!("{}", h1));
         assert_eq!(ex2, format!("{}", h2));

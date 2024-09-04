@@ -1,6 +1,6 @@
 from collections import namedtuple
 from dim1 import CGL, ThetaCGL
-from sage.all import vector, matrix
+from sage.all import vector
 
 ThetaNullPointDim3 = namedtuple("ThetaNullPoint_dim_3", "a b c d e f g h")
 
@@ -70,57 +70,38 @@ class ThetaCGLDim3(CGL):
 
         return F
 
-    @staticmethod
     def last_sqrt(
-        self, c0, c1, c2, c3, c4, c5, c6, c7, x0, x1, x2, x3, x4, x5, x6, lam
+        self, x0, x1, x2, x3, x4, x5, x6, x7, y0, y1, y2, y3, y4, y5, y6
     ):
-        a0, a1, a2, a3, a4, a5, a6, a7 = ThetaCGLDim3.hadamard(
-            c0, c1, c2, c3, c4, c5, c6, c7
+        b0, b1, b2, b3, b4, b5, b6, b7 = self.hadamard(
+            x0, x1, x2, x3, x4, x5, x6, x7
         )
-        R1 = a0 * a1 * a2 * a3
-        R3 = a4 * a5 * a6 * a7
+        R1 = b0 * b1 * b2 * b3
+        R3 = b4 * b5 * b6 * b7
 
-        c04 = c0 * c4
-        c15 = c1 * c5
-        c26 = c2 * c6
-        c37 = c3 * c7
-        c0246 = c04 * c26
-        c1357 = c15 * c37
+        x04 = x0 * x4
+        x15 = x1 * x5
+        x26 = x2 * x6
+        x37 = x3 * x7
+        x0246 = x04 * x26
+        x1357 = x15 * x37
 
-        term = 16 * (c04 - c15 + c26 - c37) ** 2 - 64 * (c0246 + c1357)
+        t0 = 16 * (x04 - x15 + x26 - x37) ** 2 - 64 * (x0246 + x1357)
+        T = R1 + R3 - t0
+        y = y1 * y2 * y3 * y4 * y5 * y6
 
-        num = (R1 + R3 - term) ** 2 + 16384 * c0246 * c1357 - 4 * R1 * R3
-        den = 256 * (R1 + R3 - term) * x0 * x1 * x2 * x3 * x4 * x5 * x6
-
-        if den == 0:
-            xx = [x0, x1, x2, x3, x4, x5, x6, c7]
-            if all([el != 0 for el in xx]):
-                y0, y1, y2, y3, y4, y5, y6, y7 = self.domain
-                yy = y0 * y1 * y2 * y3 * y4 * y5 * y6 * y7
-
-                if c0246 * c1357 == (2**6 * lam**4 * yy) ** 2:
-                    # why the minus sign?
-
-                    # x7 = -(lam**4) * 2**6 * (yy) / (x0 * x1 * x2 * x3 * x4 * x5 * x6)
-                    # assert x7 * x7 == c7
-                    # Swap an inversion for 7 multiplications:
-                    x7 = -(lam**4) * 2**6 * (yy)
-                    p = x0 * x1 * x2 * x3 * x4 * x5 * x6
-                    x0, x1, x2, x3, x4, x5, x6 = [p * x for x in [x0, x1, x2, x3, x4, x5, x6]]
-                else:
-                    print("this case should not appear", self.label())
-                    # print("c",[c0**2,c1**2,c2**2,c3**2,c4**2,c5**2,c6**2,c7**2])
-                    x7 = self.sqrt(c7)
-            else:
-                x7 = self.sqrt(c7)
+        if T != 0:
+            t1 = T**2 + 16384 * x0246 * x1357 - 4 * R1 * R3
+            t2 = 256 * T * y
         else:
-            # print("method works")
-            # x7 = num / den
-            # assert x7 * x7 == c7, "square-root not computed correctly"
-            # Swap an inversion for 7 multiplications
-            x0, x1, x2, x3, x4, x5, x6 = [den * x for x in [x0, x1, x2, x3, x4, x5, x6]]
-            x7 = num
-        return x0, x1, x2, x3, x4, x5, x6, x7
+            a0, a1, a2, a3, a4, a5, a6, a7 = self.domain
+            t1 = -64 * a0 * a1 * a2 * a3 * a4 * a5 * a6 * a7
+            t2 = y
+
+        y0, y1, y2, y3, y4, y5, y6 = [t2 * y for y in [y0, y1, y2, y3, y4, y5, y6]]
+        y7 = t1 * x0**3
+
+        return y0, y1, y2, y3, y4, y5, y6, y7
 
     def squared_thetas(self):
         converter = {
@@ -232,14 +213,14 @@ class ThetaCGLDim3(CGL):
         if lam == 0:
             raise ValueError("All coordinates are zero")
 
-        AAAA = lam * AA
+        assert lam == AA
+
         AABB = lam * BB
         AACC = lam * CC
         AADD = lam * DD
         AAEE = lam * EE
         AAFF = lam * FF
         AAGG = lam * GG
-        AAHH = lam * HH
 
         AB = self.sqrt(AABB)
         AC = self.sqrt(AACC)
@@ -267,20 +248,19 @@ class ThetaCGLDim3(CGL):
         if zero_indices:
             # in this case, we can still choose the last square-root (?)
             print("we have redundant bits at ", zero_indices)
-            AH = self.sqrt(AAHH)
+            AH = self.sqrt(lam * HH)
             if bits[zero_indices[0]] == 1:
                 AH = -AH
         else:
-            AA, AB, AC, AD, AE, AF, AG, AH = ThetaCGLDim3.last_sqrt(
-                self,
-                AAAA,
-                AABB,
-                AACC,
-                AADD,
-                AAEE,
-                AAFF,
-                AAGG,
-                AAHH,
+            AA, AB, AC, AD, AE, AF, AG, AH = self.last_sqrt(
+                AA,
+                BB,
+                CC,
+                DD,
+                EE,
+                FF,
+                GG,
+                HH,
                 AA,
                 AB,
                 AC,
@@ -288,7 +268,6 @@ class ThetaCGLDim3(CGL):
                 AE,
                 AF,
                 AG,
-                lam,
             )
 
         anew, bnew, cnew, dnew, enew, fnew, gnew, hnew = ThetaCGLDim3.hadamard(
@@ -314,6 +293,7 @@ class ThetaCGLDim3(CGL):
         return [x000, x001, x010, x011, x100, x101, x110, x111, f2, f3, f4, f5, f6, f7]
 
     def advance(self, bits=[0, 0, 0, 0, 0, 0]):
+        print(f"{self.domain = }")
         O1 = self.radical_2isogeny(bits)
         O1 = ThetaCGLDim3(O1, sqrt_function=self.sqrt_function)
         return O1
