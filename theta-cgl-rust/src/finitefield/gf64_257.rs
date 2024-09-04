@@ -423,8 +423,7 @@ impl GFp {
         ))
     }
 
-    /// Get the "hash" of the value (64 bits of the Montgomery
-    /// representation).
+    /// Get the "hash" of the value
     pub fn hashcode(self) -> u64 {
         self.0
     }
