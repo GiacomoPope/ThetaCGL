@@ -70,11 +70,10 @@ class ThetaCGLDim3(CGL):
 
         return F
 
-    @staticmethod
     def last_sqrt(
         self, x0, x1, x2, x3, x4, x5, x6, x7, y0, y1, y2, y3, y4, y5, y6
     ):
-        b0, b1, b2, b3, b4, b5, b6, b7 = ThetaCGLDim3.hadamard(
+        b0, b1, b2, b3, b4, b5, b6, b7 = self.hadamard(
             x0, x1, x2, x3, x4, x5, x6, x7
         )
         R1 = b0 * b1 * b2 * b3
@@ -89,18 +88,18 @@ class ThetaCGLDim3(CGL):
 
         t0 = 16 * (x04 - x15 + x26 - x37) ** 2 - 64 * (x0246 + x1357)
         T = R1 + R3 - t0
-        y = y0 * y1 * y2 * y3 * y4 * y5 * y6
+        y = y1 * y2 * y3 * y4 * y5 * y6
 
         if T != 0:
             t1 = T**2 + 16384 * x0246 * x1357 - 4 * R1 * R3
             t2 = 256 * T * y
         else:
             a0, a1, a2, a3, a4, a5, a6, a7 = self.domain
-            t1 = -64 * a0 * a1 * a2 * a3 * a4 * a5 * a6 * a7 * x0**2
+            t1 = -64 * a0 * a1 * a2 * a3 * a4 * a5 * a6 * a7
             t2 = y
 
         y0, y1, y2, y3, y4, y5, y6 = [t2 * y for y in [y0, y1, y2, y3, y4, y5, y6]]
-        y7 = t1
+        y7 = t1 * x0**3
 
         return y0, y1, y2, y3, y4, y5, y6, y7
 
@@ -214,14 +213,14 @@ class ThetaCGLDim3(CGL):
         if lam == 0:
             raise ValueError("All coordinates are zero")
 
-        AAAA = lam * AA
+        assert lam == AA
+
         AABB = lam * BB
         AACC = lam * CC
         AADD = lam * DD
         AAEE = lam * EE
         AAFF = lam * FF
         AAGG = lam * GG
-        AAHH = lam * HH
 
         AB = self.sqrt(AABB)
         AC = self.sqrt(AACC)
@@ -246,25 +245,22 @@ class ThetaCGLDim3(CGL):
         if bits[5] == 1:
             AG = -AG
 
-        # print(f"{AA == lam = }")
-
         if zero_indices:
             # in this case, we can still choose the last square-root (?)
             print("we have redundant bits at ", zero_indices)
-            AH = self.sqrt(AAHH)
+            AH = self.sqrt(lam * HH)
             if bits[zero_indices[0]] == 1:
                 AH = -AH
         else:
-            AA, AB, AC, AD, AE, AF, AG, AH = ThetaCGLDim3.last_sqrt(
-                self,
-                AAAA,
-                AABB,
-                AACC,
-                AADD,
-                AAEE,
-                AAFF,
-                AAGG,
-                AAHH,
+            AA, AB, AC, AD, AE, AF, AG, AH = self.last_sqrt(
+                AA,
+                BB,
+                CC,
+                DD,
+                EE,
+                FF,
+                GG,
+                HH,
                 AA,
                 AB,
                 AC,
@@ -297,6 +293,7 @@ class ThetaCGLDim3(CGL):
         return [x000, x001, x010, x011, x100, x101, x110, x111, f2, f3, f4, f5, f6, f7]
 
     def advance(self, bits=[0, 0, 0, 0, 0, 0]):
+        print(f"{self.domain = }")
         O1 = self.radical_2isogeny(bits)
         O1 = ThetaCGLDim3(O1, sqrt_function=self.sqrt_function)
         return O1
