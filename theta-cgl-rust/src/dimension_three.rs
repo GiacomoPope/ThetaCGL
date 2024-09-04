@@ -109,37 +109,12 @@ macro_rules! define_dim_three_theta_core {
                 let (mut AA, BB, CC, DD, EE, FF, GG, HH) =
                     self.to_hadamard(&aa, &bb, &cc, &dd, &ee, &ff, &gg, &hh);
 
-                // TODO: do we have to worry about AA being zero?
-                let mut lam = Fq::ZERO;
-                let AA_is_non_zero = AA.iszero() ^ 0xFFFFFFFF;
-                lam.set_cond(&AA, AA_is_non_zero);
-                let mut non_zero_found = AA_is_non_zero;
-                let mut all_non_zero = AA_is_non_zero;
-                let mut set_lam = |x: Fq| {
-                    let x_is_zero = x.iszero();
-                    let x_is_non_zero = x_is_zero ^ 0xFFFFFFFF;
-                    let non_zero_not_found = non_zero_found ^ 0xFFFFFFFF;
-                    lam.set_cond(&x, non_zero_not_found & x_is_non_zero);
-                    non_zero_found = non_zero_found | x_is_non_zero;
-                    all_non_zero = all_non_zero & x_is_non_zero;
-                };
-                set_lam(BB);
-                set_lam(CC);
-                set_lam(DD);
-                set_lam(EE);
-                set_lam(FF);
-                set_lam(GG);
-                set_lam(HH);
-                assert!(non_zero_found == 0xFFFFFFFF);
-
-                let AAAA = &lam * &AA;
-                let AABB = &lam * &BB;
-                let AACC = &lam * &CC;
-                let AADD = &lam * &DD;
-                let AAEE = &lam * &EE;
-                let AAFF = &lam * &FF;
-                let AAGG = &lam * &GG;
-                let AAHH = &lam * &HH;
+                let AABB = &AA * &BB;
+                let AACC = &AA * &CC;
+                let AADD = &AA * &DD;
+                let AAEE = &AA * &EE;
+                let AAFF = &AA * &FF;
+                let AAGG = &AA * &GG;
 
                 let mut AB = AABB.sqrt().0;
                 let mut AC = AACC.sqrt().0;
@@ -168,14 +143,14 @@ macro_rules! define_dim_three_theta_core {
 
                 let AH;
                 (AA, AB, AC, AD, AE, AF, AG, AH) = self.last_sqrt(
-                    &AAAA,
-                    &AABB,
-                    &AACC,
-                    &AADD,
-                    &AAEE,
-                    &AAFF,
-                    &AAGG,
-                    &AAHH,
+                    &AA,
+                    &BB,
+                    &CC,
+                    &DD,
+                    &EE,
+                    &FF,
+                    &GG,
+                    &HH,
                     AA,
                     AB,
                     AC,
@@ -183,8 +158,6 @@ macro_rules! define_dim_three_theta_core {
                     AE,
                     AF,
                     AG,
-                    lam,
-                    all_non_zero,
                 );
 
                 let (a_new, b_new, c_new, d_new, e_new, f_new, g_new, h_new) =
@@ -197,83 +170,68 @@ macro_rules! define_dim_three_theta_core {
 
             fn last_sqrt(
                 self,
-                c0: &Fq,
-                c1: &Fq,
-                c2: &Fq,
-                c3: &Fq,
-                c4: &Fq,
-                c5: &Fq,
-                c6: &Fq,
-                c7: &Fq,
-                mut x0: Fq,
-                mut x1: Fq,
-                mut x2: Fq,
-                mut x3: Fq,
-                mut x4: Fq,
-                mut x5: Fq,
-                mut x6: Fq,
-                lam: Fq,
-                all_non_zero: u32,
+                x0: &Fq,
+                x1: &Fq,
+                x2: &Fq,
+                x3: &Fq,
+                x4: &Fq,
+                x5: &Fq,
+                x6: &Fq,
+                x7: &Fq,
+                mut y0: Fq,
+                mut y1: Fq,
+                mut y2: Fq,
+                mut y3: Fq,
+                mut y4: Fq,
+                mut y5: Fq,
+                mut y6: Fq,
             ) -> (Fq, Fq, Fq, Fq, Fq, Fq, Fq, Fq) {
-                let (a0, a1, a2, a3, a4, a5, a6, a7) =
-                    self.to_hadamard(c0, c1, c2, c3, c4, c5, c6, c7);
+                let (b0, b1, b2, b3, b4, b5, b6, b7) =
+                    self.to_hadamard(x0, x1, x2, x3, x4, x5, x6, x7);
 
-                let R1 = &a0 * &a1 * &a2 * &a3;
-                let R3 = &a4 * &a5 * &a6 * &a7;
+                let R1 = &b0 * &b1 * &b2 * &b3;
+                let R3 = &b4 * &b5 * &b6 * &b7;
 
-                let c04 = c0 * c4;
-                let c15 = c1 * c5;
-                let c26 = c2 * c6;
-                let c37 = c3 * c7;
-                let c0246 = &c04 * &c26;
-                let c1357 = &c15 * &c37;
+                let x04 = x0 * x4;
+                let x15 = x1 * x5;
+                let x26 = x2 * x6;
+                let x37 = x3 * x7;
+                let x0246 = &x04 * &x26;
+                let x1357 = &x15 * &x37;
 
-                let tmp = (&c04 - &c15 + &c26 - &c37).square();
-                let t0 = &tmp.mul_small(16) - &(&c0246 + &c1357).mul_small(64);
+                let tmp = (&x04 - &x15 + &x26 - &x37).square();
+                let t0 = &tmp.mul_small(16) - &(&x0246 + &x1357).mul_small(64);
 
                 let r0 = (&R1 + &R3 - &t0);
-                let num = r0.square() + (c0246 * c1357).mul_small(16384) - (R1 * R3).mul4();
-                let p = x0 * x1 * x2 * x3 * x4 * x5 * x6;
-                let den = r0.mul_small(256) * p;
+                let r0_is_zero = r0.iszero();
 
-                //
-                // TODO: there's a lot of chaos here which I think we can clean up...
-                //
-                let (y0, y1, y2, y3, y4, y5, y6, y7) = self.coords();
-                let yy = y0 * y1 * y2 * y3 * y4 * y5 * y6 * y7;
+                let y = y1 * y2 * y3 * y4 * y5 * y6;
 
-                let lam_to_4 = lam.square().square();
-                let l = (lam_to_4 * yy).mul_small(64);
-                let cnd1 = (c0246 * c1357).equals(&l.square());
+                let mut t1 = r0.square() + (x0246 * x1357).mul_small(16384) - (R1 * R3).mul4();
+                let mut t2 = r0.mul_small(256) * y;
 
-                // I don't think we ever need this...
-                // let mut x7 = c7.sqrt().0;
-                let mut x7 = Fq::ZERO;
-                let den_is_zero = den.iszero();
-                // TODO: i think this is only ever true on the first step...
-                // which means we could save a bunch of operations for *most*
-                // steps
-                let check_all = den_is_zero & all_non_zero & cnd1;
-                x7.set_cond(&(-l), check_all);
-                x0.set_cond(&(p * x0), check_all);
-                x1.set_cond(&(p * x1), check_all);
-                x2.set_cond(&(p * x2), check_all);
-                x3.set_cond(&(p * x3), check_all);
-                x4.set_cond(&(p * x4), check_all);
-                x5.set_cond(&(p * x5), check_all);
-                x6.set_cond(&(p * x6), check_all);
+                // When r0 == 0, t1 needs to be different
+                let (a0, a1, a2, a3, a4, a5, a6, a7) = self.coords();
+                let t1_prime = - (&a0 * &a1 * &a2 * &a3 * &a4 * &a5 * &a6 * &a7).mul_small(64);
 
-                let den_is_not_zero = !den_is_zero;
-                x0.set_cond(&(den * x0), den_is_not_zero);
-                x1.set_cond(&(den * x1), den_is_not_zero);
-                x2.set_cond(&(den * x2), den_is_not_zero);
-                x3.set_cond(&(den * x3), den_is_not_zero);
-                x4.set_cond(&(den * x4), den_is_not_zero);
-                x5.set_cond(&(den * x5), den_is_not_zero);
-                x6.set_cond(&(den * x6), den_is_not_zero);
-                x7.set_cond(&num, den_is_not_zero);
+                // If r0 is zero, modify the values of t1, t2
+                t1.set_cond(&t1_prime, r0_is_zero);
+                t2.set_cond(&y, r0_is_zero);
 
-                (x0, x1, x2, x3, x4, x5, x6, x7)
+
+                // Scale y0...y6 by the denominator
+                y0 *= t2;
+                y1 *= t2;
+                y2 *= t2;
+                y3 *= t2;
+                y4 *= t2;
+                y5 *= t2;
+                y6 *= t2;
+
+                // Set y7 to the numerator with scaling factor
+                let y7 = &t1 * x0 * x0.square();
+
+                (y0, y1, y2, y3, y4, y5, y6, y7)
             }
 
             pub fn to_hash(self) -> (Fq, Fq, Fq, Fq, Fq, Fq, Fq) {
