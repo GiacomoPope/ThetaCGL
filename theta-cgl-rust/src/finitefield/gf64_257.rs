@@ -12,20 +12,19 @@ impl GFp {
     // IMPLEMENTATION NOTES:
     // ---------------------
     //
-    // Let R = 2^64 mod p. Element x is represented by x*R mod p, in the
-    // 0..p-1 range (Montgomery representation). Values are never outside
-    // of that range.
+    // An element x is lazily reduced within the range [0, 2^64 - 1]
+    // to save a cycle or two during reduction
     //
     // Everything is constant-time. There are specialized "Boolean"
-    // functions such as iszero() and equals() that output a u64 which
-    // happens, in practice, to have value 0 (for "false") or 2^64-1
+    // functions such as iszero() and equals() that output a u32 which
+    // happens, in practice, to have value 0 (for "false") or 2^32-1
     // (for "true").
 
+    // Some constants needed for the Fp2 macro
     pub const ENCODED_LENGTH: usize = 8;
-
     pub const N: usize = 1;
 
-    /// GF(p) modulus: p = 2^64 - 257
+    /// GF(p) modulus: p = 2^64 - 2^8 - 1
     pub const MOD: u64 = 0xfffffffffffffeff;
     pub const MODULUS: [u64; GFp::N] = [0xFFFFFFFFFFFFFEFF];
 
@@ -44,8 +43,8 @@ impl GFp {
 
     const P_PLUS_ONE_HALF: u64 = 0x7fffffffffffff80;
 
-    // TODO: experiment with other reductions
-    // Reduction modulo p = 2^64 - 2^8 - 1
+    // Full reduction modulo p = 2^64 - 2^8 - 1
+    // produces a canonical result in [0, p-1]
     #[inline(always)]
     const fn fp_reduction(x: u128) -> u64 {
         // x = x_lo + 2^64 * x_hi
@@ -92,42 +91,40 @@ impl GFp {
     /// range.
     #[inline(always)]
     pub const fn to_u64(self) -> u64 {
-        // Conversion back to normal representation is only a matter of
-        // dividing by 2^64 modulo p, and that is exactly what fp_reduction()
-        // computes.
         GFp::fp_reduction(self.0 as u128)
     }
 
     /// Addition in GF(p)
     #[inline(always)]
     const fn add(self, rhs: Self) -> Self {
-        // We compute a + b = a - (p - b).
-        let (x1, c1) = self.0.overflowing_sub(GFp::MOD - rhs.0);
+        let (x1, c1) = self.0.overflowing_add(rhs.0);
         let t = (c1 as u64) + ((c1 as u64) << 8);
-        GFp(x1.wrapping_sub(t as u64))
+        GFp(x1.wrapping_add(t as u64))
     }
 
     /// Subtraction in GF(p)
     #[inline(always)]
     const fn sub(self, rhs: Self) -> Self {
-        // See fp_reduction() for details on the subtraction.
-        let (x1, c1) = self.0.overflowing_sub(rhs.0);
-        let t = (c1 as u64) + ((c1 as u64) << 8);
-        GFp(x1.wrapping_sub(t as u64))
+        let (x1, cc) = self.0.overflowing_sub(rhs.0);
+        let m = (cc as u64).wrapping_neg();
+        GFp(x1.wrapping_add(m & Self::MOD))
     }
 
     /// Negation in GF(p)
     #[inline(always)]
     const fn neg(self) -> Self {
-        GFp::ZERO.sub(self)
+        let (x1, cc) = Self::MOD.overflowing_sub(self.0);
+        let m = (cc as u64).wrapping_neg();
+        GFp(x1.wrapping_add(m & Self::MOD))
     }
 
     /// Halving in GF(p) (division by 2).
     #[inline(always)]
     pub const fn half(self) -> Self {
+        // Right shift the value by one bit
         // If x is even, then this returned x/2.
         // If x is odd, then this returns (x-1)/2 + (p+1)/2 = (x+p)/2.
-        GFp((self.0 >> 1).wrapping_add((self.0 & 1).wrapping_neg() & GFp::P_PLUS_ONE_HALF))
+        GFp((self.0 >> 1) + ((self.0 & 1).wrapping_neg() & Self::P_PLUS_ONE_HALF))
     }
 
     /// Doubling in GF(p) (multiplication by 2).
@@ -139,9 +136,28 @@ impl GFp {
     /// Multiplication in GF(p)
     #[inline(always)]
     const fn mul(self, rhs: Self) -> Self {
-        // If x < p and y < p, then x*y <= (p-1)^2, and is thus in
-        // range of fp_reduction().
-        GFp(GFp::fp_reduction((self.0 as u128) * (rhs.0 as u128)))
+        // Internally all values are in the range [0, 2^64]
+        // Double wide multiplication of two u64 fits in a u128
+        let x = (self.0 as u128) * (rhs.0 as u128);
+        
+        // Now perform partial reduction
+        //
+        // x = x_lo + 2^64 * x_hi
+        //   = x_lo + x_hi + 2^8*x_hi
+        //
+        // The resulting v will have 64 + 9 bits max
+        let x_lo = x as u64;
+        let x_hi = x >> 64;
+        let v = (x_lo as u128) + x_hi + (x_hi << 8);
+
+        // Now we need to fold in these pieces where cc < 2^9
+        let v_lo = v as u64;
+        let v_hi = (v >> 64) as u64;
+        let (r, cc) = v_lo.overflowing_add(v_hi + (v_hi << 8));
+        
+        // We need to fold in one last time
+        let d = cc as u64;
+        GFp(r + d + (d << 8))
     }
 
     /// Squaring in GF(p)
@@ -177,35 +193,21 @@ impl GFp {
     /// if this value is equal to zero, or 0 otherwise.
     #[inline(always)]
     pub const fn iszero(self) -> u32 {
-        // Since values are always canonicalized internally, 0 in GF(p)
-        // is always represented by the integer 0.
-        // x == 0 if and only if both x and -x have their high bit equal to 0.
-        !((((self.0 | self.0.wrapping_neg()) as i64) >> 63) as u32)
-    }
+        // As we use a non-canonical representation, then the zero
+        // value can be either 0 or p.
+        let t0 = self.0;
+        let t1 = self.0 ^ Self::MOD;
 
-    /// Test of equality with one; return value is 0xFFFFFFFF
-    /// if this value is equal to one, or 0 otherwise.
-    #[inline(always)]
-    pub const fn isone(self) -> u32 {
-        self.equals(&GFp::ONE)
-    }
-
-    /// Test of equality with minus one; return value is 0xFFFFFFFF
-    /// if this value is equal to -1 mod p, or 0 otherwise.
-    #[inline(always)]
-    pub const fn isminusone(self) -> u32 {
-        self.equals(&GFp::MINUS_ONE)
+        // Top bit of r is 0 if and only if one of t0 or t1 is zero.
+        let r = (t0 | t0.wrapping_neg()) & (t1 | t1.wrapping_neg());
+        ((r >> 63) as u32).wrapping_sub(1)
     }
 
     /// Test of equality between two GF(p) elements; return value is
     /// 0xFFFFFFFF if the two values are equal, or 0 otherwise.
     #[inline(always)]
-    pub const fn equals(self, rhs: &Self) -> u32 {
-        // Since internal representation is canonical, we can simply
-        // do a xor between the two operands, and then use the same
-        // expression as iszero().
-        let t = self.0 ^ rhs.0;
-        !((((t | t.wrapping_neg()) as i64) >> 63) as u32)
+    pub fn equals(self, rhs: &Self) -> u32 {
+        (self - rhs).iszero()
     }
 
     // Compute a^((p-3)/4), used for inversion and Legendre
@@ -309,20 +311,14 @@ impl GFp {
     /// Multiplication in GF(p) by a small integer (less than 2^31).
     #[inline(always)]
     pub fn mul_small(self, rhs: i32) -> Self {
-        // Since the 'rhs' value is not in Montgomery representation,
-        // we need to do a manual reduction instead.
+        // As the rhs size is bounded, we can do a slightly cheaper
+        // reduction modulo p
         let x = (self.0 as u128) * (rhs as u128);
         let xl = x as u64;
         let xh = (x >> 64) as u64;
-
-        // Since rhs <= 2^31 - 1, we have xh <= 2^31 - 2, and
-        // p - xh >= 2^64 - 2^31 - 2^8 - 3, which is close to 2^64;
-        // thus, even if xl was not lower than p, the subtraction
-        // will bring back the value in the proper range, and the
-        // normal subtraction in GF(p) yields the proper result.
-        let (r, c) = xl.overflowing_sub(GFp::MOD - ((xh << 8) + xh));
-        let adj = ((c as u16).wrapping_neg() & 257) as u64;
-        GFp(r.wrapping_sub(adj))
+        let (r, cc) = xl.overflowing_add(xh + (xh << 8));
+        let d = cc as u64;
+        GFp(r + d + (d << 8))
     }
 
     #[inline(always)]
@@ -736,17 +732,22 @@ mod tests {
         let y = GFp::from_u64_reduce(b);
         let wa = a as u128;
         let wb = b as u128;
+        let small_b = (b & 0xFFFF) as u128;
+
         check_gfp_eq(x + y, wa + wb);
         check_gfp_eq(x - y, (wa + (GFp::MOD as u128) * 2) - wb);
         check_gfp_eq(-y, (GFp::MOD as u128) * 2 - wb);
         check_gfp_eq(x * y, wa * wb);
+        check_gfp_eq(x.mul_small(small_b as i32), wa * small_b);
         check_gfp_eq(x.square(), wa * wa);
         if a == 0 || a == GFp::MOD {
             check_gfp_eq(x.invert(), 0);
         } else {
             check_gfp_eq(x * x.invert(), 1);
         }
+        assert!(x.double().equals(&(x + x)) == 0xFFFFFFFF);
         assert!(x.half().double().equals(&x) == 0xFFFFFFFF);
+        assert!((x - y).equals(&(y - x).neg()) == 0xFFFFFFFF);
     }
 
     #[test]
