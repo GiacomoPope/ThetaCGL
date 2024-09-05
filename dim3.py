@@ -10,6 +10,14 @@ class ThetaCGLDim3(CGL):
         super().__init__(domain, chunk=6, **kwds)
 
     @staticmethod
+    def from_null_coords(coords, sqrt_function=None):
+        assert len(coords) == 8
+        OO = ThetaNullPointDim3(
+            *coords
+        )
+        return ThetaCGLDim3(OO, sqrt_function=sqrt_function)
+
+    @staticmethod
     def from_elliptic_curves(E1, E2, E3, sqrt_function=None):
         O1 = ThetaCGL(E1)
         O2 = ThetaCGL(E2)
@@ -18,7 +26,6 @@ class ThetaCGLDim3(CGL):
         c, d = O2.domain
         e, f = O3.domain
         # We changed the ordering to be compatible with our notes.
-        # OO = ThetaNullPointDim3(a*c*e, a*d*e, b*c*e, b*d*e, a*c*f, a*d*f, b*c*f, b*d*f)
         OO = ThetaNullPointDim3(
             a * c * e,
             b * c * e,
@@ -190,90 +197,69 @@ class ThetaCGLDim3(CGL):
         Given a level 2-theta null point, compute a 2-isogeneous theta null
         point
         """
-        a, b, c, d, e, f, g, h = self.domain
-
-        aa = a * a  # a*a is faster than a**2 in SageMath
-        bb = b * b
-        cc = c * c
-        dd = d * d
-        ee = e * e
-        ff = f * f
-        gg = g * g
-        hh = h * h
-
-        AA, BB, CC, DD, EE, FF, GG, HH = ThetaCGLDim3.hadamard(
-            aa, bb, cc, dd, ee, ff, gg, hh
+        a0, a1, a2, a3, a4, a5, a6, a7 = self.domain
+        x0, x1, x2, x3, x4, x5, x6, x7 = ThetaCGLDim3.hadamard(
+            a0 * a0, a1 * a1, a2 * a2, a3 * a3, a4 * a4, a5 * a5, a6 * a6, a7 * a7
         )
 
-        lam = 0
-        for X in [AA, BB, CC, DD, EE, FF, GG, HH]:
-            if X != 0:
-                lam = X
+        # Ensure that if a value is zero, it is x7
+        # TODO: we need to handle the case where x0 = 0 and x7 = 0
+        #       which would currently break the hash...
+        xi_list = [x0, x1, x2, x3, x4, x5, x6, x7]
+        zero_index = 7
+        for i, xi in enumerate(xi_list):
+            if xi.is_zero():
+                zero_index = i
                 break
-        if lam == 0:
-            raise ValueError("All coordinates are zero")
+        xi_list[zero_index], xi_list[7] = xi_list[7], xi_list[zero_index]
+        x0, x1, x2, x3, x4, x5, x6, x7 = xi_list
 
-        assert lam == AA
+        # Compute yi from square roots
+        y0 = x0
+        y1 = self.sqrt(x0 * x1)
+        y2 = self.sqrt(x0 * x2)
+        y3 = self.sqrt(x0 * x3)
+        y4 = self.sqrt(x0 * x4)
+        y5 = self.sqrt(x0 * x5)
+        y6 = self.sqrt(x0 * x6)
 
-        AABB = lam * BB
-        AACC = lam * CC
-        AADD = lam * DD
-        AAEE = lam * EE
-        AAFF = lam * FF
-        AAGG = lam * GG
-
-        AB = self.sqrt(AABB)
-        AC = self.sqrt(AACC)
-        AD = self.sqrt(AADD)
-        AE = self.sqrt(AAEE)
-        AF = self.sqrt(AAFF)
-        AG = self.sqrt(AAGG)
-
-        xx = [AB, AC, AD, AE, AF, AG]
-        zero_indices = [i for i in range(6) if xx[i] == 0]
-
+        # Conditionally negate values
         if bits[0] == 1:
-            AB = -AB
+            y1 = -y1
         if bits[1] == 1:
-            AC = -AC
+            y2 = -y2
         if bits[2] == 1:
-            AD = -AD
+            y3 = -y3
         if bits[3] == 1:
-            AE = -AE
+            y4 = -y4
         if bits[4] == 1:
-            AF = -AF
+            y5 = -y5
         if bits[5] == 1:
-            AG = -AG
+            y6 = -y6
 
+        # If any of x1, ..., x6 are zero we're on a degenerate case with a redundant bit 
+        zero_indices = [i for i,x in enumerate([x1, x2, x3, x4, x5, x6]) if x.is_zero()]
         if zero_indices:
-            # in this case, we can still choose the last square-root (?)
-            print("we have redundant bits at ", zero_indices)
-            AH = self.sqrt(lam * HH)
+            print("we have redundant bits")
+            y7 = self.sqrt(x0 * x7)
             if bits[zero_indices[0]] == 1:
-                AH = -AH
+                y7 = -y7
         else:
-            AA, AB, AC, AD, AE, AF, AG, AH = self.last_sqrt(
-                AA,
-                BB,
-                CC,
-                DD,
-                EE,
-                FF,
-                GG,
-                HH,
-                AA,
-                AB,
-                AC,
-                AD,
-                AE,
-                AF,
-                AG,
+            y0, y1, y2, y3, y4, y5, y6, y7 = self.last_sqrt(
+                x0, x1, x2, x3, x4, x5, x6, x7,
+                y0, y1, y2, y3, y4, y5, y6
             )
 
-        anew, bnew, cnew, dnew, enew, fnew, gnew, hnew = ThetaCGLDim3.hadamard(
-            AA, AB, AC, AD, AE, AF, AG, AH
+        # If we swapped a value above, then we should swap the corresponding yi
+        yi_list = [y0, y1, y2, y3, y4, y5, y6, y7]
+        yi_list[zero_index], yi_list[7] = yi_list[7], yi_list[zero_index]
+        y0, y1, y2, y3, y4, y5, y6, y7 = yi_list
+
+        # Compute the codomain with a last Hadamard
+        b0, b1, b2, b3, b4, b5, b6, b7 = ThetaCGLDim3.hadamard(
+            y0, y1, y2, y3, y4, y5, y6, y7
         )
-        O1 = ThetaNullPointDim3(anew, bnew, cnew, dnew, enew, fnew, gnew, hnew)
+        O1 = ThetaNullPointDim3(b0, b1, b2, b3, b4, b5, b6, b7)
         return O1
 
     def eval_F2(self, x000, x001, x010, x011, x100, x101, x110, x111):
@@ -293,7 +279,6 @@ class ThetaCGLDim3(CGL):
         return [x000, x001, x010, x011, x100, x101, x110, x111, f2, f3, f4, f5, f6, f7]
 
     def advance(self, bits=[0, 0, 0, 0, 0, 0]):
-        print(f"{self.domain = }")
         O1 = self.radical_2isogeny(bits)
         O1 = ThetaCGLDim3(O1, sqrt_function=self.sqrt_function)
         return O1

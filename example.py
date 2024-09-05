@@ -138,9 +138,9 @@ m1 = [
     1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1,
 ]
 O0 = ThetaCGLDim3.from_elliptic_curves(E0, E0, E0, sqrt_function=sqrt_Fp2)
-print(f"Hashing test 1: {O0.hash(m1)}")
+hash_1 = O0.hash(m1)
+print(f"Hashing test 1: {hash_1}")
 
-def bench(N):
-    for _ in range(N):
-        O0.hash(m1)
-    return
+O1 = ThetaCGLDim3.from_null_coords([F(1), *hash_1], sqrt_function=sqrt_Fp2)
+hash_2 = O1.hash(m1)
+print(f"Hashing test 2: {hash_2}")
