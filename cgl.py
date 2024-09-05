@@ -1,30 +1,19 @@
-from utilities import canonical_root
+from utilities import sqrt_Fp2, fourth_Fp2
 
 
 class CGL:
-    def __init__(self, domain, sqrt_function=None, fourth_root_function=None, chunk=1):
+    def __init__(self, domain, chunk=1):
         self.domain = domain
-        self.sqrt_function = sqrt_function
         self.chunk = chunk
 
     def __repr__(self):
         return f"CGL with domain={self.domain}"
 
     def sqrt(self, x):
-        if self.sqrt_function is None:
-            r = x.sqrt()
-        else:
-            r = self.sqrt_function(x)
-
-        return canonical_root(r)
+        return sqrt_Fp2(x)
 
     def fourth_root(self, x):
-        if self.fourth_root_function is None:
-            r = self.sqrt(self.sqrt(x))
-        else:
-            r = self.fourth_root_function(x)
-
-        return canonical_root(r)
+        return fourth_Fp2(x)
 
     def advance(self, bits=None):
         pass

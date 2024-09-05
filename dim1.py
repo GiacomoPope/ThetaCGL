@@ -3,7 +3,7 @@ from sage.all import EllipticCurve
 from sage.schemes.elliptic_curves.ell_generic import EllipticCurve_generic
 
 from cgl import CGL
-from utilities import montgomery_coefficient, canonical_root
+from utilities import montgomery_coefficient
 
 ThetaNullPoint = namedtuple("ThetaNullPoint_dim_1", "a b")
 ThetaPoint = namedtuple("ThetaNullPoint_dim_1", "x z")
@@ -108,7 +108,7 @@ class ThetaCGL(CGL):
 
     def advance(self, bits=[0]):
         O1 = self.radical_2isogeny(bits=bits)
-        return ThetaCGL(O1, sqrt_function=self.sqrt_function)
+        return ThetaCGL(O1)
 
     def to_hash(self):
         a, b = self.domain
@@ -117,7 +117,7 @@ class ThetaCGL(CGL):
 
 # Experimental formula for 4-radical isogeny
 class ThetaCGLRadical4(ThetaCGL):
-    def __init__(self, domain, fourth_root_function=None, zeta4=None, chunk=2, **kwds):
+    def __init__(self, domain, zeta4=None, chunk=2, **kwds):
         super().__init__(domain, chunk=chunk, **kwds)
 
         if zeta4 is None:
@@ -125,16 +125,6 @@ class ThetaCGLRadical4(ThetaCGL):
             zeta4 = a.base_ring().gen()
         assert zeta4 * zeta4 == -1
         self.zeta4 = zeta4
-        self.fourth_root_function = fourth_root_function
-
-    # Here sqrt is the fourth root power
-    def fourth_root(self, x):
-        if self.fourth_root_function is None:
-            r = self.sqrt(self.sqrt(x))
-        else:
-            r = self.fourth_root_function(x)
-
-        return canonical_root(r)
 
     def radical_4isogeny(self, bits=[0, 0]):
         """
@@ -167,8 +157,6 @@ class ThetaCGLRadical4(ThetaCGL):
         O1 = self.radical_4isogeny(bits=bits)
         return ThetaCGLRadical4(
             O1,
-            fourth_root_function=self.fourth_root_function,
-            sqrt_function=self.sqrt_function,
             zeta4=self.zeta4,
         )
 
@@ -264,7 +252,5 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
             sqrt8_function=self.sqrt8_function,
             zeta8=self.zeta8,
             sqrt2=self.sqrt2,
-            fourth_root_function=self.fourth_root_function,
-            sqrt_function=self.sqrt_function,
             zeta4=self.zeta4,
         )

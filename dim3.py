@@ -9,14 +9,14 @@ class ThetaCGLDim3(CGL):
     def __init__(self, domain, **kwds):
         super().__init__(domain, chunk=6, **kwds)
 
-    @staticmethod
-    def from_null_coords(coords, sqrt_function=None):
+    @classmethod
+    def from_null_coords(cls, coords):
         assert len(coords) == 8
         OO = ThetaNullPointDim3(*coords)
-        return ThetaCGLDim3(OO, sqrt_function=sqrt_function)
+        return cls(OO)
 
-    @staticmethod
-    def from_elliptic_curves(E1, E2, E3, sqrt_function=None):
+    @classmethod
+    def from_elliptic_curves(cls, E1, E2, E3):
         O1 = ThetaCGL(E1)
         O2 = ThetaCGL(E2)
         O3 = ThetaCGL(E3)
@@ -34,7 +34,7 @@ class ThetaCGLDim3(CGL):
             a0 * b1 * c1,
             a1 * b1 * c1,
         )
-        return ThetaCGLDim3(OO, sqrt_function=sqrt_function)
+        return cls(OO)
 
     @staticmethod
     def hadamard(x0, x1, x2, x3, x4, x5, x6, x7):
@@ -48,8 +48,7 @@ class ThetaCGLDim3(CGL):
         y7 = x0 - x1 - x2 + x3 - x4 + x5 + x6 - x7
         return (y0, y1, y2, y3, y4, y5, y6, y7)
 
-    @staticmethod
-    def eval_F(x0, x1, x2, x3, x4, x5, x6, x7):
+    def eval_F(self, x0, x1, x2, x3, x4, x5, x6, x7):
         c0 = x0**2
         c1 = x1**2
         c2 = x2**2
@@ -58,9 +57,7 @@ class ThetaCGLDim3(CGL):
         c5 = x5**2
         c6 = x6**2
         c7 = x7**2
-        a0, a1, a2, a3, a4, a5, a6, a7 = ThetaCGLDim3.hadamard(
-            c0, c1, c2, c3, c4, c5, c6, c7
-        )
+        a0, a1, a2, a3, a4, a5, a6, a7 = self.hadamard(c0, c1, c2, c3, c4, c5, c6, c7)
 
         b0 = 2 * (x0 * x4 + x1 * x5 + x2 * x6 + x3 * x7)
         b1 = 2 * (x0 * x4 - x1 * x5 + x2 * x6 - x3 * x7)
@@ -270,7 +267,7 @@ class ThetaCGLDim3(CGL):
 
     def advance(self, bits=[0, 0, 0, 0, 0, 0]):
         O1 = self.radical_2isogeny(bits)
-        O1 = ThetaCGLDim3(O1, sqrt_function=self.sqrt_function)
+        O1 = ThetaCGLDim3(O1)
         return O1
 
     def bit_string(self, message):
