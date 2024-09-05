@@ -300,7 +300,7 @@ impl GFp {
 
     /// Multiplication in GF(p) by a small integer (less than 2^31).
     #[inline(always)]
-    pub fn mul_small(self, rhs: i32) -> Self {
+    pub fn mul_small(self, rhs: u32) -> Self {
         // As the rhs size is bounded, we can do a slightly cheaper
         // reduction modulo p
         let x = (self.0 as u128) * (rhs as u128);
@@ -312,7 +312,7 @@ impl GFp {
     }
 
     #[inline(always)]
-    pub fn set_mul_small(&mut self, rhs: i32) {
+    pub fn set_mul_small(&mut self, rhs: u32) {
         let r = self.mul_small(rhs);
         self.0 = r.0;
     }
@@ -727,7 +727,7 @@ mod tests {
         check_gfp_eq(x - y, (wa + (GFp::MOD as u128) * 2) - wb);
         check_gfp_eq(-y, (GFp::MOD as u128) * 2 - wb);
         check_gfp_eq(x * y, wa * wb);
-        check_gfp_eq(x.mul_small(small_b as i32), wa * small_b);
+        check_gfp_eq(x.mul_small(small_b as u32), wa * small_b);
         check_gfp_eq(x.square(), wa * wa);
         if a == 0 || a == GFp::MOD {
             check_gfp_eq(x.invert(), 0);

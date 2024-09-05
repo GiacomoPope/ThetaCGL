@@ -65,7 +65,7 @@ macro_rules! define_fp_bench {
             let mut x = mkfp();
             let mut tt = [0; 10];
             for i in 0..10 {
-                let k = core_cycles() as i32;
+                let k = core_cycles() as u32;
                 let begin = core_cycles();
                 for _ in 0..1000 {
                     x.set_mul_small(k);
