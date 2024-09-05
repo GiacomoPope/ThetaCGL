@@ -30,19 +30,19 @@ pub mod thp64 {
 
     const U0_re: Fp = Fp::from_u64_reduce(0x4C78D44019CAA57B);
     const U0_im: Fp = Fp::from_u64_reduce(0x631CC21ECF776EA1);
-    
+
     const V0_re: Fp = Fp::from_u64_reduce(0xFC257B234A441A12);
     const V0_im: Fp = Fp::from_u64_reduce(0xCC9BD67E3708856A);
 
     const G0_re: Fp = Fp::from_u64_reduce(0x2C35E4555BF6F161);
     const G0_im: Fp = Fp::from_u64_reduce(0xA73405376A64ECF8);
-    
+
     const H0_re: Fp = Fp::from_u64_reduce(0xB1122F78FAA9BFF3);
     const H0_im: Fp = Fp::from_u64_reduce(0xA0F357B1C4183714);
-    
+
     const I0_re: Fp = Fp::from_u64_reduce(0x009D1194B44A6CE4);
     const I0_im: Fp = Fp::from_u64_reduce(0xBD8B7727A38AE735);
-    
+
     const J0_re: Fp = Fp::from_u64_reduce(0x3C8E925EE4A4A528);
     const J0_im: Fp = Fp::from_u64_reduce(0x6C671FF6C8B712D2);
 

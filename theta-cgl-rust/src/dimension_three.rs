@@ -52,6 +52,7 @@ macro_rules! define_dim_three_theta_core {
 
             // Compute the Hadamard transform
             // 24 additions
+            #[inline(always)]
             fn to_hadamard(
                 self,
                 x0: &Fq,
@@ -95,77 +96,88 @@ macro_rules! define_dim_three_theta_core {
 
             // Compute the two isogeny
             pub fn radical_two_isogeny(self, bits: Vec<u8>) -> ThetaPointDim3 {
-                let (a, b, c, d, e, f, g, h) = self.coords();
+                let (a0, a1, a2, a3, a4, a5, a6, a7) = self.coords();
 
-                let aa = a.square();
-                let bb = b.square();
-                let cc = c.square();
-                let dd = d.square();
-                let ee = e.square();
-                let ff = f.square();
-                let gg = g.square();
-                let hh = h.square();
+                let mut x0 = a0.square();
+                let mut x1 = a1.square();
+                let mut x2 = a2.square();
+                let mut x3 = a3.square();
+                let mut x4 = a4.square();
+                let mut x5 = a5.square();
+                let mut x6 = a6.square();
+                let mut x7 = a7.square();
+                (x0, x1, x2, x3, x4, x5, x6, x7) =
+                    self.to_hadamard(&x0, &x1, &x2, &x3, &x4, &x5, &x6, &x7);
 
-                let (mut AA, BB, CC, DD, EE, FF, GG, HH) =
-                    self.to_hadamard(&aa, &bb, &cc, &dd, &ee, &ff, &gg, &hh);
+                // We must consider an edge-case where exactly one of AA, ..., HH is
+                // zero. To simplify the implementation we force the zero coordinate
+                // to be HH temporarily and swap again after the last sqrt is computed.
 
-                let AABB = &AA * &BB;
-                let AACC = &AA * &CC;
-                let AADD = &AA * &DD;
-                let AAEE = &AA * &EE;
-                let AAFF = &AA * &FF;
-                let AAGG = &AA * &GG;
+                // First compute whether any value is zero
+                let mut xi_list = [x0, x1, x2, x3, x4, x5, x6, x7];
+                let mut zero_index = 0;
+                let mut any_zero = 0;
+                for (i, xi) in xi_list.iter().enumerate() {
+                    // Keep track of whether any value is zero
+                    let xi_is_zero = xi.iszero();
+                    any_zero |= xi_is_zero;
 
-                let mut AB = AABB.sqrt().0;
-                let mut AC = AACC.sqrt().0;
-                let mut AD = AADD.sqrt().0;
-                let mut AE = AAEE.sqrt().0;
-                let mut AF = AAFF.sqrt().0;
-                let mut AG = AAGG.sqrt().0;
+                    // Compute the index which is zero
+                    zero_index |= (i as u32 & xi_is_zero);
+                }
+                // If none of x0,...,x6 are zero, then set zero index to seven
+                zero_index |= (7u32 & !any_zero);
 
+                // Swap elements to ensure if there is a zero it's in seventh place
+                xi_list.swap(zero_index as usize, 7);
+
+                // Unpack the xi
+                let [x0, x1, x2, x3, x4, x5, x6, x7] = xi_list;
+
+                // Compute six square roots, y0 and y7 are set to ensure compatibility
+                let y0;
+                let mut y1 = (&x0 * &x1).sqrt().0;
+                let mut y2 = (&x0 * &x2).sqrt().0;
+                let mut y3 = (&x0 * &x3).sqrt().0;
+                let mut y4 = (&x0 * &x4).sqrt().0;
+                let mut y5 = (&x0 * &x5).sqrt().0;
+                let mut y6 = (&x0 * &x6).sqrt().0;
+                let y7;
+
+                // Conditionally negate six square roots based on message bits
                 let ctl1 = ((bits[0] as u32) & 1).wrapping_neg();
-                AB.set_condneg(ctl1);
+                y1.set_condneg(ctl1);
 
                 let ctl2 = ((bits[1] as u32) & 1).wrapping_neg();
-                AC.set_condneg(ctl2);
+                y2.set_condneg(ctl2);
 
                 let ctl3 = ((bits[2] as u32) & 1).wrapping_neg();
-                AD.set_condneg(ctl3);
+                y3.set_condneg(ctl3);
 
                 let ctl4 = ((bits[3] as u32) & 1).wrapping_neg();
-                AE.set_condneg(ctl4);
+                y4.set_condneg(ctl4);
 
                 let ctl5 = ((bits[4] as u32) & 1).wrapping_neg();
-                AF.set_condneg(ctl5);
+                y5.set_condneg(ctl5);
 
                 let ctl6 = ((bits[5] as u32) & 1).wrapping_neg();
-                AG.set_condneg(ctl6);
+                y6.set_condneg(ctl6);
 
-                let AH;
-                (AA, AB, AC, AD, AE, AF, AG, AH) = self.last_sqrt(
-                    &AA,
-                    &BB,
-                    &CC,
-                    &DD,
-                    &EE,
-                    &FF,
-                    &GG,
-                    &HH,
-                    AA,
-                    AB,
-                    AC,
-                    AD,
-                    AE,
-                    AF,
-                    AG,
+                // Compute the last square y7 given y0,...,y6
+                (y0, y1, y2, y3, y4, y5, y6, y7) = self.last_sqrt(
+                    &x0, &x1, &x2, &x3, &x4, &x5, &x6, &x7, x0, y1, y2, y3, y4, y5, y6,
                 );
 
-                let (a_new, b_new, c_new, d_new, e_new, f_new, g_new, h_new) =
-                    self.to_hadamard(&AA, &AB, &AC, &AD, &AE, &AF, &AG, &AH);
+                // Now we have computed the last square-root, we must swap
+                // coordinates in the case that one value of xi was zero.
+                let mut yi_list = [y0, y1, y2, y3, y4, y5, y6, y7];
+                yi_list.swap(zero_index as usize, 7);
+                let [y0, y1, y2, y3, y4, y5, y6, y7] = yi_list;
 
-                ThetaPointDim3::new(
-                    &a_new, &b_new, &c_new, &d_new, &e_new, &f_new, &g_new, &h_new,
-                )
+                let (b0, b1, b2, b3, b4, b5, b6, b7) =
+                    self.to_hadamard(&y0, &y1, &y2, &y3, &y4, &y5, &y6, &y7);
+
+                ThetaPointDim3::new(&b0, &b1, &b2, &b3, &b4, &b5, &b6, &b7)
             }
 
             fn last_sqrt(
@@ -212,12 +224,11 @@ macro_rules! define_dim_three_theta_core {
 
                 // When r0 == 0, t1 needs to be different
                 let (a0, a1, a2, a3, a4, a5, a6, a7) = self.coords();
-                let t1_prime = - (&a0 * &a1 * &a2 * &a3 * &a4 * &a5 * &a6 * &a7).mul_small(64);
+                let t1_prime = -(&a0 * &a1 * &a2 * &a3 * &a4 * &a5 * &a6 * &a7).mul_small(64);
 
                 // If r0 is zero, modify the values of t1, t2
                 t1.set_cond(&t1_prime, r0_is_zero);
                 t2.set_cond(&y, r0_is_zero);
-
 
                 // Scale y0...y6 by the denominator
                 y0 *= t2;

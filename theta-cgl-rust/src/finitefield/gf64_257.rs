@@ -129,7 +129,7 @@ impl GFp {
         // Internally all values are in the range [0, 2^64]
         // Double wide multiplication of two u64 fits in a u128
         let x = (self.0 as u128) * (rhs.0 as u128);
-        
+
         // Now perform partial reduction
         //
         // x = x_lo + 2^64 * x_hi
@@ -144,7 +144,7 @@ impl GFp {
         let v_lo = v as u64;
         let v_hi = (v >> 64) as u64;
         let (r, cc) = v_lo.overflowing_add(v_hi + (v_hi << 8));
-        
+
         // We need to fold in one last time
         let d = cc as u64;
         GFp(r + d + (d << 8))
