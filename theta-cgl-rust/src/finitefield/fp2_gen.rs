@@ -192,13 +192,13 @@ macro_rules! define_fp2_core {
             }
 
             #[inline]
-            pub fn set_mul_small(&mut self, k: i32) {
+            pub fn set_mul_small(&mut self, k: u32) {
                 self.x0.set_mul_small(k);
                 self.x1.set_mul_small(k);
             }
 
             #[inline]
-            pub fn mul_small(self, k: i32) -> Self {
+            pub fn mul_small(self, k: u32) -> Self {
                 let mut r = self;
                 r.set_mul_small(k);
                 r
