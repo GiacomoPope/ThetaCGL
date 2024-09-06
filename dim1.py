@@ -220,6 +220,8 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
         a4 = rr + factor_2
         b4 = rr - factor_2
 
+        rsab = rs * ab
+
         # Projective, so we can remove this inversion?
 
         # r4 = ab * (rr - factor_2)
@@ -229,11 +231,11 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
         #     - self.sqrt2 * factor * ab * r
         # )
 
-        r4 = 2 * rs * ab * (rr - factor_2)
+        r4 = 2 * rsab * (rr - factor_2)
         s4 = (
             2 * aa * rs**2 
             + factor_4 * bb 
-            - 2 * self.sqrt2 * factor * ab * rr * s
+            - 2 * self.sqrt2 * factor * rsab * r
         )
 
         # mu3 = (r4**4 + s4**4) / a4**2
