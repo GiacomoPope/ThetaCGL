@@ -2,7 +2,7 @@ import time
 
 from sage.all import GF, EllipticCurve
 
-# from dim1 import ThetaCGL, ThetaCGLRadical4, ThetaCGLRadical8
+from dim1 import ThetaCGL, ThetaCGLRadical4
 from dim2 import ThetaCGLDim2, ThetaCGLDim2Radical4
 from dim3 import ThetaCGLDim3
 
@@ -70,97 +70,6 @@ def check(O0, O1, O2):
         f"Are the isogeneous curves the same? {O1.j_invariant() == O2.j_invariant()}, {O0.j_invariant(), O1.j_invariant(), O2.j_invariant()}"
     )
 
-
-"""
-print_info(f"Example in dim 1")
-print("- Sanity checks")
-O0 = ThetaCGL(E0)
-O1 = O0.bit_string(m1)
-O2 = O0.bit_string(m2)
-print(f"First message gives {O1} which hashes to {O1.to_hash()}")
-print(f"Second message gives {O2} which hashes to {O2.to_hash()}")
-check(O0, O1, O2)
-
-print("- SageMath only")
-O0 = ThetaCGL(E0)
-print(f"Hashing test 1: {O0.hash(m1)}")
-print(f"Hashing test 2: {O0.hash(m2)}")
-
-print("- Faster sqrt function")
-O0 = ThetaCGL(E0)
-print(f"Hashing test 1: {O0.hash(m1)}")
-print(f"Hashing test 2: {O0.hash(m2)}")
-
-print("- New sqrt function")
-O0 = ThetaCGL(E0)
-print(f"Hashing test 1: {O0.hash(m1)}")
-print(f"Hashing test 2: {O0.hash(m2)}")
-
-print_info(f"Example of a 4-radical isogeny")
-O0 = ThetaCGLRadical4(E0, zeta4=F.gen())
-
-print("- Sanity checks")
-O1 = O0.bit_string(m1)
-O2 = O0.bit_string(m2)
-check(O0, O1, O2)
-
-print(f"Hashing test 1: {O0.hash(m1)}")
-print(f"Hashing test 2: {O0.hash(m2)}")
-
-print_info(f"Example of a 8-radical isogeny")
-i = F.gen()
-zeta = i.sqrt()
-sqrt2 = F(2).sqrt()
-O0 = ThetaCGLRadical8(E0, zeta8=zeta, zeta4=i, sqrt2=sqrt2)
-
-print("- Sanity checks")
-O1 = O0.bit_string(m1)
-O2 = O0.bit_string(m2)
-check(O0, O1, O2)
-
-print(f"Hashing test 1: {O0.hash(m1)}")
-print(f"Hashing test 2: {O0.hash(m2)}")
-
-print_info(f"Timings")
-O0 = ThetaCGL(E0)
-t_sage = time_ms("O0.hash(m1)")
-print(f"Sage Sqrt Hashing time took: {t_sage}ms")
-
-O0 = ThetaCGL(E0)
-t_fast = time_ms("O0.hash(m1)")
-print(f"Fast Sqrt Hashing time took: {t_fast}ms")
-
-O0 = ThetaCGL(E0)
-t_fast = time_ms("O0.hash(m1)")
-print(f"New Sqrt Hashing time took: {t_fast}ms")
-
-print_info(f"Example in dim 2")
-
-O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0)
-print(f"Hashing test 1: {O0.hash(m1)}")
-print(f"Hashing test 2: {O0.hash(m2)}")
-m3 = [0, 1, 1, 0, 1, 0, 1]  # length non multiple of 3
-print(f"Hashing test 3: {O0.hash(m3)}")
-
-O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0)
-print(f"Hashing test 3 (sqrt_Fp2): {O0.hash(m3)}")
-O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0)
-print(f"Hashing test 3 (new_sqrt_Fp2): {O0.hash(m3)}")
-
-print_info(f"Dimension Two Timings")
-O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0)
-t_sage = time_ms("O0.hash(m1)")
-print(f"Sage Sqrt Hashing time took: {t_sage}ms")
-
-O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0)
-t_fast = time_ms("O0.hash(m1)")
-print(f"Fast Sqrt Hashing time took: {t_fast}ms")
-
-O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0)
-t_fast = time_ms("O0.hash(m1)")
-print(f"New Sqrt Hashing time took: {t_fast}ms")
-"""
-
 # sha256("Bristol 2023")
 MESSAGE = [
     1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0,
@@ -173,6 +82,32 @@ MESSAGE = [
     1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1,
 ]
 
+
+def dim_one_example():
+    print_info("Example in dim 1 (Two radical)")
+
+    p = 5*2**248 - 1
+    F = GF(p**2, name="i", modulus=[1, 0, 1])
+    E0 = EllipticCurve(F, [1, 0])
+
+    O0 = ThetaCGL(E0)
+    hash_1 = O0.hash(MESSAGE)
+    print(f"Hashing test 1: {hash_1}")
+
+    O1 = ThetaCGL([F(1), hash_1])
+    hash_2 = O1.hash(MESSAGE)
+    print(f"Hashing test 2: {hash_2}")
+
+    print_info("Example in dim 1 (Four radical)")
+
+    O2 = ThetaCGLRadical4([F(1), hash_1])
+    hash_2 = O2.hash(MESSAGE)
+    print(f"Hashing test: {hash_2}")
+
+    print_info("Domain for Rust (Dim 1)")
+    for x in O1.domain:
+        print_fp2_to_little_u64(x)
+    print()
 
 def dim_two_example():
     print_info("Example in dim 2 (Two radical)")
@@ -216,5 +151,6 @@ def dim_three_example():
 
 
 if __name__ == "__main__":
+    dim_one_example()
     dim_two_example()
     dim_three_example()

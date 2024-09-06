@@ -77,7 +77,6 @@ class ThetaCGL(CGL):
         """
         Give the j-invariant of our current theta null point
         """
-
         return self.to_montgomery_curve().j_invariant()
 
     def cardinality(self):
@@ -92,12 +91,8 @@ class ThetaCGL(CGL):
         Given a level 2-theta null point, compute a 2-isogeneous theta null
         point
         """
-
-        # print(f"Radical 2 isogeny, bits={bits}")
-        a, b = self.domain
-        aa = a * a  # a*a is faster than a**2 in SageMath
-        bb = b * b
-        AA, BB = ThetaCGL.hadamard(aa, bb)
+        a0, a1 = self.domain
+        AA, BB = ThetaCGL.hadamard(a0 * a0, a1 * a1)
         AABB = AA * BB
         AB = self.sqrt(AABB)
         if bits[0] == 1:
@@ -122,7 +117,7 @@ class ThetaCGLRadical4(ThetaCGL):
 
         if zeta4 is None:
             a, _ = self.domain
-            zeta4 = a.base_ring().gen()
+            zeta4 = a.parent().gen()
         assert zeta4 * zeta4 == -1
         self.zeta4 = zeta4
 

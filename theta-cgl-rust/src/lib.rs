@@ -85,20 +85,20 @@ pub mod thp5248 {
     pub type Fp = crate::fields::Fp5248::Fp;
     pub type Fq = crate::fields::Fp5248Ext::Fp2;
 
-    const X0_re: Fp = Fp::w64le(0, 0, 0, 0);
-    const X0_im: Fp = Fp::w64le(
-        0xFF805D2A0D52E912,
-        0xED25DC2169473610,
-        0xE2973DF03F968969,
-        0x013A0F3E1D7C72C5,
-    );
+    const X0_re: Fp = Fp::w64le(1, 0, 0, 0);
+    const X0_im: Fp = Fp::w64le(0, 0, 0, 0);
     const Z0_re: Fp = Fp::w64le(
-        0xFFFFFFFFFFFFFFFE,
-        0xFFFFFFFFFFFFFFFF,
-        0xFFFFFFFFFFFFFFFF,
-        0x04FFFFFFFFFFFFFF,
+        0xC8989D9AE0732F74,
+        0x57A518734EB6E287,
+        0x86D2007E41B557BE,
+        0x0384E9FADF42A057,
     );
-    const Z0_im: Fp = Fp::w64le(1, 0, 0, 0);
+    const Z0_im: Fp = Fp::w64le(
+        0x608090B2A570F5A7,
+        0x7F97E988D436D484,
+        0x67BE08A170FBD685,
+        0x014903873860E447,
+    );
 
     const X0: Fq = Fq::new(&X0_re, &X0_im);
     const Z0: Fq = Fq::new(&Z0_re, &Z0_im);
@@ -127,7 +127,7 @@ mod cgl_tests {
         let hash = cgl.hash(MSG.to_vec());
 
         // TODO: don't compare strings! haha
-        let expected: &str = "i*581317035081276154367619389388237654364317674072512259556056909695832618407 + 1591777228698064412432158294069564584505508595511695847665789421532577214324";
+        let expected: &str = "i*1048790104549868760381845710182137722666314665670240273769600751651562439610 + 516135818785057378604189666983524574774965518529932074051373940387715252763";
         assert_eq!(expected, format!("{}", hash));
     }
 
@@ -137,7 +137,7 @@ mod cgl_tests {
         let hash = cgl.hash(MSG.to_vec());
 
         // TODO: don't compare strings! haha
-        let expected = "i*1984116653337552224850207110995407685821969784456245019753456222927051983734 + 1984116653337552224850207110995407685821969784456245019753456222927051983734";
+        let expected = "i*1591777228698064412432158294069564584505508595511695847665789421532577214324 + 1680247207835055787499001411562698045894861713928280006839599027958720694872";
         assert_eq!(expected, format!("{}", hash));
     }
 
