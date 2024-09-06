@@ -168,12 +168,17 @@ def eighth_Fp(x):
         return -r
     return r
 
+
 def eighth_Fp2(x):
     """
     Compute 8th roots in Fp2
     """
-    def inner_sqrt(A0, B0, N1, check_square=False):
-        
+    def inner_sqrt(A0, N1, check_square=False):
+        """
+        Follows TODO but with a modification to avoid
+        multiple inversions
+        """
+        # Compute the disc
         C1 = (A0 + N1) / 2
 
         # For the last sqrt we need to ensure C1 is a square
@@ -183,6 +188,7 @@ def eighth_Fp2(x):
         assert C1.is_square(), "C1 must be a square..."
         
         # When C1 is zero only when x1 is zero
+        C1_is_zero = C1.is_zero()
         if C1.is_zero():
             assert x1 == 0
             A1 = sqrt_Fp(N1)
@@ -191,14 +197,7 @@ def eighth_Fp2(x):
             A1 = sqrt_Fp(C1)
             assert A1 * A1 == C1, "A1 sqrt failed..."
 
-        B1 = B0 * invert_or_zero(2*A1)
-        
-        # In this case, we must switch A1, B1
-        if C1.is_zero():
-            assert x1 == 0
-            A1, B1 = B1, A1
-
-        return A1, B1
+        return A1, C1_is_zero
 
     F = x.parent()
     x0, x1 = x.list()
@@ -206,13 +205,25 @@ def eighth_Fp2(x):
     n = eighth_Fp(delta)
     assert n**8 == delta, "Eighth root didnt work"
 
-    # initialization
-    A0 = x0
-    B0 = x1
+    # Compute the first sqrt, whether or not the disc is zero
+    # leaves us with an edge case (corresponds to x1 = 0)
+    A1, C1_is_zero = inner_sqrt(x0, n**4)
+    
+    # Handle the edge case
+    if C1_is_zero:
+        B0 = 2*A1**2
+        A1_prime = 0
+    else:
+        B0 = x1
+        A1_prime = A1
 
-    A1, B1 = inner_sqrt(A0, B0, n**4)    
-    A2, B2 = inner_sqrt(A1, B1, n**2)
-    A3, B3 = inner_sqrt(A2, B2, n**1, check_square=True)
+    # Compute the remaining square roots
+    A2, _ = inner_sqrt(A1_prime, n**2)
+    A3, _ = inner_sqrt(A2, n**1, check_square=True)
+
+    # Do one inversion and computation for the imaginary part
+    den = invert_or_zero(8*A1*A2*A3)
+    B3 = B0 * den
 
     return F([A3, B3])
 

@@ -393,6 +393,14 @@ impl GFp {
         self.set_mul2();
     }
 
+    /// Compute the quadruple of this value.
+    #[inline(always)]
+    pub fn mul8(self) -> Self {
+        let mut r = self;
+        r.set_mul8();
+        r
+    }
+
     /// Set this value to either a or b, depending on whether the control
     /// word ctl is 0x00000000 or 0xFFFFFFFF, respectively.
     /// The value of ctl MUST be either 0x00000000 or 0xFFFFFFFF.

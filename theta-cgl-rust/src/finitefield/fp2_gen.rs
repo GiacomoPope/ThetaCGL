@@ -490,7 +490,7 @@ macro_rules! define_fp2_core {
                 self.x0.set_select(&Fp::ZERO, &y0, r);
                 self.x1.set_select(&Fp::ZERO, &y1, r);
 
-                // Sign mangement: negate the result if needed.
+                // Sign management: negate the result if needed.
                 let x0odd = ((self.x0.encode()[0] as u32) & 1).wrapping_neg();
                 let x1odd = ((self.x1.encode()[0] as u32) & 1).wrapping_neg();
                 let x0z = self.x0.iszero();
@@ -502,6 +502,75 @@ macro_rules! define_fp2_core {
             pub fn fourth_root(self) -> (Self, u32) {
                 let mut y = self;
                 let r = y.set_fourth_root();
+                (y, r)
+            }
+
+            #[inline(always)]
+            fn inner_eighth_helper(self, A0: Fp, mut N1: Fp, check_square: bool) -> (Fp, u32, u32){
+                let mut C1 = (A0 + N1).half();
+                
+                // Computing A0 means taking a sqrt of C1.
+                // We for the third step, we must ensure C1 has a sqrt
+                if check_square{
+                    let ls_C1 = C1.legendre();
+                    let nqr = (ls_C1 >> 1) as u32;
+                    C1.set_cond(&(&C1 - N1), nqr);
+                    N1.set_condneg(nqr);
+                }
+                
+                // When C1 == 0, we have x1 == 0 and we need to modify things
+                let C1_is_zero = C1.iszero();
+
+                // If C1 is zero, we swap it for N1
+                C1.set_cond(&N1, C1_is_zero);
+
+                // Compute the square-root to get the real part
+                let (A1, r) = C1.sqrt();
+
+                (A1, C1_is_zero, r)
+            }
+            
+            /// Set this value to its eighth root. Returned value is 0xFFFFFFFFFFFFFFFF if
+            /// the operation succeeded (value was indeed a eighth root), or
+            /// 0x00000000 otherwise. On success, the chosen root is the one whose
+            /// sign is 0 (i.e. if the "real part" is non-zero, then it is an even
+            /// integer; if the "real part" is zero, then the "imaginary part" is
+            /// an even integer). On failure, this value is set to 0.
+            pub fn set_eighth_root(&mut self) -> u32 {
+                let norm = self.x0.square() + self.x1.square();
+                let (n, r1) = norm.eighth_root();
+                let n2 = n.square();
+                let n4 = n2.square();
+
+                let (A1, C1_is_zero, r2) = self.inner_eighth_helper(self.x0,  n4, false);
+                // When C1 is zero, we need to use 0 for the input into the helper
+                let A1_prime = Fp::select(&A1, &Fp::ZERO, C1_is_zero);
+
+                let (A2, _, r3) = self.inner_eighth_helper(A1_prime, n2, false);
+                let (A3, _, r4) = self.inner_eighth_helper(A2, n, true);
+
+                // Compute the imaginary part
+                // This is either 2*A1^2 when C1 == 0 and self.x1 otherwise
+                let B0 = Fp::select(&self.x1, &A1.square().mul2(), C1_is_zero);
+                let B3 = B0 / (&A1 * &A2 * &A3.mul8());
+
+                let r = r1 | r2 | r3 | r4; 
+
+                self.x0.set_select(&Fp::ZERO, &A3, r);
+                self.x1.set_select(&Fp::ZERO, &B3, r);
+
+                // Sign management: negate the result if needed.
+                let x0odd = ((self.x0.encode()[0] as u32) & 1).wrapping_neg();
+                let x1odd = ((self.x1.encode()[0] as u32) & 1).wrapping_neg();
+                let x0z = self.x0.iszero();
+                self.set_condneg(x0odd | (x0z & x1odd));
+
+                r
+            }
+
+            pub fn eighth_root(self) -> (Self, u32) {
+                let mut y = self;
+                let r = y.set_eighth_root();
                 (y, r)
             }
 
@@ -986,7 +1055,7 @@ macro_rules! define_fp2_tests {
         use num_bigint::{BigInt, Sign};
         use sha2::{Digest, Sha256};
 
-        fn check_fp2_ops(va: &[u8], vb: &[u8], with_sqrt_and_fourth_root: bool) {
+        fn check_fp2_ops(va: &[u8], vb: &[u8], test_nth_roots: bool) {
             let mut zpww = [0u32; Fp::N * 2];
             for i in 0..Fp::N {
                 zpww[2 * i] = Fp::MODULUS[i] as u32;
@@ -1059,7 +1128,7 @@ macro_rules! define_fp2_tests {
                 assert!(c.equals(&Fp2::ONE) == 0xFFFFFFFF);
             }
 
-            if with_sqrt_and_fourth_root {
+            if test_nth_roots {
                 let e = a * a;
                 let (c, r) = e.sqrt();
                 assert!(r == 0xFFFFFFFF);
@@ -1095,53 +1164,77 @@ macro_rules! define_fp2_tests {
                     assert!((c * c).equals(&g) == 0xFFFFFFFF);
                 }
 
-                let e = a * a * a * a;
-                let (c, r) = e.fourth_root();
-
-                assert!(r == 0xFFFFFFFF);
-                assert!((c * c * c * c).equals(&e) == 0xFFFFFFFF);
-
+                //
+                // Sqrt tests...
+                //
                 // With neither zero
                 let a_check = Fp2::new(&a0, &a1);
-                let e_check = a_check * a_check;
+                let e_check = a_check.square();
                 let (c_check, r_check) = e_check.sqrt();
                 assert!(r_check == 0xFFFFFFFF);
-                assert!((c_check * c_check).equals(&e_check) == 0xFFFFFFFF);
+                assert!((c_check.square()).equals(&e_check) == 0xFFFFFFFF);
 
                 // With x1 = 0
                 let a_check = Fp2::new(&a0, &Fp::ZERO);
-                let e_check = a_check * a_check;
+                let e_check = a_check.square();
                 let (c_check, r_check) = e_check.sqrt();
                 assert!(r_check == 0xFFFFFFFF);
-                assert!((c_check * c_check).equals(&e_check) == 0xFFFFFFFF);
+                assert!((c_check.square()).equals(&e_check) == 0xFFFFFFFF);
 
                 // With x0 = 0
                 let a_check = Fp2::new(&Fp::ZERO, &a1);
-                let e_check = a_check * a_check;
+                let e_check = a_check.square();
                 let (c_check, r_check) = e_check.sqrt();
                 assert!(r_check == 0xFFFFFFFF);
-                assert!((c_check * c_check).equals(&e_check) == 0xFFFFFFFF);
+                assert!((c_check.square()).equals(&e_check) == 0xFFFFFFFF);
 
+                //
+                // Fourth root tests...
+                //
                 // With neither zero
                 let a_check = Fp2::new(&a0, &a1);
-                let e_check = a_check * a_check * a_check * a_check;
+                let e_check = a_check.square().square();
                 let (c_check, r_check) = e_check.fourth_root();
                 assert!(r_check == 0xFFFFFFFF);
-                assert!((c_check * c_check * c_check * c_check).equals(&e_check) == 0xFFFFFFFF);
+                assert!((c_check.square().square()).equals(&e_check) == 0xFFFFFFFF);
 
                 // With x1 = 0
                 let a_check = Fp2::new(&a0, &Fp::ZERO);
-                let e_check = a_check * a_check * a_check * a_check;
+                let e_check = a_check.square().square();
                 let (c_check, r_check) = e_check.fourth_root();
                 assert!(r_check == 0xFFFFFFFF);
-                assert!((c_check * c_check * c_check * c_check).equals(&e_check) == 0xFFFFFFFF);
+                assert!((c_check.square().square()).equals(&e_check) == 0xFFFFFFFF);
 
                 // With x0 = 0
                 let a_check = Fp2::new(&Fp::ZERO, &a1);
-                let e_check = a_check * a_check * a_check * a_check;
+                let e_check = a_check.square().square();
                 let (c_check, r_check) = e_check.fourth_root();
                 assert!(r_check == 0xFFFFFFFF);
-                assert!((c_check * c_check * c_check * c_check).equals(&e_check) == 0xFFFFFFFF);
+                assert!((c_check.square().square()).equals(&e_check) == 0xFFFFFFFF);
+
+                //
+                // Eighth root tests...
+                //
+                // With neither zero
+                let a_check = Fp2::new(&a0, &a1);
+                let e_check = a_check.square().square().square();
+                let (c_check, r_check) = e_check.eighth_root();
+                assert!(r_check == 0xFFFFFFFF);
+                assert!((c_check.square().square().square()).equals(&e_check) == 0xFFFFFFFF);
+
+                // With x1 = 0
+                let a_check = Fp2::new(&a0, &Fp::ZERO);
+                let e_check = a_check.square().square().square();
+                let (c_check, r_check) = e_check.eighth_root();
+                assert!(r_check == 0xFFFFFFFF);
+                assert!((c_check.square().square().square()).equals(&e_check) == 0xFFFFFFFF);
+
+                // With x0 = 0
+                let a_check = Fp2::new(&Fp::ZERO, &a1);
+                let e_check = a_check.square().square().square();
+                let (c_check, r_check) = e_check.eighth_root();
+                assert!(r_check == 0xFFFFFFFF);
+                assert!((c_check.square().square().square()).equals(&e_check) == 0xFFFFFFFF);
             }
         }
 

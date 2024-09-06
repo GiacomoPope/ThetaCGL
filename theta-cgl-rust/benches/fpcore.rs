@@ -223,6 +223,27 @@ macro_rules! define_fp_bench {
             );
         }
 
+        fn bench_fp_eighth_root() {
+            let mut x = mkfp();
+            let mut tt = [0; 10];
+            for i in 0..10 {
+                let begin = core_cycles();
+                for _ in 0..20 {
+                    let (mut x2, r) = x.eighth_root();
+                    x2.set_cond(&Fp::ONE, !r);
+                    x += &x2;
+                }
+                let end = core_cycles();
+                tt[i] = end.wrapping_sub(begin);
+            }
+            tt.sort();
+            println!(
+                "GF(p) eighth root:    {:13.2}  ({})",
+                (tt[4] as f64) / 20.0,
+                x.encode()[0]
+            );
+        }
+
         fn mkfp2() -> Fp2 {
             let re = mkfp();
             let im = mkfp();
@@ -411,6 +432,27 @@ macro_rules! define_fp_bench {
             );
         }
 
+        fn bench_fp2_eighth_root() {
+            let mut x = mkfp2();
+            let mut tt = [0; 10];
+            for i in 0..10 {
+                let begin = core_cycles();
+                for _ in 0..10 {
+                    let (mut x2, r) = x.eighth_root();
+                    x2.set_cond(&Fp2::ONE, !r);
+                    x += &x2;
+                }
+                let end = core_cycles();
+                tt[i] = end.wrapping_sub(begin);
+            }
+            tt.sort();
+            println!(
+                "GF(p^2) eighth_root   {:13.2}  ({})",
+                (tt[4] as f64) / 10.0,
+                x.encode()[0] ^ x.encode()[Fp::ENCODED_LENGTH]
+            );
+        }
+
         fn main() {
             println!("### p = {:?}", FP_NAME);
             bench_fp_add();
@@ -422,6 +464,7 @@ macro_rules! define_fp_bench {
             bench_fp_legendre();
             bench_fp_sqrt();
             bench_fp_fourth_root();
+            bench_fp_eighth_root();
             bench_fp2_add();
             bench_fp2_sub();
             bench_fp2_mul();
@@ -430,6 +473,7 @@ macro_rules! define_fp_bench {
             bench_fp2_legendre();
             bench_fp2_sqrt();
             bench_fp2_fourth_root();
+            bench_fp2_eighth_root();
         }
     };
 } // End of macro: define_fp_bench
