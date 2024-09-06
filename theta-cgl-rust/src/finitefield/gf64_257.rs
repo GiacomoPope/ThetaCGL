@@ -158,7 +158,7 @@ impl GFp {
 
     /// Multiple squarings in GF(p): return x^(2^n)
     #[inline(always)]
-    pub fn msquare(self, n: u32) -> Self {
+    pub fn xsquare(self, n: u32) -> Self {
         let mut x = self;
         for _ in 0..n {
             x = x.square();
@@ -171,7 +171,7 @@ impl GFp {
     pub fn invert(self) -> Self {
         // This uses Fermat's little theorem: 1/x = x^(p-2) mod p.
         let x = self.exp_p_minus_three_div_four();
-        self * x.msquare(2)
+        self * x.xsquare(2)
     }
 
     #[inline(always)]
@@ -206,13 +206,13 @@ impl GFp {
         let x = self;
         let x2 = x * x.square(); // x^(2^2 - 1)
         let x3 = x * x2.square(); // x^(2^3 - 1)
-        let x6 = x3 * x3.msquare(3); // x^(2^6 - 1)
-        let x12 = x6 * x6.msquare(6); // x^(2^12 - 1)
-        let x24 = x12 * x12.msquare(12); // x^(2^24 - 1)
-        let x48 = x24 * x24.msquare(24); // x^(2^48 - 1)
-        let x54 = x6 * x48.msquare(6); // x^(2^54 - 1)
+        let x6 = x3 * x3.xsquare(3); // x^(2^6 - 1)
+        let x12 = x6 * x6.xsquare(6); // x^(2^12 - 1)
+        let x24 = x12 * x12.xsquare(12); // x^(2^24 - 1)
+        let x48 = x24 * x24.xsquare(24); // x^(2^48 - 1)
+        let x54 = x6 * x48.xsquare(6); // x^(2^54 - 1)
         let x55 = x * x54.square(); // x^(2^55 - 1)
-        x6 * x55.msquare(7) // x^(2^62 - 2**7) + (2^6 - 1) =
+        x6 * x55.xsquare(7) // x^(2^62 - 2**7) + (2^6 - 1) =
                             // x^(2^62 - 2**6 - 1) = (p-3)/4
     }
 
@@ -234,13 +234,13 @@ impl GFp {
         // In the instructions below, we call 'xj' the value x^(2^j-1).
         let x = self;
         let x2 = x * x.square();
-        let x4 = x2 * x2.msquare(2);
-        let x6 = x2 * x4.msquare(2);
+        let x4 = x2 * x2.xsquare(2);
+        let x6 = x2 * x4.xsquare(2);
         let x7 = x * x6.square();
-        let x14 = x7 * x7.msquare(7);
-        let x28 = x14 * x14.msquare(14);
-        let x56 = x28 * x28.msquare(28);
-        let mut y = x56.msquare(6);
+        let x14 = x7 * x7.xsquare(7);
+        let x28 = x14 * x14.xsquare(14);
+        let x56 = x28 * x28.xsquare(28);
+        let mut y = x56.xsquare(6);
 
         let ctl = ((y.0 as u32) & 1).wrapping_neg();
         y.set_condneg(ctl);
@@ -260,18 +260,50 @@ impl GFp {
     pub fn fourth_root(self) -> (Self, u32) {
         let x = self;
         let x2 = x * x.square();
-        let x4 = x2 * x2.msquare(2);
-        let x6 = x2 * x4.msquare(2);
+        let x4 = x2 * x2.xsquare(2);
+        let x6 = x2 * x4.xsquare(2);
         let x7 = x * x6.square();
-        let x14 = x7 * x7.msquare(7);
-        let x28 = x14 * x14.msquare(14);
-        let x56 = x28 * x28.msquare(28);
-        let mut y = x56.msquare(5);
+        let x14 = x7 * x7.xsquare(7);
+        let x28 = x14 * x14.xsquare(14);
+        let x56 = x28 * x28.xsquare(28);
+        let mut y = x56.xsquare(5);
 
         // Check that the obtained value is indeed a fourth root of the
         // source value (which is still in ww[0]); if not, clear this
         // value.
         let r = y.square().square().equals(&x);
+        let rw = (r as u64) | ((r as u64) << 32);
+        y.0 &= rw;
+
+        // Conditionally negate this value, so that the chosen root
+        // follows the expected convention.
+        let ctl = ((y.0 as u32) & 1).wrapping_neg();
+
+        y.set_condneg(ctl);
+
+        (y, r)
+    }
+
+    /// Set this value to its eighth root. Returned value is 0xFFFFFFFF if
+    /// the operation succeeded (value was indeed some element to the power of eight), or
+    /// 0x00000000 otherwise. On success, the chosen root is the one whose
+    /// least significant bit (as an integer in [0..p-1]) is zero. On
+    /// failure, this value is set to 0.
+    pub fn eighth_root(self) -> (Self, u32) {
+        let x = self;
+        let x2 = x * x.square();
+        let x4 = x2 * x2.xsquare(2);
+        let x6 = x2 * x4.xsquare(2);
+        let x7 = x * x6.square();
+        let x14 = x7 * x7.xsquare(7);
+        let x28 = x14 * x14.xsquare(14);
+        let x56 = x28 * x28.xsquare(28);
+        let mut y = x56.xsquare(4);
+
+        // Check that the obtained value is indeed a eighth root of the
+        // source value (which is still in ww[0]); if not, clear this
+        // value.
+        let r = y.xsquare(3).equals(&x);
         let rw = (r as u64) | ((r as u64) << 32);
         y.0 &= rw;
 
@@ -793,7 +825,12 @@ mod tests {
 
             let z = x.square();
             let (r3, c3) = z.fourth_root();
-            assert!(r3.msquare(2).equals(&z) == 0xFFFFFFFF);
+            assert!(r3.xsquare(2).equals(&z) == 0xFFFFFFFF);
+            assert!(c3 == 0xFFFFFFFF);
+
+            let z4 = z.square();
+            let (r3, c3) = z4.eighth_root();
+            assert!(r3.xsquare(3).equals(&z4) == 0xFFFFFFFF);
             assert!(c3 == 0xFFFFFFFF);
         }
     }
