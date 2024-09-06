@@ -147,12 +147,29 @@ def eighth_Fp2(x):
     def inner_sqrt(A0, B0, N1, check_square=False):
         
         C1 = (A0 + N1) / 2
+
+        # For the last sqrt we need to ensure C1 is a square
         if check_square and not C1.is_square():
             C1 = (A0 - N1) / 2
+            N1 = -N1
         assert C1.is_square(), "C1 must be a square..."
-        A1 = sqrt_Fp(C1)
-        assert A1 * A1 == C1, "sqrt failed..."
-        B1 = B0 / (2*A1)
+        
+        # When C1 is zero only when x1 is zero
+        if C1.is_zero():
+            assert x1 == 0
+            A1 = sqrt_Fp(N1)
+            assert A1 * A1 == N1, "N1 sqrt failed..."
+        else:
+            A1 = sqrt_Fp(C1)
+            assert A1 * A1 == C1, "A1 sqrt failed..."
+
+        B1 = B0 * invert_or_zero(2*A1)
+        
+        # In this case, we must switch A1, B1
+        if C1.is_zero():
+            assert x1 == 0
+            A1, B1 = B1, A1
+
         return A1, B1
 
     F = x.parent()
@@ -182,10 +199,6 @@ if __name__ == "__main__":
         for b1 in range(p):
             b = F([b0, b1])
             a = b**8
-
-            if a[0] == 0 or a[1] == 0:
-                continue
-
             try:
                 x = eighth_Fp2(a)
             except Exception as e:
@@ -193,7 +206,7 @@ if __name__ == "__main__":
                 print(f"{a = }")
                 print(f"{b = }")
                 continue
-            assert x**8 == a, f"{x = }, {a = }, {b = }"
+            assert x**8 == a, f"{x = }, {a = }, {a.nth_root(8, all=True) = }"
 
     # Big prime
     p = 5*2**248 - 1
