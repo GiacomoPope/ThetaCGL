@@ -114,9 +114,21 @@ def dim_one_example():
     print(f"Hashing test 8-radical: {hash_8}")
 
 
-    print_info("Domain for Rust (Dim 1)")
-    for x in O1.domain:
+    print_info("Data for Rust (Dim 1)")
+    print("domain")
+    for x in O8.domain:
         print_fp2_to_little_u64(x)
+
+    print("torsion")
+    for x in O8.torsion:
+        print_fp2_to_little_u64(x)
+
+    print("zeta_8")
+    print_fp2_to_little_u64(zeta)
+
+    print("sqrt2")
+    print_fp2_to_little_u64(sqrt2) 
+
     print()
 
 def dim_two_example():

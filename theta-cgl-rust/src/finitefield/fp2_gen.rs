@@ -506,18 +506,18 @@ macro_rules! define_fp2_core {
             }
 
             #[inline(always)]
-            fn inner_eighth_helper(self, A0: Fp, mut N1: Fp, check_square: bool) -> (Fp, u32, u32){
+            fn inner_eighth_helper(self, A0: Fp, mut N1: Fp, check_square: bool) -> (Fp, u32, u32) {
                 let mut C1 = (A0 + N1).half();
-                
+
                 // Computing A0 means taking a sqrt of C1.
                 // We for the third step, we must ensure C1 has a sqrt
-                if check_square{
+                if check_square {
                     let ls_C1 = C1.legendre();
                     let nqr = (ls_C1 >> 1) as u32;
                     C1.set_cond(&(&C1 - N1), nqr);
                     N1.set_condneg(nqr);
                 }
-                
+
                 // When C1 == 0, we have x1 == 0 and we need to modify things
                 let C1_is_zero = C1.iszero();
 
@@ -529,7 +529,7 @@ macro_rules! define_fp2_core {
 
                 (A1, C1_is_zero, r)
             }
-            
+
             /// Set this value to its eighth root. Returned value is 0xFFFFFFFFFFFFFFFF if
             /// the operation succeeded (value was indeed a eighth root), or
             /// 0x00000000 otherwise. On success, the chosen root is the one whose
@@ -542,7 +542,7 @@ macro_rules! define_fp2_core {
                 let n2 = n.square();
                 let n4 = n2.square();
 
-                let (A1, C1_is_zero, r2) = self.inner_eighth_helper(self.x0,  n4, false);
+                let (A1, C1_is_zero, r2) = self.inner_eighth_helper(self.x0, n4, false);
                 // When C1 is zero, we need to use 0 for the input into the helper
                 let A1_prime = Fp::select(&A1, &Fp::ZERO, C1_is_zero);
 
@@ -554,7 +554,7 @@ macro_rules! define_fp2_core {
                 let B0 = Fp::select(&self.x1, &A1.square().mul2(), C1_is_zero);
                 let B3 = B0 / (&A1 * &A2 * &A3.mul8());
 
-                let r = r1 | r2 | r3 | r4; 
+                let r = r1 | r2 | r3 | r4;
 
                 self.x0.set_select(&Fp::ZERO, &A3, r);
                 self.x1.set_select(&Fp::ZERO, &B3, r);

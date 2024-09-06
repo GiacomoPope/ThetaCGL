@@ -37,6 +37,17 @@ fn dimension_one_rad_4_5248_example() {
     println!("SageMath: {}", expected);
 }
 
+fn dimension_one_rad_8_5248_example() {
+    println!("Computing using 8-radical isogenies...");
+    let cgl = thp5248::CGLDim1Rad8::new();
+    let hash = cgl.hash(MSG.to_vec());
+
+    println!("Rust:     {}", hash);
+
+    let expected = "i*623953899702050406121574801940143023523525779863632387363046409469719787819 + 141743768810756281317922111945465696489535516588307365005176069147968563672";
+    println!("SageMath: {}", expected);
+}
+
 fn dimension_two_rad_2_127_example() {
     println!("Computing using 2-radical isogenies...");
     let cgl = thp127::CGLDim2Rad2::new();
@@ -102,6 +113,8 @@ fn main() {
     dimension_one_rad_2_5248_example();
     println!();
     dimension_one_rad_4_5248_example();
+    println!();
+    dimension_one_rad_8_5248_example();
     println!("\n");
 
     println!("================================================================================");

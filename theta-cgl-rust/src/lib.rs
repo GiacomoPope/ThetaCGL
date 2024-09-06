@@ -85,6 +85,7 @@ pub mod thp5248 {
     pub type Fp = crate::fields::Fp5248::Fp;
     pub type Fq = crate::fields::Fp5248Ext::Fp2;
 
+    // Theta null point for domain
     const X0_re: Fp = Fp::w64le(1, 0, 0, 0);
     const X0_im: Fp = Fp::w64le(0, 0, 0, 0);
     const Z0_re: Fp = Fp::w64le(
@@ -99,9 +100,60 @@ pub mod thp5248 {
         0x67BE08A170FBD685,
         0x014903873860E447,
     );
-
     const X0: Fq = Fq::new(&X0_re, &X0_im);
     const Z0: Fq = Fq::new(&Z0_re, &Z0_im);
+
+    // Torsion point for 8-radical
+    const PX0_re: Fp = Fp::w64le(
+        0xD4BA7502003DDF70,
+        0x7C56A339012F7167,
+        0xFE5CD953AF85BACD,
+        0x01AFB6E52F6BF65B,
+    );
+    const PX0_im: Fp = Fp::w64le(
+        0x34319D65B6155F58,
+        0xED7E75228452961C,
+        0xCC354C142D9CB7DF,
+        0x0363BB6DF4CC1A44,
+    );
+    const PZ0_re: Fp = Fp::w64le(
+        0xE61B297101B4CE24,
+        0xA1C86E256D899ADA,
+        0x353BE1B19CA0F309,
+        0x0471CE85213D0B38,
+    );
+    const PZ0_im: Fp = Fp::w64le(
+        0x771D8B45C979B97B,
+        0x85DF7E30CC0E1308,
+        0x300F98F48A880ED8,
+        0x01BCBAF4B16E5B7C,
+    );
+    const PX0: Fq = Fq::new(&PX0_re, &PX0_im);
+    const PZ0: Fq = Fq::new(&PZ0_re, &PZ0_im);
+
+    // sqrt 2 for 8-radical
+    const fp_sqrt_2_re: Fp = Fp::w64le(
+        0xFF805D2A0D52E912,
+        0xED25DC2169473610,
+        0xE2973DF03F968969,
+        0x013A0F3E1D7C72C5,
+    );
+    const fp2_sqrt_2: Fq = Fq::new(&fp_sqrt_2_re, &Fp::ZERO);
+
+    // eighth root of unity for 8-radical
+    const zeta_8_re: Fp = Fp::w64le(
+        0x803FD16AF9568B76,
+        0x096D11EF4B5C64F7,
+        0x0EB46107E034BB4B,
+        0x0462F860F141C69D,
+    );
+    const zeta_8_im: Fp = Fp::w64le(
+        0x803FD16AF9568B76,
+        0x096D11EF4B5C64F7,
+        0x0EB46107E034BB4B,
+        0x0462F860F141C69D,
+    );
+    const fp2_zeta_8: Fq = Fq::new(&zeta_8_re, &zeta_8_im);
 
     crate::dimension_one::define_dim_one_theta_core! {}
 }
@@ -138,6 +190,16 @@ mod cgl_tests {
 
         // TODO: don't compare strings! haha
         let expected = "i*1591777228698064412432158294069564584505508595511695847665789421532577214324 + 1680247207835055787499001411562698045894861713928280006839599027958720694872";
+        assert_eq!(expected, format!("{}", hash));
+    }
+
+    #[test]
+    fn test_dim_one_rad_eight() {
+        let cgl = thp5248::CGLDim1Rad8::new();
+        let hash = cgl.hash(MSG.to_vec());
+
+        // TODO: don't compare strings! haha
+        let expected = "i*623953899702050406121574801940143023523525779863632387363046409469719787819 + 141743768810756281317922111945465696489535516588307365005176069147968563672";
         assert_eq!(expected, format!("{}", hash));
     }
 
