@@ -2,7 +2,7 @@ import time
 
 from sage.all import GF, EllipticCurve
 
-from dim1 import ThetaCGL, ThetaCGLRadical4
+from dim1 import ThetaCGL, ThetaCGLRadical4, ThetaCGLRadical8
 from dim2 import ThetaCGLDim2, ThetaCGLDim2Radical4
 from dim3 import ThetaCGLDim3
 
@@ -101,8 +101,18 @@ def dim_one_example():
     print_info("Example in dim 1 (Four radical)")
 
     O2 = ThetaCGLRadical4([F(1), hash_1])
-    hash_2 = O2.hash(MESSAGE)
-    print(f"Hashing test: {hash_2}")
+    hash_4 = O2.hash(MESSAGE)
+    print(f"Hashing test 4-radical: {hash_4}")
+
+
+    print_info("Example of a 8-radical isogeny")
+    i = F.gen()
+    zeta = i.sqrt()
+    sqrt2 = F(2).sqrt()
+    O8 = ThetaCGLRadical8([F(1), hash_1], zeta8=zeta, zeta4=i, sqrt2=sqrt2)
+    hash_8 = O8.hash(MESSAGE)
+    print(f"Hashing test 8-radical: {hash_8}")
+
 
     print_info("Domain for Rust (Dim 1)")
     for x in O1.domain:
@@ -152,5 +162,5 @@ def dim_three_example():
 
 if __name__ == "__main__":
     dim_one_example()
-    dim_two_example()
-    dim_three_example()
+    # dim_two_example()
+    # dim_three_example()

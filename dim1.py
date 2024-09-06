@@ -183,15 +183,6 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
 
         self.torsion = torsion
 
-    # Here sqrt is the fourth root power
-    def sqrt8(self, x):
-        if self.sqrt8_function is None:
-            r = self.sqrt(self.sqrt(self.sqrt(x)))
-        else:
-            r = self.sqrt8_function(x)
-
-        return r
-
     def radical_8isogeny(self, bits=[0, 0, 0]):
         """
         Given a level 2-theta null point, compute a 4-isogeneous theta null
@@ -201,7 +192,7 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
         # print(f"Radical 8 isogeny, bits={bits}")
         a, b = self.domain
         r, s = self.torsion
-        factor = self.sqrt8(r**8 - s**8)
+        factor = self.eighth_root(r**8 - s**8)
 
         if bits[0] == 1:
             factor = -factor

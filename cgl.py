@@ -1,4 +1,4 @@
-from utilities import sqrt_Fp2, fourth_Fp2
+from utilities import sqrt_Fp2, fourth_Fp2, eighth_Fp2
 
 
 class CGL:
@@ -14,6 +14,9 @@ class CGL:
 
     def fourth_root(self, x):
         return fourth_Fp2(x)
+
+    def eighth_root(self, x):
+        return eighth_Fp2(x)
 
     def advance(self, bits=None):
         pass
