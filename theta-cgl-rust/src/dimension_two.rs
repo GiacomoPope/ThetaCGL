@@ -42,24 +42,24 @@ macro_rules! define_dim_two_theta_core {
                 (&t1 + &t3, &t2 + &t4, &t1 - &t3, &t2 - &t4)
             }
 
-            // Squared theta first squares the coords
-            // then returns the hadamard transform.
+            // Squared theta first squares the coords of the points
+            // and then computes the Hadamard transformation.
             // This gives the square of the dual coords
+            // Cost 4S + 8a
             pub fn squared_theta(self) -> (Fq, Fq, Fq, Fq) {
                 let XX = self.X.square();
                 let ZZ = self.Z.square();
                 let UU = self.U.square();
                 let VV = self.V.square();
 
-                (XX, ZZ, UU, VV)
+                self.to_hadamard(&XX, &ZZ, &UU, &VV)
             }
 
             // Compute the two isogeny
             pub fn radical_two_isogeny(self, bits: Vec<u8>) -> ThetaPointDim2 {
                 // Compute squared dual coordinates xi
-                let (mut x0, mut x1, mut x2, mut x3) = self.squared_theta();
-                (x0, x1, x2, x3) = self.to_hadamard(&x0, &x1, &x2, &x3);
-                
+                let (x0, x1, x2, x3) = self.squared_theta();
+
                 // Compute yi = sqrt(x0 * xi)
                 let mut y1 = (&x0 * &x1).sqrt().0;
                 let mut y2 = (&x0 * &x2).sqrt().0;
@@ -83,8 +83,8 @@ macro_rules! define_dim_two_theta_core {
 
             // Compute a four-radical isogeny
             pub fn radical_four_isogeny(self, bits: Vec<u8>) -> ThetaPointDim2 {
-                let (mut x0, mut x1, mut x2, mut x3) = self.squared_theta();
-                (x0, x1, x2, x3) = self.to_hadamard(&x0, &x1, &x2, &x3);
+                // Compute squared dual coordinates xi
+                let (x0, x1, x2, x3) = self.squared_theta();
 
                 let x01 = &x0 * &x1;
                 let x02 = &x0 * &x2;

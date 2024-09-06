@@ -23,38 +23,38 @@ pub mod thp64 {
     pub type Fq = crate::fields::Fp64Ext::Fp2;
 
     // Pseudorandom domain computed from sage code
-    const X0_re: Fp = Fp::from_u64_reduce(1);
-    const X0_im: Fp = Fp::from_u64_reduce(0);
+    const a0_re: Fp = Fp::from_u64_reduce(1);
+    const a0_im: Fp = Fp::from_u64_reduce(0);
 
-    const Z0_re: Fp = Fp::from_u64_reduce(0xDC5596E1A8BD61A6);
-    const Z0_im: Fp = Fp::from_u64_reduce(0x27975EF03960B799);
+    const a1_re: Fp = Fp::from_u64_reduce(0xDC5596E1A8BD61A6);
+    const a1_im: Fp = Fp::from_u64_reduce(0x27975EF03960B799);
 
-    const U0_re: Fp = Fp::from_u64_reduce(0x4C78D44019CAA57B);
-    const U0_im: Fp = Fp::from_u64_reduce(0x631CC21ECF776EA1);
+    const a2_re: Fp = Fp::from_u64_reduce(0x4C78D44019CAA57B);
+    const a2_im: Fp = Fp::from_u64_reduce(0x631CC21ECF776EA1);
 
-    const V0_re: Fp = Fp::from_u64_reduce(0xFC257B234A441A12);
-    const V0_im: Fp = Fp::from_u64_reduce(0xCC9BD67E3708856A);
+    const a3_re: Fp = Fp::from_u64_reduce(0xFC257B234A441A12);
+    const a3_im: Fp = Fp::from_u64_reduce(0xCC9BD67E3708856A);
 
-    const G0_re: Fp = Fp::from_u64_reduce(0x2C35E4555BF6F161);
-    const G0_im: Fp = Fp::from_u64_reduce(0xA73405376A64ECF8);
+    const a4_re: Fp = Fp::from_u64_reduce(0x2C35E4555BF6F161);
+    const a4_im: Fp = Fp::from_u64_reduce(0xA73405376A64ECF8);
 
-    const H0_re: Fp = Fp::from_u64_reduce(0xB1122F78FAA9BFF3);
-    const H0_im: Fp = Fp::from_u64_reduce(0xA0F357B1C4183714);
+    const a5_re: Fp = Fp::from_u64_reduce(0xB1122F78FAA9BFF3);
+    const a5_im: Fp = Fp::from_u64_reduce(0xA0F357B1C4183714);
 
-    const I0_re: Fp = Fp::from_u64_reduce(0x009D1194B44A6CE4);
-    const I0_im: Fp = Fp::from_u64_reduce(0xBD8B7727A38AE735);
+    const a6_re: Fp = Fp::from_u64_reduce(0x009D1194B44A6CE4);
+    const a6_im: Fp = Fp::from_u64_reduce(0xBD8B7727A38AE735);
 
-    const J0_re: Fp = Fp::from_u64_reduce(0x3C8E925EE4A4A528);
-    const J0_im: Fp = Fp::from_u64_reduce(0x6C671FF6C8B712D2);
+    const a7_re: Fp = Fp::from_u64_reduce(0x3C8E925EE4A4A528);
+    const a7_im: Fp = Fp::from_u64_reduce(0x6C671FF6C8B712D2);
 
-    const X0: Fq = Fq::new(&X0_re, &X0_im);
-    const Z0: Fq = Fq::new(&Z0_re, &Z0_im);
-    const U0: Fq = Fq::new(&U0_re, &U0_im);
-    const V0: Fq = Fq::new(&V0_re, &V0_im);
-    const G0: Fq = Fq::new(&G0_re, &G0_im);
-    const H0: Fq = Fq::new(&H0_re, &H0_im);
-    const I0: Fq = Fq::new(&I0_re, &I0_im);
-    const J0: Fq = Fq::new(&J0_re, &J0_im);
+    const A0: Fq = Fq::new(&a0_re, &a0_im);
+    const A1: Fq = Fq::new(&a1_re, &a1_im);
+    const A2: Fq = Fq::new(&a2_re, &a2_im);
+    const A3: Fq = Fq::new(&a3_re, &a3_im);
+    const A4: Fq = Fq::new(&a4_re, &a4_im);
+    const A5: Fq = Fq::new(&a5_re, &a5_im);
+    const A6: Fq = Fq::new(&a6_re, &a6_im);
+    const A7: Fq = Fq::new(&a7_re, &a7_im);
 
     crate::dimension_three::define_dim_three_theta_core! {}
 }
@@ -166,7 +166,7 @@ mod cgl_tests {
         // TODO: don't compare strings! haha
         let ex1 =
             "i*47375232055273767260534253219319124145 + 73346381814437457025019178306100270373";
-        let ex2 = 
+        let ex2 =
             "i*100355035873619011046902920138034070025 + 53620892648164048340211136423015102743";
         let ex3 =
             "i*30161281981729506452828974222531171272 + 38825259926942117650301850823946812854";

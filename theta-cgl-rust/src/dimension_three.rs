@@ -2,7 +2,7 @@
 
 // Macro expectations:
 // Fq      type of field element Fp^2
-// X0, Z0, U0, V0, G0, H0, I0, J0 type Fq, coordinates of theta null point
+// A0, A1, A2, A3, A4, A5, A6, A7 type Fq, coordinates of theta null point
 macro_rules! define_dim_three_theta_core {
     () => {
         use crate::util::pad_msg;
@@ -11,42 +11,42 @@ macro_rules! define_dim_three_theta_core {
         // The domain / codomain is described by a theta point
         #[derive(Clone, Copy, Debug)]
         pub struct ThetaPointDim3 {
-            pub X: Fq,
-            pub Z: Fq,
-            pub U: Fq,
-            pub V: Fq,
-            pub G: Fq,
-            pub H: Fq,
-            pub I: Fq,
-            pub J: Fq,
+            pub a0: Fq,
+            pub a1: Fq,
+            pub a2: Fq,
+            pub a3: Fq,
+            pub a4: Fq,
+            pub a5: Fq,
+            pub a6: Fq,
+            pub a7: Fq,
         }
 
         impl ThetaPointDim3 {
             pub const fn new(
-                X: &Fq,
-                Z: &Fq,
-                U: &Fq,
-                V: &Fq,
-                G: &Fq,
-                H: &Fq,
-                I: &Fq,
-                J: &Fq,
+                a0: &Fq,
+                a1: &Fq,
+                a2: &Fq,
+                a3: &Fq,
+                a4: &Fq,
+                a5: &Fq,
+                a6: &Fq,
+                a7: &Fq,
             ) -> ThetaPointDim3 {
                 Self {
-                    X: *X,
-                    Z: *Z,
-                    U: *U,
-                    V: *V,
-                    G: *G,
-                    H: *H,
-                    I: *I,
-                    J: *J,
+                    a0: *a0,
+                    a1: *a1,
+                    a2: *a2,
+                    a3: *a3,
+                    a4: *a4,
+                    a5: *a5,
+                    a6: *a6,
+                    a7: *a7,
                 }
             }
 
             pub fn coords(self) -> (Fq, Fq, Fq, Fq, Fq, Fq, Fq, Fq) {
                 (
-                    self.X, self.Z, self.U, self.V, self.G, self.H, self.I, self.J,
+                    self.a0, self.a1, self.a2, self.a3, self.a4, self.a5, self.a6, self.a7,
                 )
             }
 
@@ -94,20 +94,27 @@ macro_rules! define_dim_three_theta_core {
                 (y0, y1, y2, y3, y4, y5, y6, y7)
             }
 
+            // Squared theta first squares the coords of the points
+            // and then computes the Hadamard transformation.
+            // This gives the square of the dual coords
+            // Cost 8S + 24a
+            pub fn squared_theta(self) -> (Fq, Fq, Fq, Fq, Fq, Fq, Fq, Fq) {
+                let a00 = self.a0.square();
+                let a11 = self.a1.square();
+                let a22 = self.a2.square();
+                let a33 = self.a3.square();
+                let a44 = self.a4.square();
+                let a55 = self.a5.square();
+                let a66 = self.a6.square();
+                let a77 = self.a7.square();
+
+                self.to_hadamard(&a00, &a11, &a22, &a33, &a44, &a55, &a66, &a77)
+            }
+
             // Compute the two isogeny
             pub fn radical_two_isogeny(self, bits: Vec<u8>) -> ThetaPointDim3 {
-                let (a0, a1, a2, a3, a4, a5, a6, a7) = self.coords();
-
-                let mut x0 = a0.square();
-                let mut x1 = a1.square();
-                let mut x2 = a2.square();
-                let mut x3 = a3.square();
-                let mut x4 = a4.square();
-                let mut x5 = a5.square();
-                let mut x6 = a6.square();
-                let mut x7 = a7.square();
-                (x0, x1, x2, x3, x4, x5, x6, x7) =
-                    self.to_hadamard(&x0, &x1, &x2, &x3, &x4, &x5, &x6, &x7);
+                // Compute the squared dual coordinates xi
+                let (x0, x1, x2, x3, x4, x5, x6, x7) = self.squared_theta();
 
                 // We must consider an edge-case where exactly one of AA, ..., HH is
                 // zero. To simplify the implementation we force the zero coordinate
@@ -246,19 +253,15 @@ macro_rules! define_dim_three_theta_core {
             }
 
             pub fn to_hash(self) -> (Fq, Fq, Fq, Fq, Fq, Fq, Fq) {
-                let (X, Z, U, V, G, H, I, J) = (
-                    self.X, self.Z, self.U, self.V, self.G, self.H, self.I, self.J,
-                );
-                let X_inv = X.invert();
-
+                let a0_inv = self.a0.invert();
                 (
-                    &Z * &X_inv,
-                    &U * &X_inv,
-                    &V * &X_inv,
-                    &G * &X_inv,
-                    &H * &X_inv,
-                    &I * &X_inv,
-                    &J * &X_inv,
+                    &self.a1 * &a0_inv,
+                    &self.a2 * &a0_inv,
+                    &self.a3 * &a0_inv,
+                    &self.a4 * &a0_inv,
+                    &self.a5 * &a0_inv,
+                    &self.a6 * &a0_inv,
+                    &self.a7 * &a0_inv,
                 )
             }
         }
@@ -267,7 +270,7 @@ macro_rules! define_dim_three_theta_core {
         pub struct CGLDim3Rad2 {}
 
         impl CGLDim3Rad2 {
-            const O0: ThetaPointDim3 = ThetaPointDim3::new(&X0, &Z0, &U0, &V0, &G0, &H0, &I0, &J0);
+            const O0: ThetaPointDim3 = ThetaPointDim3::new(&A0, &A1, &A2, &A3, &A4, &A5, &A6, &A7);
 
             pub fn new() -> Self {
                 Self {}
