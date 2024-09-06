@@ -22,6 +22,7 @@ pub mod thp64 {
     pub type Fp = crate::fields::Fp64::Fp;
     pub type Fq = crate::fields::Fp64Ext::Fp2;
 
+    // Pseudorandom domain computed from sage code
     const X0_re: Fp = Fp::from_u64_reduce(1);
     const X0_im: Fp = Fp::from_u64_reduce(0);
 
@@ -62,14 +63,15 @@ pub mod thp127 {
     pub type Fp = crate::fields::Fp127::Fp;
     pub type Fq = crate::fields::Fp127Ext::Fp2;
 
-    const X0_re: Fp = Fp::w64le(0xFFFFFFFFFFFFFFFD, 0x7FFFFFFFFFFFFFFF);
+    // Pseudorandom domain computed from sage code
+    const X0_re: Fp = Fp::w64le(1, 0);
     const X0_im: Fp = Fp::w64le(0, 0);
-    const Z0_re: Fp = Fp::w64le(0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFE);
-    const Z0_im: Fp = Fp::w64le(0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFE);
-    const U0_re: Fp = Fp::w64le(0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFE);
-    const U0_im: Fp = Fp::w64le(0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFE);
-    const V0_re: Fp = Fp::w64le(0, 0);
-    const V0_im: Fp = Fp::w64le(0xFFFFFFFFFFFFFFFD, 0x7FFFFFFFFFFFFFFF);
+    const Z0_re: Fp = Fp::w64le(0xB554F0A6CD56898D, 0x596A8D585A516637);
+    const Z0_im: Fp = Fp::w64le(0x55C62A13DD1A684C, 0x26925D8555F401D3);
+    const U0_re: Fp = Fp::w64le(0xF9117AFF78A5C9D5, 0x7372B03CEF530598);
+    const U0_im: Fp = Fp::w64le(0x160218406DE240B5, 0x1C29C6E16DD093B8);
+    const V0_re: Fp = Fp::w64le(0xEBEE280EE44DC74A, 0x3513CD545EE73127);
+    const V0_im: Fp = Fp::w64le(0x54191B88482D8D6B, 0x4DFBD67E82B0296E);
 
     const X0: Fq = Fq::new(&X0_re, &X0_im);
     const Z0: Fq = Fq::new(&Z0_re, &Z0_im);
@@ -146,11 +148,11 @@ mod cgl_tests {
 
         // TODO: don't compare strings! haha
         let ex1 =
-            "i*51270636009212854362226904376444348492 + 118854541911646677142182896694474475917";
+            "i*12320047962523423279486361112665882772 + 108134968326043731154961119248302170639";
         let ex2 =
-            "i*37435301830601681338962451584023412917 + 153456715888985573907459419269142792661";
+            "i*15803407118249139560079599117651420281 + 66205839636749269947956199724487136674";
         let ex3 =
-            "i*103658172645780440076386144196752149867 + 70551901995418187699403785643888592714";
+            "i*90655641865476592982577206231671450841 + 127570496827730619947759641012315192423";
         assert_eq!(ex1, format!("{}", h1));
         assert_eq!(ex2, format!("{}", h2));
         assert_eq!(ex3, format!("{}", h3));
@@ -163,10 +165,11 @@ mod cgl_tests {
 
         // TODO: don't compare strings! haha
         let ex1 =
-            "i*14255708726834209014572159019899113927 + 106613803422737905865003815327946998256";
-        let ex2 = "i*161915183057086815891740274300276651399 + 13519842835831752693363006384794856";
+            "i*47375232055273767260534253219319124145 + 73346381814437457025019178306100270373";
+        let ex2 = 
+            "i*100355035873619011046902920138034070025 + 53620892648164048340211136423015102743";
         let ex3 =
-            "i*105249037341253961638806546690278378374 + 165821113257513419160824899234824339511";
+            "i*30161281981729506452828974222531171272 + 38825259926942117650301850823946812854";
 
         assert_eq!(ex1, format!("{}", h1));
         assert_eq!(ex2, format!("{}", h2));
