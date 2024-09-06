@@ -163,24 +163,27 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
         domain,
         torsion=None,
         chunk=3,
-        sqrt8_function=None,
-        sqrt2=None,
         zeta8=None,
+        zeta4=None,
+        sqrt2=None,
         **kwds,
     ):
         super().__init__(domain, chunk=chunk, **kwds)
 
         self.zeta8 = zeta8
         assert self.zeta8**4 == -1
-        self.sqrt8_function = sqrt8_function
+
+        self.zeta4 = zeta4
+        assert self.zeta4**2 == -1
+
         self.sqrt2 = sqrt2
+        assert self.sqrt2**2 == 2
 
         if torsion is None:
             a2, b2 = self.radical_2isogeny()
             r = self.sqrt(a2)
             s = self.sqrt(b2)
             torsion = ThetaPoint(r, s)
-
         self.torsion = torsion
 
     def radical_8isogeny(self, bits=[0, 0, 0]):
@@ -188,8 +191,6 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
         Given a level 2-theta null point, compute a 4-isogeneous theta null
         point
         """
-
-        # print(f"Radical 8 isogeny, bits={bits}")
         a, b = self.domain
         r, s = self.torsion
         factor = self.eighth_root(r**8 - s**8)
@@ -198,32 +199,36 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
             factor = -factor
 
         if bits[1] == 1:
-            factor = self.zeta8**2 * factor
+            factor = self.zeta4 * factor
 
         if bits[2] == 1:
             factor = self.zeta8 * factor
 
         assert factor**8 == r**8 - s**8
 
-        a4 = r * r + factor * factor
-        b4 = r * r - factor * factor
-        # a4b = a*a+factor**8/(a*a) + 2 * factor **2 * r**2
-        # b4b = a*a+factor**8/(a*a) - 2 * factor **2 * r**2
-        # print(f"Ratio of the two ways to compute the theta null point: {a4b/a4}")
-        # print(b4b/b4)
-        # assert b4b * a4 == a4b * b4
+        # Precompute some values which are reused below
+        factor_2 = factor * factor
+        factor_4 = factor_2 * factor_2
 
-        r4 = a * b * (r * r - factor * factor)
+        ab = a * b
+        aa = a * a
+        bb = b * b
+
+        rr = r * r
+        rs = r * s
+
+        a4 = rr + factor_2
+        b4 = rr - factor_2
+
+        r4 = ab * (rr - factor_2)
         s4 = (
-            a * a * r * s
-            + factor**4 * b * b / (2 * r * s)
-            - self.sqrt2 * factor * a * b * r
+            aa * rs
+            + factor_4 * bb / (2 * rs)
+            - self.sqrt2 * factor * ab * r
         )
 
         mu3 = (r4**4 + s4**4) / a4**2
         mu4 = 2 * r4**2 * s4**2 / b4**2
-        # print(f"mu3: {mu3}")
-        # print(f"mu4: {mu4}")
         assert mu3 == mu4
 
         O1 = ThetaNullPoint(a4, b4)
@@ -234,9 +239,8 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
         O1, P1 = self.radical_8isogeny(bits=bits)
         return ThetaCGLRadical8(
             O1,
-            P1,
-            sqrt8_function=self.sqrt8_function,
+            torsion=P1,
             zeta8=self.zeta8,
-            sqrt2=self.sqrt2,
             zeta4=self.zeta4,
+            sqrt2=self.sqrt2,
         )
