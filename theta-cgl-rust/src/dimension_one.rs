@@ -44,25 +44,22 @@ macro_rules! define_dim_one_theta_core {
 
             // Compute the two isogeny
             pub fn radical_two_isogeny(self, bit: u8) -> ThetaPointDim1 {
-                let (AA, BB) = self.squared_theta();
-                let AABB = &AA * &BB;
-                let (mut AB, _) = AABB.sqrt();
+                let (x0, x1) = self.squared_theta();
+                let x01 = &x0 * &x1;
+                let (mut y1, _) = x01.sqrt();
 
                 let ctl = ((bit as u32) & 1).wrapping_neg();
-                AB.set_condneg(ctl);
+                y1.set_condneg(ctl);
 
-                let (X_new, Z_new) = self.to_hadamard(&AA, &AB);
+                let (b0, b1) = self.to_hadamard(&x0, &y1);
 
-                Self { X: X_new, Z: Z_new }
+                Self { X: b0, Z: b1 }
             }
 
             pub fn radical_four_isogeny(self, bits: Vec<u8>) -> ThetaPointDim1 {
-                let (AA, BB) = self.squared_theta();
-                let AABB = &AA * &BB;
-                let (mut factor, check) = AABB.fourth_root();
-                if check == 0 {
-                    panic!("Something has gone wrong with the isogeny chain.")
-                }
+                let (x0, x1) = self.squared_theta();
+                let x01 = &x0 * &x1;
+                let mut factor = x01.fourth_root().0;
 
                 // if the second bit is zero, we multiply by zeta
                 let ctl2 = ((bits[1] as u32) & 1).wrapping_neg();
@@ -72,11 +69,11 @@ macro_rules! define_dim_one_theta_core {
                 let ctl1 = ((bits[0] as u32) & 1).wrapping_neg();
                 factor.set_condneg(ctl1);
 
-                let X_new = self.X + factor;
-                let Z_new = self.X - factor;
-                let (X_new, Z_new) = self.to_hadamard(&X_new, &Z_new);
+                let b0 = self.X + factor;
+                let b1 = self.X - factor;
+                let (b0, b1) = self.to_hadamard(&b0, &b1);
 
-                Self { X: X_new, Z: Z_new }
+                Self { X: b0, Z: b1 }
             }
 
             pub fn to_hash(self) -> Fq {
