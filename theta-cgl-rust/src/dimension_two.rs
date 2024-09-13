@@ -42,64 +42,63 @@ macro_rules! define_dim_two_theta_core {
                 (&t1 + &t3, &t2 + &t4, &t1 - &t3, &t2 - &t4)
             }
 
-            // Squared theta first squares the coords
-            // then returns the hadamard transform.
+            // Squared theta first squares the coords of the points
+            // and then computes the Hadamard transformation.
             // This gives the square of the dual coords
+            // Cost 4S + 8a
             pub fn squared_theta(self) -> (Fq, Fq, Fq, Fq) {
                 let XX = self.X.square();
                 let ZZ = self.Z.square();
                 let UU = self.U.square();
                 let VV = self.V.square();
 
-                (XX, ZZ, UU, VV)
+                self.to_hadamard(&XX, &ZZ, &UU, &VV)
             }
 
             // Compute the two isogeny
             pub fn radical_two_isogeny(self, bits: Vec<u8>) -> ThetaPointDim2 {
-                let (mut AA, mut BB, mut CC, mut DD) = self.squared_theta();
+                // Compute squared dual coordinates xi
+                let (x0, x1, x2, x3) = self.squared_theta();
 
-                (AA, BB, CC, DD) = self.to_hadamard(&AA, &BB, &CC, &DD);
+                // Compute yi = sqrt(x0 * xi)
+                let mut y1 = (&x0 * &x1).sqrt().0;
+                let mut y2 = (&x0 * &x2).sqrt().0;
+                let mut y3 = (&x0 * &x3).sqrt().0;
 
-                let AABB = &AA * &BB;
-                let AACC = &AA * &CC;
-                let AADD = &AA * &DD;
-
-                let mut AB = AABB.sqrt().0;
-                let mut AC = AACC.sqrt().0;
-                let mut AD = AADD.sqrt().0;
-
+                // Consume bits by setting signs
                 let ctl1 = ((bits[0] as u32) & 1).wrapping_neg();
-                AB.set_condneg(ctl1);
+                y1.set_condneg(ctl1);
 
                 let ctl2 = ((bits[1] as u32) & 1).wrapping_neg();
-                AC.set_condneg(ctl2);
+                y2.set_condneg(ctl2);
 
                 let ctl3 = ((bits[2] as u32) & 1).wrapping_neg();
-                AD.set_condneg(ctl3);
+                y3.set_condneg(ctl3);
 
-                let (anew, bnew, cnew, dnew) = self.to_hadamard(&AA, &AB, &AC, &AD);
+                // Compute the codomain
+                let (b0, b1, b2, b3) = self.to_hadamard(&x0, &y1, &y2, &y3);
 
-                ThetaPointDim2::new(&anew, &bnew, &cnew, &dnew)
+                ThetaPointDim2::new(&b0, &b1, &b2, &b3)
             }
 
             // Compute a four-radical isogeny
             pub fn radical_four_isogeny(self, bits: Vec<u8>) -> ThetaPointDim2 {
-                let (mut AA, mut BB, mut CC, mut DD) = self.squared_theta();
-                (AA, BB, CC, DD) = self.to_hadamard(&AA, &BB, &CC, &DD);
+                // Compute squared dual coordinates xi
+                let (x0, x1, x2, x3) = self.squared_theta();
 
-                let AABB = &AA * &BB;
-                let AACC = &AA * &CC;
-                let BBDD = &BB * &DD;
-                let CCDD = &CC * &DD;
+                let x01 = &x0 * &x1;
+                let x02 = &x0 * &x2;
+                let x13 = &x1 * &x3;
+                let x23 = &x2 * &x3;
 
-                // Compute ABCD and flip the sign if bit[0] is set to 1
-                let mut ABCD = (&AABB * &CCDD).sqrt().0;
+                // Compute y and flip the sign if bit[0] is set to 1
+                let mut y = (&x01 * &x23).sqrt().0;
                 let ctl1 = ((bits[0] as u32) & 1).wrapping_neg();
-                ABCD.set_condneg(ctl1);
+                y.set_condneg(ctl1);
 
                 // Compute alpha_1 and alpha2
-                let alpha_1_4 = (&ABCD.mul2() + &AABB + &CCDD).mul4();
-                let alpha_2_4 = (&ABCD.mul2() + &AACC + &BBDD).mul4();
+                let alpha_1_4 = (&y.mul2() + &x01 + &x23).mul4();
+                let alpha_2_4 = (&y.mul2() + &x02 + &x13).mul4();
                 let mut alpha_1 = alpha_1_4.fourth_root().0;
                 let mut alpha_2 = alpha_2_4.fourth_root().0;
 
@@ -117,24 +116,25 @@ macro_rules! define_dim_two_theta_core {
                 alpha_2.set_cond(&(&alpha_2 * &Fq::ZETA), ctl5);
                 alpha_2.set_condneg(ctl4);
 
-                let mut alpha_3_2 = (&CCDD + &ABCD).mul8();
-                alpha_3_2 *= (&AACC + &ABCD) * &CCDD * &DD + &(&BBDD + &ABCD) * &CCDD * &CC;
+                let mut alpha_3_2 = (&x23 + &y).mul8();
+                alpha_3_2 *= (&x02 + &y) * &x23 * &x3 + &(&x13 + &y) * &x23 * &x2;
                 let mut alpha_3 = alpha_3_2.sqrt().0;
 
                 // Change the sign of alpha_3 depending on bit 5
                 let ctl6 = ((bits[5] as u32) & 1).wrapping_neg();
                 alpha_3.set_condneg(ctl6);
 
-                let lambda = &CCDD * &alpha_1 * &alpha_2;
+                // Projective factor
+                let lambda = &x23 * &alpha_1 * &alpha_2;
 
-                let (anew, bnew, cnew, dnew) = self.to_hadamard(
+                let (b0, b1, b2, b3) = self.to_hadamard(
                     &(&self.X.mul2() * &lambda),
                     &(&alpha_1 * &lambda),
                     &(&alpha_2 * &lambda),
                     &alpha_3,
                 );
 
-                ThetaPointDim2::new(&anew, &bnew, &cnew, &dnew)
+                ThetaPointDim2::new(&b0, &b1, &b2, &b3)
             }
 
             pub fn to_hash(self) -> (Fq, Fq, Fq) {

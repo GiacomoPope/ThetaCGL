@@ -440,13 +440,9 @@ impl GF5_248 {
 
     // Multiply this value by a small integer.
     #[inline(always)]
-    pub fn set_mul_small(&mut self, x: i32) {
-        // Get the absolute value of the multiplier (but remember the sign).
-        let sx = (x >> 31) as u32;
-        let ax = ((x as u32) ^ sx).wrapping_sub(sx);
-
+    pub fn set_mul_small(&mut self, x: u32) {
         // Store as u64
-        let b = ax as u64;
+        let b = x as u64;
 
         // Compute the product as an integer over five words.
         // Max value is (2^32 - 1)*(2^251 - 1), so the top word (d4) is
@@ -476,20 +472,14 @@ impl GF5_248 {
 
         // The value is at most 5*2^248 + 6871947672, which is in
         // range.
-
         self.0[0] = d0;
         self.0[1] = d1;
         self.0[2] = d2;
         self.0[3] = d3;
-
-        // Now we need to conditionally flip the sign
-        // TODO: this probably ruins performance and we
-        // should only use u32 here...
-        self.set_condneg(sx);
     }
 
     #[inline(always)]
-    pub fn mul_small(self, x: i32) -> Self {
+    pub fn mul_small(self, x: u32) -> Self {
         let mut r = self;
         r.set_mul_small(x);
         r
@@ -1395,7 +1385,7 @@ impl GF5_248 {
     /// failure, this value is set to 0.
     fn set_fourth_root(&mut self) -> u32 {
         // Candidate root is self^((q+1)/8).
-        // (q+1)/4 = 5*2^245
+        // (q+1)/8 = 5*2^245
         let z = *self;
         let z5 = z * z.xsquare(2);
         let mut y = z5.xsquare(245);
@@ -1408,7 +1398,7 @@ impl GF5_248 {
         y.set_cond(&-y, ((yn.0[0] as u32) & 1).wrapping_neg());
 
         // Check that the candidate is indeed a square root.
-        let r = y.square().square().equals(self);
+        let r = y.xsquare(2).equals(self);
         *self = y;
         r
     }
@@ -1417,6 +1407,38 @@ impl GF5_248 {
     pub fn fourth_root(self) -> (Self, u32) {
         let mut x = self;
         let r = x.set_fourth_root();
+        (x, r)
+    }
+
+    /// Set this value to its eighth root. Returned value is 0xFFFFFFFF if
+    /// the operation succeeded (value was indeed some element to the power of eight), or
+    /// 0x00000000 otherwise. On success, the chosen root is the one whose
+    /// least significant bit (as an integer in [0..q-1]) is zero. On
+    /// failure, this value is set to 0.
+    fn set_eighth_root(&mut self) -> u32 {
+        // Candidate root is self^((q+1)/16).
+        // (q+1)/16 = 5*2^244
+        let z = *self;
+        let z5 = z * z.xsquare(2);
+        let mut y = z5.xsquare(244);
+
+        // Normalize y and negate it if necessary to set the low bit to 0.
+        // We must take care to make the bit check on the value in normal
+        // representation, not Montgomery representation.
+        let mut yn = y;
+        yn.set_montgomery_reduce();
+        y.set_cond(&-y, ((yn.0[0] as u32) & 1).wrapping_neg());
+
+        // Check that the candidate is indeed a square root.
+        let r = y.xsquare(3).equals(self);
+        *self = y;
+        r
+    }
+
+    /// TODO
+    pub fn eighth_root(self) -> (Self, u32) {
+        let mut x = self;
+        let r = x.set_eighth_root();
         (x, r)
     }
 
@@ -1468,17 +1490,6 @@ impl GF5_248 {
         let r = (t0 | t0.wrapping_neg()) & (t1 | t1.wrapping_neg());
         ((r >> 63) as u32).wrapping_sub(1)
     }
-
-    /* unused
-    #[inline(always)]
-    fn decode32_reduce(buf: &[u8]) -> Self {
-        let mut r = Self::ZERO;
-        if buf.len() == 32 {
-            r.set_decode32_reduce(buf);
-        }
-        r
-    }
-    */
 
     // This internal function decodes 32 bytes (exactly) into a 256-bit
     // integer.
@@ -2153,7 +2164,7 @@ mod tests {
         let zd = (&za << 5) % &zp;
         assert!(zc == zd);
 
-        let x = u32::from_le_bytes(*<&[u8; 4]>::try_from(&vb[0..4]).unwrap()) as i32;
+        let x = u32::from_le_bytes(*<&[u8; 4]>::try_from(&vb[0..4]).unwrap());
         let c = a.mul_small(x);
         let vc = c.encode32();
         let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
@@ -2251,6 +2262,12 @@ mod tests {
             let (t, r) = s.fourth_root();
             assert!(r == 0xFFFFFFFF);
             assert!(t.square().square().equals(&s) == 0xFFFFFFFF);
+
+            // test eighth root
+            let s = GF5_248::decode_reduce(&va).square().square().square();
+            let (t, r) = s.eighth_root();
+            assert!(r == 0xFFFFFFFF);
+            assert!(t.square().square().square().equals(&s) == 0xFFFFFFFF);
         }
     }
 

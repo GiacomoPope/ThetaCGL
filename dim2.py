@@ -1,23 +1,28 @@
 from collections import namedtuple
 from cgl import CGL
 from dim1 import ThetaCGL
-from utilities import canonical_root
 
-ThetaNullPointDim2 = namedtuple("ThetaNullPoint_dim_2", "a b c d")
+ThetaNullPointDim2 = namedtuple("ThetaNullPoint_dim_2", "a0 a1 a2 a3")
 
 
 class ThetaCGLDim2(CGL):
-    def __init__(self, domain, sqrt_function=None, chunk=3, **kwds):
-        super().__init__(domain, sqrt_function=sqrt_function, chunk=chunk, **kwds)
+    def __init__(self, domain, chunk=3, **kwds):
+        super().__init__(domain, chunk=chunk, **kwds)
 
-    @staticmethod
-    def from_elliptic_curves(E1, E2, sqrt_function=None):
+    @classmethod
+    def from_null_coords(cls, coords):
+        assert len(coords) == 4
+        OO = ThetaNullPointDim2(*coords)
+        return cls(OO)
+
+    @classmethod
+    def from_elliptic_curves(cls, E1, E2):
         O1 = ThetaCGL(E1)
         O2 = ThetaCGL(E2)
-        a, b = O1.domain
-        c, d = O2.domain
-        OO = ThetaNullPointDim2(a * c, a * d, b * c, b * d)
-        return ThetaCGLDim2(OO, sqrt_function=sqrt_function)
+        a0, a1 = O1.domain
+        b0, b1 = O2.domain
+        OO = ThetaNullPointDim2(a0 * b0, a0 * b1, a1 * b0, a1 * b1)
+        return cls(OO)
 
     @staticmethod
     def hadamard(x, y, z, t):
@@ -28,58 +33,55 @@ class ThetaCGLDim2(CGL):
         Given a level 2-theta null point, compute a 2-isogeneous theta null
         point
         """
-        a, b, c, d = self.domain
+        a0, a1, a2, a3 = self.domain
+        x0, x1, x2, x3 = ThetaCGLDim2.hadamard(a0 * a0, a1 * a1, a2 * a2, a3 * a3)
 
-        aa = a * a  # a*a is faster than a**2 in SageMath
-        bb = b * b
-        cc = c * c
-        dd = d * d
-
-        AA, BB, CC, DD = ThetaCGLDim2.hadamard(aa, bb, cc, dd)
-        
-        lam = 0
-        for X in [AA, BB, CC, DD]:
-            if X != 0:
-                lam = X
+        # Ensure that the zero coordinate is not x0
+        zero_index = 3
+        xi_list = [x0, x1, x2, x3]
+        for i, xi in enumerate(xi_list):
+            if xi.is_zero():
+                print("We will have a redundant bit...")
+                zero_index = i
                 break
-        if lam == 0:
-            raise ValueError("All coordinates are zero")
+        xi_list[zero_index], xi_list[3] = xi_list[3], xi_list[zero_index]
+        x0, x1, x2, x3 = xi_list
 
-        AAAA = lam * AA
-        AABB = lam * BB
-        AACC = lam * CC
-        AADD = lam * DD
-        AB = self.sqrt(AABB)
-        AC = self.sqrt(AACC)
-        AD = self.sqrt(AADD)
+        y0 = x0
+        y1 = self.sqrt(x0 * x1)
+        y2 = self.sqrt(x0 * x2)
+        y3 = self.sqrt(x0 * x3)
 
         if bits[0] == 1:
-            AB = -AB
+            y1 = -y1
         if bits[1] == 1:
-            AC = -AC
+            y2 = -y2
         if bits[2] == 1:
-            AD = -AD
+            y3 = -y3
 
-        a_new, b_new, c_new, d_new = ThetaCGLDim2.hadamard(AA, AB, AC, AD)
+        # If we swapped coordinates, swap them back
+        yi_list = [y0, y1, y2, y3]
+        yi_list[zero_index], yi_list[3] = yi_list[3], yi_list[zero_index]
+        y0, y1, y2, y3 = yi_list
 
-        return ThetaNullPointDim2(a_new, b_new, c_new, d_new)
+        b0, b1, b2, b3 = ThetaCGLDim2.hadamard(y0, y1, y2, y3)
+
+        return ThetaNullPointDim2(b0, b1, b2, b3)
 
     def advance(self, bits=[0, 0, 0]):
         O1 = self.radical_2isogeny(bits)
-        return ThetaCGLDim2(O1, sqrt_function=self.sqrt_function)
+        return ThetaCGLDim2(O1)
 
     def to_hash(self):
-        a, b, c, d = self.domain
-        a_inv = 1 / a
-        return (b * a_inv, c * a_inv, d * a_inv)
+        a0, a1, a2, a3 = self.domain
+        a0_inv = 1 / a0
+        return (a1 * a0_inv, a2 * a0_inv, a3 * a0_inv)
 
 
-class ThetaCGLDim2Radical4(CGL):
+class ThetaCGLDim2Radical4(ThetaCGLDim2):
     def __init__(
         self,
         domain,
-        sqrt_function=None,
-        fourth_root_function=None,
         zeta4=None,
         chunk=6,
         **kwds,
@@ -91,59 +93,34 @@ class ThetaCGLDim2Radical4(CGL):
             zeta4 = a.parent().gen()
         assert zeta4 * zeta4 == -1
         self.zeta4 = zeta4
-        self.sqrt_function = sqrt_function
-        self.fourth_root_function = fourth_root_function
-
-    @staticmethod
-    def hadamard(x, y, z, t):
-        return (x + y + z + t, x - y + z - t, x + y - z - t, x - y - z + t)
-
-    @staticmethod
-    def from_elliptic_curves(
-        E1, E2, sqrt_function=None, fourth_root_function=None, zeta4=None
-    ):
-        O1 = ThetaCGL(E1)
-        O2 = ThetaCGL(E2)
-        a, b = O1.domain
-        c, d = O2.domain
-        OO = ThetaNullPointDim2(a * c, a * d, b * c, b * d)
-        return ThetaCGLDim2Radical4(
-            OO,
-            sqrt_function=sqrt_function,
-            fourth_root_function=fourth_root_function,
-            zeta4=zeta4,
-            chunk=6,
-        )
 
     def radical_4isogeny(self, bits=[0, 0, 0, 0, 0, 0]):
         """
         Given a level 2-theta null point, compute a 4-isogeneous theta null
         point
         """
-        a, b, c, d = self.domain
+        a0, a1, a2, a3 = self.domain
+        x0, x1, x2, x3 = ThetaCGLDim2.hadamard(a0 * a0, a1 * a1, a2 * a2, a3 * a3)
 
-        aa = a * a  # a*a is faster than a**2 in SageMath
-        bb = b * b
-        cc = c * c
-        dd = d * d
+        x01 = x0 * x1
+        x02 = x0 * x2
+        x13 = x1 * x3
+        x23 = x2 * x3
 
-        AA, BB, CC, DD = ThetaCGLDim2.hadamard(aa, bb, cc, dd)
+        # First sqrt
+        y = self.sqrt(x01 * x23)
 
-        AABB = AA * BB
-        AACC = AA * CC
-        BBDD = BB * DD
-        CCDD = CC * DD
-
-        ABCD = self.sqrt(AABB * CCDD)
+        # Consume one bit on the sign
         if bits[0] == 1:
-            ABCD = -ABCD
+            y = -y
 
-        alpha1_4 = 4 * (2 * ABCD + AABB + CCDD)
-        alpha2_4 = 4 * (2 * ABCD + AACC + BBDD)
-
+        # Two fourth roots
+        alpha1_4 = 4 * (2 * y + x01 + x23)
+        alpha2_4 = 4 * (2 * y + x02 + x13)
         alpha1 = self.fourth_root(alpha1_4)
         alpha2 = self.fourth_root(alpha2_4)
 
+        # Consume four bits, sign and zeta
         if bits[1] == 1:
             alpha1 = -alpha1
         if bits[2] == 1:
@@ -154,34 +131,28 @@ class ThetaCGLDim2Radical4(CGL):
         if bits[4] == 1:
             alpha2 *= self.zeta4
 
-        alpha3_2 = 8 * (CCDD + ABCD)
-        alpha3_2 *= (AACC + ABCD) * CCDD * DD + (BBDD + ABCD) * CCDD * CC
+        # Last sqrt
+        alpha3_2 = 8 * (x23 + y)
+        alpha3_2 *= (x02 + y) * x23 * x3 + (x13 + y) * x23 * x2
         alpha3 = self.sqrt(alpha3_2)
 
-        projective_factor = CCDD * alpha1 * alpha2
-
+        # Consume the last bit
         if bits[5] == 1:
             alpha3 = -alpha3
 
-        a_new, b_new, c_new, d_new = ThetaCGLDim2.hadamard(
-            2 * a * projective_factor,
+        projective_factor = x23 * alpha1 * alpha2
+        b0, b1, b2, b3 = ThetaCGLDim2.hadamard(
+            2 * a0 * projective_factor,
             alpha1 * projective_factor,
             alpha2 * projective_factor,
             alpha3,
         )
 
-        return ThetaNullPointDim2(a_new, b_new, c_new, d_new)
+        return ThetaNullPointDim2(b0, b1, b2, b3)
 
     def advance(self, bits=[0, 0, 0, 0, 0, 0]):
         O1 = self.radical_4isogeny(bits=bits)
         return ThetaCGLDim2Radical4(
             O1,
-            fourth_root_function=self.fourth_root_function,
-            sqrt_function=self.sqrt_function,
             zeta4=self.zeta4,
         )
-
-    def to_hash(self):
-        a, b, c, d = self.domain
-        a_inv = 1 / a
-        return (b * a_inv, c * a_inv, d * a_inv)

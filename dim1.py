@@ -3,7 +3,7 @@ from sage.all import EllipticCurve
 from sage.schemes.elliptic_curves.ell_generic import EllipticCurve_generic
 
 from cgl import CGL
-from utilities import montgomery_coefficient, canonical_root
+from utilities import montgomery_coefficient
 
 ThetaNullPoint = namedtuple("ThetaNullPoint_dim_1", "a b")
 ThetaPoint = namedtuple("ThetaNullPoint_dim_1", "x z")
@@ -77,7 +77,6 @@ class ThetaCGL(CGL):
         """
         Give the j-invariant of our current theta null point
         """
-
         return self.to_montgomery_curve().j_invariant()
 
     def cardinality(self):
@@ -92,12 +91,8 @@ class ThetaCGL(CGL):
         Given a level 2-theta null point, compute a 2-isogeneous theta null
         point
         """
-
-        # print(f"Radical 2 isogeny, bits={bits}")
-        a, b = self.domain
-        aa = a * a  # a*a is faster than a**2 in SageMath
-        bb = b * b
-        AA, BB = ThetaCGL.hadamard(aa, bb)
+        a0, a1 = self.domain
+        AA, BB = ThetaCGL.hadamard(a0 * a0, a1 * a1)
         AABB = AA * BB
         AB = self.sqrt(AABB)
         if bits[0] == 1:
@@ -108,7 +103,7 @@ class ThetaCGL(CGL):
 
     def advance(self, bits=[0]):
         O1 = self.radical_2isogeny(bits=bits)
-        return ThetaCGL(O1, sqrt_function=self.sqrt_function)
+        return ThetaCGL(O1)
 
     def to_hash(self):
         a, b = self.domain
@@ -117,24 +112,14 @@ class ThetaCGL(CGL):
 
 # Experimental formula for 4-radical isogeny
 class ThetaCGLRadical4(ThetaCGL):
-    def __init__(self, domain, fourth_root_function=None, zeta4=None, chunk=2, **kwds):
+    def __init__(self, domain, zeta4=None, chunk=2, **kwds):
         super().__init__(domain, chunk=chunk, **kwds)
 
         if zeta4 is None:
             a, _ = self.domain
-            zeta4 = a.base_ring().gen()
+            zeta4 = a.parent().gen()
         assert zeta4 * zeta4 == -1
         self.zeta4 = zeta4
-        self.fourth_root_function = fourth_root_function
-
-    # Here sqrt is the fourth root power
-    def fourth_root(self, x):
-        if self.fourth_root_function is None:
-            r = self.sqrt(self.sqrt(x))
-        else:
-            r = self.fourth_root_function(x)
-
-        return canonical_root(r)
 
     def radical_4isogeny(self, bits=[0, 0]):
         """
@@ -167,8 +152,6 @@ class ThetaCGLRadical4(ThetaCGL):
         O1 = self.radical_4isogeny(bits=bits)
         return ThetaCGLRadical4(
             O1,
-            fourth_root_function=self.fourth_root_function,
-            sqrt_function=self.sqrt_function,
             zeta4=self.zeta4,
         )
 
@@ -180,77 +163,84 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
         domain,
         torsion=None,
         chunk=3,
-        sqrt8_function=None,
-        sqrt2=None,
         zeta8=None,
+        zeta4=None,
+        sqrt2=None,
         **kwds,
     ):
         super().__init__(domain, chunk=chunk, **kwds)
 
         self.zeta8 = zeta8
         assert self.zeta8**4 == -1
-        self.sqrt8_function = sqrt8_function
+
+        self.zeta4 = zeta4
+        assert self.zeta4**2 == -1
+
         self.sqrt2 = sqrt2
+        assert self.sqrt2**2 == 2
 
         if torsion is None:
             a2, b2 = self.radical_2isogeny()
             r = self.sqrt(a2)
             s = self.sqrt(b2)
             torsion = ThetaPoint(r, s)
-
         self.torsion = torsion
-
-    # Here sqrt is the fourth root power
-    def sqrt8(self, x):
-        if self.sqrt8_function is None:
-            r = self.sqrt(self.sqrt(self.sqrt(x)))
-        else:
-            r = self.sqrt8_function(x)
-
-        return r
 
     def radical_8isogeny(self, bits=[0, 0, 0]):
         """
         Given a level 2-theta null point, compute a 4-isogeneous theta null
         point
         """
-
-        # print(f"Radical 8 isogeny, bits={bits}")
         a, b = self.domain
         r, s = self.torsion
-        factor = self.sqrt8(r**8 - s**8)
+        factor = self.eighth_root(r**8 - s**8)
 
         if bits[0] == 1:
             factor = -factor
 
         if bits[1] == 1:
-            factor = self.zeta8**2 * factor
+            factor = self.zeta4 * factor
 
         if bits[2] == 1:
             factor = self.zeta8 * factor
 
         assert factor**8 == r**8 - s**8
 
-        a4 = r * r + factor * factor
-        b4 = r * r - factor * factor
-        # a4b = a*a+factor**8/(a*a) + 2 * factor **2 * r**2
-        # b4b = a*a+factor**8/(a*a) - 2 * factor **2 * r**2
-        # print(f"Ratio of the two ways to compute the theta null point: {a4b/a4}")
-        # print(b4b/b4)
-        # assert b4b * a4 == a4b * b4
+        # Precompute some values which are reused below
+        factor_2 = factor * factor
+        factor_4 = factor_2 * factor_2
 
-        r4 = a * b * (r * r - factor * factor)
+        ab = a * b
+        aa = a * a
+        bb = b * b
+
+        rr = r * r
+        rs = r * s
+
+        a4 = rr + factor_2
+        b4 = rr - factor_2
+
+        rsab = rs * ab
+
+        # Projective, so we can remove this inversion?
+
+        # r4 = ab * (rr - factor_2)
+        # s4 = (
+        #     aa * rs
+        #     + factor_4 * bb / (2 * rs)
+        #     - self.sqrt2 * factor * ab * r
+        # )
+
+        r4 = 2 * rsab * (rr - factor_2)
         s4 = (
-            a * a * r * s
-            + factor**4 * b * b / (2 * r * s)
-            - self.sqrt2 * factor * a * b * r
+            2 * aa * rs**2 
+            + factor_4 * bb 
+            - 2 * self.sqrt2 * factor * rsab * r
         )
 
-        mu3 = (r4**4 + s4**4) / a4**2
-        mu4 = 2 * r4**2 * s4**2 / b4**2
-        # print(f"mu3: {mu3}")
-        # print(f"mu4: {mu4}")
-        assert mu3 == mu4
+        # mu3 = (r4**4 + s4**4) / a4**2
+        # mu4 = 2 * r4**2 * s4**2 / b4**2
+        # assert mu3 == mu4
 
         O1 = ThetaNullPoint(a4, b4)
         P1 = ThetaPoint(r4, s4)
@@ -260,11 +250,8 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
         O1, P1 = self.radical_8isogeny(bits=bits)
         return ThetaCGLRadical8(
             O1,
-            P1,
-            sqrt8_function=self.sqrt8_function,
+            torsion=P1,
             zeta8=self.zeta8,
-            sqrt2=self.sqrt2,
-            fourth_root_function=self.fourth_root_function,
-            sqrt_function=self.sqrt_function,
             zeta4=self.zeta4,
+            sqrt2=self.sqrt2,
         )

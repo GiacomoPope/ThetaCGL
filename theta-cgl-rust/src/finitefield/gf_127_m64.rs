@@ -351,13 +351,9 @@ impl Gf127 {
 
     // Multiply this value by a small integer.
     #[inline(always)]
-    pub fn set_mul_small(&mut self, x: i32) {
-        // Get the absolute value of the multiplier (but remember the sign).
-        let sx = (x >> 31) as u32;
-        let ax = ((x as u32) ^ sx).wrapping_sub(sx);
-
+    pub fn set_mul_small(&mut self, x: u32) {
         // Store as u64
-        let b = ax as u64;
+        let b = x as u64;
 
         // Compute the product as an integer over three words.
         // Max value is (2^32 - 1)*(2^127 - 1), so the top word (d4) is
@@ -370,14 +366,10 @@ impl Gf127 {
         self.0[0] = d0;
         self.0[1] = d1;
         self.set_reduce_small(d2);
-
-        // Now we need to conditionally flip the sign
-        // if the input x was negative
-        self.set_condneg(sx);
     }
 
     #[inline(always)]
-    pub fn mul_small(self, x: i32) -> Self {
+    pub fn mul_small(self, x: u32) -> Self {
         let mut r = self;
         r.set_mul_small(x);
         r
@@ -663,7 +655,7 @@ impl Gf127 {
     /// failure, this value is set to 0.
     fn set_fourth_root(&mut self) -> u32 {
         // Candidate root is self^((q+1)/8).
-        // (q+1)/4 = 2^124
+        // (q+1)/8 = 2^124
         let mut y = self.xsquare(124);
 
         // Normalize y and negate it if necessary to set the low bit to 0.
@@ -674,15 +666,43 @@ impl Gf127 {
         y.set_cond(&-y, ((yn.0[0] as u32) & 1).wrapping_neg());
 
         // Check that the candidate is indeed a square root.
-        let r = y.square().square().equals(self);
+        let r = y.xsquare(2).equals(self);
         *self = y;
         r
     }
 
-    /// TODO
     pub fn fourth_root(self) -> (Self, u32) {
         let mut x = self;
         let r = x.set_fourth_root();
+        (x, r)
+    }
+
+    /// Set this value to its eighth root. Returned value is 0xFFFFFFFF if
+    /// the operation succeeded (value was indeed some element to the power of eight), or
+    /// 0x00000000 otherwise. On success, the chosen root is the one whose
+    /// least significant bit (as an integer in [0..q-1]) is zero. On
+    /// failure, this value is set to 0.
+    fn set_eighth_root(&mut self) -> u32 {
+        // Candidate root is self^((q+1)/16).
+        // (q+1)/16 = 2^123
+        let mut y = self.xsquare(123);
+
+        // Normalize y and negate it if necessary to set the low bit to 0.
+        // We must take care to make the bit check on the value in normal
+        // representation, not Montgomery representation.
+        let mut yn = y;
+        yn.set_normalized();
+        y.set_cond(&-y, ((yn.0[0] as u32) & 1).wrapping_neg());
+
+        // Check that the candidate is indeed a square root.
+        let r = y.xsquare(3).equals(self);
+        *self = y;
+        r
+    }
+
+    pub fn eighth_root(self) -> (Self, u32) {
+        let mut x = self;
+        let r = x.set_eighth_root();
         (x, r)
     }
 
@@ -1272,7 +1292,7 @@ mod tests {
         let zd = (&za << 5) % &zp;
         assert!(zc == zd);
 
-        let x = u32::from_le_bytes(*<&[u8; 4]>::try_from(&vb[0..4]).unwrap()) as i32;
+        let x = u32::from_le_bytes(*<&[u8; 4]>::try_from(&vb[0..4]).unwrap());
         let c = a.mul_small(x);
         let vc = c.encode16();
         let zc = BigInt::from_bytes_le(Sign::Plus, &vc);
@@ -1354,6 +1374,12 @@ mod tests {
             let (t, r) = s.fourth_root();
             assert!(r == 0xFFFFFFFF);
             assert!(t.square().square().equals(&s) == 0xFFFFFFFF);
+
+            // test eighth root
+            let s = Gf127::decode_reduce(&va).square().square().square();
+            let (t, r) = s.eighth_root();
+            assert!(r == 0xFFFFFFFF);
+            assert!(t.square().square().square().equals(&s) == 0xFFFFFFFF);
         }
     }
 
