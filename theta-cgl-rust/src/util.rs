@@ -10,7 +10,7 @@ pub fn pad_msg(mut msg: Vec<u8>, block_size: usize) -> Vec<u8> {
     // Pad with '0' bytes until the message's length in bits is block_size:
     let r = msg.len() % block_size;
     let available = block_size - length_slot;
-    let mut pad_len = 0;
+    let pad_len;
     if r <= available {
         pad_len = available - r;
     } else {
