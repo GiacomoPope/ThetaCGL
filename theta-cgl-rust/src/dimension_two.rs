@@ -159,7 +159,7 @@ macro_rules! define_dim_two_theta_core {
                 assert!(block_size % chunk_len == 0);
                 Self {
                     chunk_len,
-                    block_size
+                    block_size,
                 }
             }
             pub fn bit_string(self, mut T: ThetaPointDim2, msg: Vec<u8>) -> ThetaPointDim2 {
@@ -192,7 +192,7 @@ macro_rules! define_dim_two_theta_core {
                 assert!(block_size % chunk_len == 0);
                 Self {
                     chunk_len,
-                    block_size
+                    block_size,
                 }
             }
 

@@ -20,9 +20,8 @@ class ThetaCGL(CGL):
     def montgomery_curve_to_theta_null_point(self, E):
         """
         From an elliptic curve in Montgomery form, compute a theta null point
-        (a:b).
-        Let T1=(1:1) the canonical point of 4-torsion in Montgomery coordinates
-        and T2 such that (T1,T2) forms a symplectic basis of E[4].
+        (a:b). Let T1=(1:1) the canonical point of 4-torsion in Montgomery
+        coordinates and T2 such that (T1,T2) forms a symplectic basis of E[4].
         There are 4 choices of T2, giving 4 different theta null points.
         """
         # Extract A from curve equation
@@ -52,9 +51,9 @@ class ThetaCGL(CGL):
 
     def to_montgomery_curve(self):
         """
-        Given a level 2 theta null point (a:b), compute a Montgomery curve equation.
-        We use the model where the 4-torsion point (1:0) above (a:-b) is sent
-        to (1:1) in Montgomery coordinates.
+        Given a level 2 theta null point (a:b), compute a Montgomery curve
+        equation. We use the model where the 4-torsion point (1:0) above (a:-b)
+        is sent to (1:1) in Montgomery coordinates.
         """
 
         a, b = self.domain
@@ -92,13 +91,13 @@ class ThetaCGL(CGL):
         point
         """
         a0, a1 = self.domain
-        AA, BB = ThetaCGL.hadamard(a0 * a0, a1 * a1)
-        AABB = AA * BB
-        AB = self.sqrt(AABB)
+        x0, x1 = ThetaCGL.hadamard(a0 * a0, a1 * a1)
+        x01 = x0 * x1
+        y1 = self.sqrt(x01)
         if bits[0] == 1:
-            AB = -AB
-        anew, bnew = ThetaCGL.hadamard(AA, AB)
-        O1 = ThetaNullPoint(anew, bnew)
+            y1 = -y1
+        b0, b1 = ThetaCGL.hadamard(x0, y1)
+        O1 = ThetaNullPoint(b0, b1)
         return O1
 
     def advance(self, bits=[0]):
@@ -106,8 +105,8 @@ class ThetaCGL(CGL):
         return ThetaCGL(O1)
 
     def to_hash(self):
-        a, b = self.domain
-        return b / a
+        a0, a1 = self.domain
+        return a1 / a0
 
 
 # Experimental formula for 4-radical isogeny
@@ -126,13 +125,11 @@ class ThetaCGLRadical4(ThetaCGL):
         Given a level 2-theta null point, compute a 4-isogeneous theta null
         point
         """
-        a, b = self.domain
+        a0, a1 = self.domain
 
-        aa = a * a  # a*a is faster than a**2 in SageMath
-        bb = b * b
-        AA, BB = ThetaCGL.hadamard(aa, bb)
-        AABB = AA * BB
-        factor = self.fourth_root(AABB)  # fourth root
+        x0, x1 = ThetaCGL.hadamard(a0 * a0, a1 * a1)
+        x01 = x0 * x1
+        factor = self.fourth_root(x01)  # fourth root
 
         if bits[0] == 1:
             factor = -factor
@@ -140,13 +137,11 @@ class ThetaCGLRadical4(ThetaCGL):
         if bits[1] == 1:
             factor = self.zeta4 * factor
 
-        anew = a + factor
-        bnew = a - factor
+        b0 = a0 + factor
+        b1 = a0 - factor
+        b0, b1 = ThetaCGL.hadamard(b0, b1)
 
-        # anew, bnew = ThetaCGL.hadamard(a, factor)  # I think we need an hadamard?
-        anew, bnew = ThetaCGL.hadamard(anew, bnew)  # I think we need an hadamard?
-
-        return ThetaNullPoint(anew, bnew)
+        return ThetaNullPoint(b0, b1)
 
     def advance(self, bits=[0, 0]):
         O1 = self.radical_4isogeny(bits=bits)
@@ -181,8 +176,8 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
 
         if torsion is None:
             a2, b2 = self.radical_2isogeny()
-            r = self.sqrt(a2)
-            s = self.sqrt(b2)
+            r = self.sqrt(a2*b2)
+            s = self.sqrt(b2**2)
             torsion = ThetaPoint(r, s)
         self.torsion = torsion
 
@@ -222,25 +217,12 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
 
         rsab = rs * ab
 
-        # Projective, so we can remove this inversion?
-
-        # r4 = ab * (rr - factor_2)
-        # s4 = (
-        #     aa * rs
-        #     + factor_4 * bb / (2 * rs)
-        #     - self.sqrt2 * factor * ab * r
-        # )
-
         r4 = 2 * rsab * (rr - factor_2)
         s4 = (
             2 * aa * rs**2 
             + factor_4 * bb 
             - 2 * self.sqrt2 * factor * rsab * r
         )
-
-        # mu3 = (r4**4 + s4**4) / a4**2
-        # mu4 = 2 * r4**2 * s4**2 / b4**2
-        # assert mu3 == mu4
 
         O1 = ThetaNullPoint(a4, b4)
         P1 = ThetaPoint(r4, s4)

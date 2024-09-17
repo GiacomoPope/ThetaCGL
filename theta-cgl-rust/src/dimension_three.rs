@@ -280,7 +280,7 @@ macro_rules! define_dim_three_theta_core {
                 assert!(block_size % chunk_len == 0);
                 Self {
                     chunk_len,
-                    block_size
+                    block_size,
                 }
             }
             pub fn bit_string(self, mut T: ThetaPointDim3, msg: Vec<u8>) -> ThetaPointDim3 {
