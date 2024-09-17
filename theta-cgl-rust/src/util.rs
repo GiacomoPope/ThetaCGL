@@ -20,7 +20,10 @@ pub fn pad_msg(mut msg: Vec<u8>, block_size: usize) -> Vec<u8> {
     msg.extend(pad);
 
     // Append the original message length:
-    let length_bits: Vec<u8> = (0..length_slot).rev().map (|n| ((length >> n) & 1) as u8).collect();
+    let length_bits: Vec<u8> = (0..length_slot)
+        .rev()
+        .map(|n| ((length >> n) & 1) as u8)
+        .collect();
     msg.extend(length_bits);
 
     msg

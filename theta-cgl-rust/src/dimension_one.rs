@@ -141,9 +141,7 @@ macro_rules! define_dim_one_theta_core {
             const O0: ThetaPointDim1 = ThetaPointDim1::new(&X0, &Z0);
 
             pub fn new(block_size: usize) -> CGLDim1Rad2 {
-                Self {
-                    block_size
-                }
+                Self { block_size }
             }
 
             pub fn bit_string(&self, mut T: ThetaPointDim1, msg: Vec<u8>) -> ThetaPointDim1 {
@@ -175,7 +173,7 @@ macro_rules! define_dim_one_theta_core {
                 assert!(block_size % chunk_len == 0);
                 Self {
                     chunk_len,
-                    block_size
+                    block_size,
                 }
             }
 
@@ -219,7 +217,7 @@ macro_rules! define_dim_one_theta_core {
                 assert!(block_size % chunk_len == 0);
                 Self {
                     chunk_len,
-                    block_size
+                    block_size,
                 }
             }
 
