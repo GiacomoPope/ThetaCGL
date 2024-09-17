@@ -271,13 +271,9 @@ class ThetaCGLDim3(CGL):
         return O1
 
     def bit_string(self, message):
-        """TODO: proper padding scheme"""
         r = self
         for x in range(0, len(message), self.chunk):
             bits = message[x : x + self.chunk]
-            if len(bits) < self.chunk:
-                # pad bits if too short
-                bits += [0] * (self.chunk - len(bits))
             try:
                 r = r.advance(bits)
             except Exception as e:

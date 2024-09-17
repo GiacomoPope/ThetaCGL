@@ -133,13 +133,17 @@ macro_rules! define_dim_one_theta_core {
         }
 
         #[derive(Clone, Copy, Debug)]
-        pub struct CGLDim1Rad2 {}
+        pub struct CGLDim1Rad2 {
+            block_size: usize,
+        }
 
         impl CGLDim1Rad2 {
             const O0: ThetaPointDim1 = ThetaPointDim1::new(&X0, &Z0);
 
-            pub fn new() -> CGLDim1Rad2 {
-                Self {}
+            pub fn new(block_size: usize) -> CGLDim1Rad2 {
+                Self {
+                    block_size
+                }
             }
 
             pub fn bit_string(&self, mut T: ThetaPointDim1, msg: Vec<u8>) -> ThetaPointDim1 {
@@ -151,26 +155,32 @@ macro_rules! define_dim_one_theta_core {
             }
 
             pub fn hash(&self, msg: Vec<u8>) -> Fq {
-                let T = self.bit_string(Self::O0, msg);
-
+                let padded_msg = pad_msg(msg, self.block_size);
+                let T = self.bit_string(Self::O0, padded_msg);
                 T.to_hash()
             }
         }
 
         #[derive(Clone, Copy, Debug)]
-        pub struct CGLDim1Rad4 {}
+        pub struct CGLDim1Rad4 {
+            chunk_len: usize,
+            block_size: usize,
+        }
 
         impl CGLDim1Rad4 {
             const O0: ThetaPointDim1 = ThetaPointDim1::new(&X0, &Z0);
 
-            pub fn new() -> CGLDim1Rad4 {
-                Self {}
+            pub fn new(block_size: usize) -> CGLDim1Rad4 {
+                let chunk_len = 2;
+                assert!(block_size % chunk_len == 0);
+                Self {
+                    chunk_len,
+                    block_size
+                }
             }
 
-            pub fn bit_string(self, mut T: ThetaPointDim1, mut msg: Vec<u8>) -> ThetaPointDim1 {
-                let chunk_len = 2;
-                msg = pad_msg(msg, chunk_len);
-                let iter = msg.chunks(chunk_len);
+            pub fn bit_string(self, mut T: ThetaPointDim1, msg: Vec<u8>) -> ThetaPointDim1 {
+                let iter = msg.chunks(self.chunk_len);
                 for i in iter {
                     T = T.radical_four_isogeny(i.to_vec());
                 }
@@ -179,14 +189,17 @@ macro_rules! define_dim_one_theta_core {
             }
 
             pub fn hash(&self, msg: Vec<u8>) -> Fq {
-                let T = self.bit_string(Self::O0, msg);
-
+                let padded_msg = pad_msg(msg, self.block_size);
+                let T = self.bit_string(Self::O0, padded_msg);
                 T.to_hash()
             }
         }
 
         #[derive(Clone, Copy, Debug)]
-        pub struct CGLDim1Rad8 {}
+        pub struct CGLDim1Rad8 {
+            chunk_len: usize,
+            block_size: usize,
+        }
 
         impl CGLDim1Rad8 {
             // Null point
@@ -201,14 +214,17 @@ macro_rules! define_dim_one_theta_core {
             // eighth root of unity
             const ZETA_8: Fq = fp2_zeta_8;
 
-            pub fn new() -> CGLDim1Rad8 {
-                Self {}
+            pub fn new(block_size: usize) -> CGLDim1Rad8 {
+                let chunk_len = 3;
+                assert!(block_size % chunk_len == 0);
+                Self {
+                    chunk_len,
+                    block_size
+                }
             }
 
-            pub fn bit_string(self, mut T: ThetaPointDim1, mut msg: Vec<u8>) -> ThetaPointDim1 {
-                let chunk_len = 3;
-                msg = pad_msg(msg, chunk_len);
-                let iter = msg.chunks(chunk_len);
+            pub fn bit_string(self, mut T: ThetaPointDim1, msg: Vec<u8>) -> ThetaPointDim1 {
+                let iter = msg.chunks(self.chunk_len);
 
                 // Set the torsion point
                 let mut torsion = Self::TORSION;
@@ -225,8 +241,8 @@ macro_rules! define_dim_one_theta_core {
             }
 
             pub fn hash(&self, msg: Vec<u8>) -> Fq {
-                let T = self.bit_string(Self::O0, msg);
-
+                let padded_msg = pad_msg(msg, self.block_size);
+                let T = self.bit_string(Self::O0, padded_msg);
                 T.to_hash()
             }
         }

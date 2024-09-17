@@ -146,18 +146,24 @@ macro_rules! define_dim_two_theta_core {
         }
 
         #[derive(Clone, Copy, Debug)]
-        pub struct CGLDim2Rad2 {}
+        pub struct CGLDim2Rad2 {
+            chunk_len: usize,
+            block_size: usize,
+        }
 
         impl CGLDim2Rad2 {
             const O0: ThetaPointDim2 = ThetaPointDim2::new(&X0, &Z0, &U0, &V0);
 
-            pub fn new() -> Self {
-                Self {}
-            }
-            pub fn bit_string(self, mut T: ThetaPointDim2, mut msg: Vec<u8>) -> ThetaPointDim2 {
+            pub fn new(block_size: usize) -> Self {
                 let chunk_len = 3;
-                msg = pad_msg(msg, chunk_len);
-                let iter = msg.chunks(chunk_len);
+                assert!(block_size % chunk_len == 0);
+                Self {
+                    chunk_len,
+                    block_size
+                }
+            }
+            pub fn bit_string(self, mut T: ThetaPointDim2, msg: Vec<u8>) -> ThetaPointDim2 {
+                let iter = msg.chunks(self.chunk_len);
                 for i in iter {
                     T = T.radical_two_isogeny(i.to_vec());
                 }
@@ -166,25 +172,32 @@ macro_rules! define_dim_two_theta_core {
             }
 
             pub fn hash(self, msg: Vec<u8>) -> (Fq, Fq, Fq) {
-                let T = self.bit_string(Self::O0, msg);
+                let padded_msg = pad_msg(msg, self.block_size);
+                let T = self.bit_string(Self::O0, padded_msg);
                 T.to_hash()
             }
         }
 
         #[derive(Clone, Copy, Debug)]
-        pub struct CGLDim2Rad4 {}
+        pub struct CGLDim2Rad4 {
+            chunk_len: usize,
+            block_size: usize,
+        }
 
         impl CGLDim2Rad4 {
             const O0: ThetaPointDim2 = ThetaPointDim2::new(&X0, &Z0, &U0, &V0);
 
-            pub fn new() -> Self {
-                Self {}
+            pub fn new(block_size: usize) -> Self {
+                let chunk_len = 6;
+                assert!(block_size % chunk_len == 0);
+                Self {
+                    chunk_len,
+                    block_size
+                }
             }
 
-            pub fn bit_string(self, mut T: ThetaPointDim2, mut msg: Vec<u8>) -> ThetaPointDim2 {
-                let chunk_len = 6;
-                msg = pad_msg(msg, chunk_len);
-                let iter = msg.chunks(chunk_len);
+            pub fn bit_string(self, mut T: ThetaPointDim2, msg: Vec<u8>) -> ThetaPointDim2 {
+                let iter = msg.chunks(self.chunk_len);
                 for i in iter {
                     T = T.radical_four_isogeny(i.to_vec());
                 }
@@ -193,7 +206,8 @@ macro_rules! define_dim_two_theta_core {
             }
 
             pub fn hash(&self, msg: Vec<u8>) -> (Fq, Fq, Fq) {
-                let T = self.bit_string(Self::O0, msg);
+                let padded_msg = pad_msg(msg, self.block_size);
+                let T = self.bit_string(Self::O0, padded_msg);
                 T.to_hash()
             }
         }
