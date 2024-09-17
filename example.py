@@ -91,7 +91,7 @@ def dim_one_example():
     E0 = EllipticCurve(F, [1, 0])
 
     O0 = ThetaCGL(E0)
-    hash_1 = O0.hash(MESSAGE, apply_padding=False)
+    hash_1 = O0.hash(MESSAGE)
     print(f"Hashing test 1: {hash_1}")
 
     O1 = ThetaCGL([F(1), hash_1])
@@ -139,7 +139,7 @@ def dim_two_example():
     E0 = EllipticCurve(F, [1, 0])
 
     O0 = ThetaCGLDim2.from_elliptic_curves(E0, E0)
-    hash_1 = O0.hash(MESSAGE + [0, 0], apply_padding=False)
+    hash_1 = O0.hash(MESSAGE)
     print(f"Hashing test 1: {hash_1}")
 
     O1 = ThetaCGLDim2.from_null_coords([F(1), *hash_1])
@@ -164,15 +164,20 @@ def dim_three_example():
     F = GF(p**2, name="i", modulus=[1, 0, 1])
     E0 = EllipticCurve(F, [1, 0])
     O0 = ThetaCGLDim3.from_elliptic_curves(E0, E0, E0)
-    hash_1 = O0.hash(MESSAGE + [0, 0], apply_padding=False)
+    hash_1 = O0.hash(MESSAGE)
     print(f"Hashing test 1: {hash_1}")
 
     O1 = ThetaCGLDim3.from_null_coords([F(1), *hash_1])
     hash_2 = O1.hash(MESSAGE)
     print(f"Hashing test 2: {hash_2}")
 
+    print_info("Domain for Rust (Dim 3)")
+    for x in O1.domain:
+        print_fp2_to_little_u64(x)
+    print()
+
 
 if __name__ == "__main__":
     dim_one_example()
-    # dim_two_example()
-    # dim_three_example()
+    dim_two_example()
+    dim_three_example()

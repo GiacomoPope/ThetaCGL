@@ -6,10 +6,10 @@ class CGL:
         assert block_size % chunk == 0
         self.domain = domain
         self.chunk = chunk
-        self.block_size = 324
+        self.block_size = block_size
 
     def __repr__(self):
-        return f"CGL with domain={self.domain}"
+        return f"CGL with domain = {self.domain}"
 
     def sqrt(self, x):
         return sqrt_Fp2(x)
@@ -54,13 +54,16 @@ class CGL:
         length_bits = [0] * (length_slot - l) + length_bits
         msg += length_bits
 
+        assert len(msg) % self.block_size == 0
         return msg
 
     def to_hash():
         pass
 
-    def hash(self, bits, apply_padding=True):
-        if apply_padding:
-            bits = self.pad_msg(bits[:])
+    def hash(self, bits):
+        # Pad the message
+        bits = self.pad_msg(bits[:])
+
+        # Compute the CGL hash
         r = self.bit_string(bits)
         return r.to_hash()
