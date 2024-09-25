@@ -26,26 +26,26 @@ pub mod thp64 {
     const a0_re: Fp = Fp::from_u64_reduce(1);
     const a0_im: Fp = Fp::from_u64_reduce(0);
 
-    const a1_re: Fp = Fp::from_u64_reduce(0xDC5596E1A8BD61A6);
-    const a1_im: Fp = Fp::from_u64_reduce(0x27975EF03960B799);
+    const a1_re: Fp = Fp::from_u64_reduce(0x87B04B57594569CE);
+    const a1_im: Fp = Fp::from_u64_reduce(0x78F1BBFCEF085139);
 
-    const a2_re: Fp = Fp::from_u64_reduce(0x4C78D44019CAA57B);
-    const a2_im: Fp = Fp::from_u64_reduce(0x631CC21ECF776EA1);
+    const a2_re: Fp = Fp::from_u64_reduce(0x9951FAA345111D58);
+    const a2_im: Fp = Fp::from_u64_reduce(0x4C54B5EDFE1772E3);
 
-    const a3_re: Fp = Fp::from_u64_reduce(0xFC257B234A441A12);
-    const a3_im: Fp = Fp::from_u64_reduce(0xCC9BD67E3708856A);
+    const a3_re: Fp = Fp::from_u64_reduce(0x4983137318DAA841);
+    const a3_im: Fp = Fp::from_u64_reduce(0xDD0B17775730480E);
 
-    const a4_re: Fp = Fp::from_u64_reduce(0x2C35E4555BF6F161);
-    const a4_im: Fp = Fp::from_u64_reduce(0xA73405376A64ECF8);
+    const a4_re: Fp = Fp::from_u64_reduce(0xDA7645E0C25FB5E5);
+    const a4_im: Fp = Fp::from_u64_reduce(0xC889A30394E23F36);
 
-    const a5_re: Fp = Fp::from_u64_reduce(0xB1122F78FAA9BFF3);
-    const a5_im: Fp = Fp::from_u64_reduce(0xA0F357B1C4183714);
+    const a5_re: Fp = Fp::from_u64_reduce(0x5EE0D6C0B50D92F7);
+    const a5_im: Fp = Fp::from_u64_reduce(0xF0E3C5C92109B370);
 
-    const a6_re: Fp = Fp::from_u64_reduce(0x009D1194B44A6CE4);
-    const a6_im: Fp = Fp::from_u64_reduce(0xBD8B7727A38AE735);
+    const a6_re: Fp = Fp::from_u64_reduce(0xB7F9DF6FBCCAA7BE);
+    const a6_im: Fp = Fp::from_u64_reduce(0xE3ED3FE9F292455B);
 
-    const a7_re: Fp = Fp::from_u64_reduce(0x3C8E925EE4A4A528);
-    const a7_im: Fp = Fp::from_u64_reduce(0x6C671FF6C8B712D2);
+    const a7_re: Fp = Fp::from_u64_reduce(0xFAD8988D731F75B8);
+    const a7_im: Fp = Fp::from_u64_reduce(0x328ECA0EC2FAD54D);
 
     const A0: Fq = Fq::new(&a0_re, &a0_im);
     const A1: Fq = Fq::new(&a1_re, &a1_im);
@@ -66,12 +66,12 @@ pub mod thp127 {
     // Pseudorandom domain computed from sage code
     const X0_re: Fp = Fp::w64le(1, 0);
     const X0_im: Fp = Fp::w64le(0, 0);
-    const Z0_re: Fp = Fp::w64le(0xB554F0A6CD56898D, 0x596A8D585A516637);
-    const Z0_im: Fp = Fp::w64le(0x55C62A13DD1A684C, 0x26925D8555F401D3);
-    const U0_re: Fp = Fp::w64le(0xF9117AFF78A5C9D5, 0x7372B03CEF530598);
-    const U0_im: Fp = Fp::w64le(0x160218406DE240B5, 0x1C29C6E16DD093B8);
-    const V0_re: Fp = Fp::w64le(0xEBEE280EE44DC74A, 0x3513CD545EE73127);
-    const V0_im: Fp = Fp::w64le(0x54191B88482D8D6B, 0x4DFBD67E82B0296E);
+    const Z0_re: Fp = Fp::w64le(0x325FDC555723D5A0, 0x77F5FC2B726DB731);
+    const Z0_im: Fp = Fp::w64le(0xBA99785C7BFAEE3A, 0x720B2F8B417528C9);
+    const U0_re: Fp = Fp::w64le(0xF8ADFD2EF3323E66, 0x6EE9E8B0A9787DCC);
+    const U0_im: Fp = Fp::w64le(0x92B3EC5423248820, 0x1E00DE68A0A2F235);
+    const V0_re: Fp = Fp::w64le(0x1BBB14606A71BFFA, 0x2CAADC55E9E1B664);
+    const V0_im: Fp = Fp::w64le(0x553F518A7B0E16C7, 0x242A69FCE917627D);
 
     const X0: Fq = Fq::new(&X0_re, &X0_im);
     const Z0: Fq = Fq::new(&Z0_re, &Z0_im);
@@ -89,44 +89,44 @@ pub mod thp5248 {
     const X0_re: Fp = Fp::w64le(1, 0, 0, 0);
     const X0_im: Fp = Fp::w64le(0, 0, 0, 0);
     const Z0_re: Fp = Fp::w64le(
-        0xC8989D9AE0732F74,
-        0x57A518734EB6E287,
-        0x86D2007E41B557BE,
-        0x0384E9FADF42A057,
+        0xE182300064425B3B,
+        0xD3D095D71A78C89D,
+        0xFBCAA24A766E05BD,
+        0x016A0FE894BE77D4,
     );
     const Z0_im: Fp = Fp::w64le(
-        0x608090B2A570F5A7,
-        0x7F97E988D436D484,
-        0x67BE08A170FBD685,
-        0x014903873860E447,
+        0xC4846452776BAC87,
+        0x3360EA9B0E196E3C,
+        0x7F8FCF9B7D2D4644,
+        0x005529F061E8B0F2,
     );
     const X0: Fq = Fq::new(&X0_re, &X0_im);
     const Z0: Fq = Fq::new(&Z0_re, &Z0_im);
 
     // Torsion point for 8-radical
     const PX0_re: Fp = Fp::w64le(
-        0xD4BA7502003DDF70,
-        0x7C56A339012F7167,
-        0xFE5CD953AF85BACD,
-        0x01AFB6E52F6BF65B,
+        0x011265EF861ACDC0,
+        0x1927B02D4B32DFB8,
+        0x2FD7CB1B8B6BD634,
+        0x033F0B4B3D1715CB,
     );
     const PX0_im: Fp = Fp::w64le(
-        0x34319D65B6155F58,
-        0xED7E75228452961C,
-        0xCC354C142D9CB7DF,
-        0x0363BB6DF4CC1A44,
+        0xA101F9797BC3EFC7,
+        0x2BC8C6892109FE08,
+        0x6DE30819F6F9A5B9,
+        0x04AA90FBC69C31A6,
     );
     const PZ0_re: Fp = Fp::w64le(
-        0xE61B297101B4CE24,
-        0xA1C86E256D899ADA,
-        0x353BE1B19CA0F309,
-        0x0471CE85213D0B38,
+        0x95A19B58F91D0CEC,
+        0x2FFEFC7FDE2E8354,
+        0xAFDE75D34AF96FBF,
+        0x03E4244162713ECB,
     );
     const PZ0_im: Fp = Fp::w64le(
-        0x771D8B45C979B97B,
-        0x85DF7E30CC0E1308,
-        0x300F98F48A880ED8,
-        0x01BCBAF4B16E5B7C,
+        0xA5B0DEF086D16794,
+        0x64ED1CB692F5C089,
+        0xD669E53DC5A120E3,
+        0x021FD07F173A4C97,
     );
     const PX0: Fq = Fq::new(&PX0_re, &PX0_im);
     const PZ0: Fq = Fq::new(&PZ0_re, &PZ0_im);
@@ -175,46 +175,46 @@ mod cgl_tests {
 
     #[test]
     fn test_dim_one_rad_two() {
-        let cgl = thp5248::CGLDim1Rad2::new();
+        let block_size = 324;
+        let cgl = thp5248::CGLDim1Rad2::new(block_size);
         let hash = cgl.hash(MSG.to_vec());
 
-        // TODO: don't compare strings! haha
-        let expected: &str = "i*1048790104549868760381845710182137722666314665670240273769600751651562439610 + 516135818785057378604189666983524574774965518529932074051373940387715252763";
+        let expected: &str = "i*1175115321110588234636748827639696740191085662044029690205157067136297489851 + 1733123938962694390472365711257600165904333930518679618652142301506945904479";
         assert_eq!(expected, format!("{}", hash));
     }
 
     #[test]
     fn test_dim_one_rad_four() {
-        let cgl = thp5248::CGLDim1Rad4::new();
+        let block_size = 324;
+        let cgl = thp5248::CGLDim1Rad4::new(block_size);
         let hash = cgl.hash(MSG.to_vec());
 
-        // TODO: don't compare strings! haha
-        let expected = "i*1591777228698064412432158294069564584505508595511695847665789421532577214324 + 1680247207835055787499001411562698045894861713928280006839599027958720694872";
+        let expected: &str = "i*639708434017176960680363788011691951478630737464825183378028357205845236539 + 2111092790111734845126313069227408483857723867262697296810704139886318080888";
         assert_eq!(expected, format!("{}", hash));
     }
 
     #[test]
     fn test_dim_one_rad_eight() {
-        let cgl = thp5248::CGLDim1Rad8::new();
+        let block_size = 324;
+        let cgl = thp5248::CGLDim1Rad8::new(block_size);
         let hash = cgl.hash(MSG.to_vec());
 
-        // TODO: don't compare strings! haha
-        let expected = "i*623953899702050406121574801940143023523525779863632387363046409469719787819 + 141743768810756281317922111945465696489535516588307365005176069147968563672";
+        let expected: &str = "i*1713152820722042121560483199973967855022415860828735853279579284772517053665 + 1614205432150870091530419952171751517745377136920762256637389075657697131180";
         assert_eq!(expected, format!("{}", hash));
     }
 
     #[test]
     fn test_dim_two_rad_two() {
-        let cgl = thp127::CGLDim2Rad2::new();
+        let block_size = 324;
+        let cgl = thp127::CGLDim2Rad2::new(block_size);
         let (h1, h2, h3) = cgl.hash(MSG.to_vec());
 
-        // TODO: don't compare strings! haha
-        let ex1 =
-            "i*12320047962523423279486361112665882772 + 108134968326043731154961119248302170639";
-        let ex2 =
-            "i*15803407118249139560079599117651420281 + 66205839636749269947956199724487136674";
-        let ex3 =
-            "i*90655641865476592982577206231671450841 + 127570496827730619947759641012315192423";
+        let ex1: &str =
+            "i*55352596873554344554080451593955087743 + 782814348061583778580831952510330245";
+        let ex2: &str =
+            "i*3636415493409036562625612378128461539 + 93312549852846027507575952345482069462";
+        let ex3: &str =
+            "i*116984420811334091568360555719211342140 + 115322330464924214960091192691425793045";
         assert_eq!(ex1, format!("{}", h1));
         assert_eq!(ex2, format!("{}", h2));
         assert_eq!(ex3, format!("{}", h3));
@@ -222,16 +222,16 @@ mod cgl_tests {
 
     #[test]
     fn test_dim_two_rad_four() {
-        let cgl = thp127::CGLDim2Rad4::new();
+        let block_size = 324;
+        let cgl = thp127::CGLDim2Rad4::new(block_size);
         let (h1, h2, h3) = cgl.hash(MSG.to_vec());
 
-        // TODO: don't compare strings! haha
-        let ex1 =
-            "i*47375232055273767260534253219319124145 + 73346381814437457025019178306100270373";
-        let ex2 =
-            "i*100355035873619011046902920138034070025 + 53620892648164048340211136423015102743";
-        let ex3 =
-            "i*30161281981729506452828974222531171272 + 38825259926942117650301850823946812854";
+        let ex1: &str =
+            "i*24343354270362226702211756234962239688 + 165218543846196481307174152989384967825";
+        let ex2: &str =
+            "i*106957632277458656937006174938906787144 + 148088445431981206886473758973254407305";
+        let ex3: &str =
+            "i*79492710385759828854917783756632597417 + 22800526872756505643884305741401170041";
 
         assert_eq!(ex1, format!("{}", h1));
         assert_eq!(ex2, format!("{}", h2));
@@ -240,17 +240,17 @@ mod cgl_tests {
 
     #[test]
     fn test_dim_three_rad_two() {
-        let cgl = thp64::CGLDim3Rad2::new();
+        let block_size = 324;
+        let cgl = thp64::CGLDim3Rad2::new(block_size);
         let (h1, h2, h3, h4, h5, h6, h7) = cgl.hash(MSG.to_vec());
 
-        // TODO: don't compare strings! haha
-        let ex1 = "i*9131022502302392460 + 8047160213627555690";
-        let ex2 = "i*4009428002838015941 + 8894398257467059120";
-        let ex3 = "i*2554299219589503533 + 1205992271966875535";
-        let ex4 = "i*13544911288836066678 + 14775662367645206447";
-        let ex5 = "i*13250694430739928298 + 10506884765976621283";
-        let ex6 = "i*17561772940977990423 + 12895187849928915004";
-        let ex7 = "i*17712918206892277537 + 63058281213942031";
+        let ex1: &str = "i*13212579667024449406 + 9867146542689415593";
+        let ex2: &str = "i*11154501579732554357 + 7488520770829592452";
+        let ex3: &str = "i*13775956530232887729 + 11803027984173444609";
+        let ex4: &str = "i*3491353953157071265 + 14062764780648358503";
+        let ex5: &str = "i*3705862768434398245 + 1466130130063688454";
+        let ex6: &str = "i*7576458214890515424 + 17056983682434763292";
+        let ex7: &str = "i*14197857576058751190 + 11027379226317326470";
 
         assert_eq!(ex1, format!("{}", h1));
         assert_eq!(ex2, format!("{}", h2));

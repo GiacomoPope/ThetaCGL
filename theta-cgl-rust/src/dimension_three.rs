@@ -267,18 +267,24 @@ macro_rules! define_dim_three_theta_core {
         }
 
         #[derive(Clone, Copy, Debug)]
-        pub struct CGLDim3Rad2 {}
+        pub struct CGLDim3Rad2 {
+            chunk_len: usize,
+            block_size: usize,
+        }
 
         impl CGLDim3Rad2 {
             const O0: ThetaPointDim3 = ThetaPointDim3::new(&A0, &A1, &A2, &A3, &A4, &A5, &A6, &A7);
 
-            pub fn new() -> Self {
-                Self {}
-            }
-            pub fn bit_string(self, mut T: ThetaPointDim3, mut msg: Vec<u8>) -> ThetaPointDim3 {
+            pub fn new(block_size: usize) -> Self {
                 let chunk_len = 6;
-                msg = pad_msg(msg, chunk_len);
-                let iter = msg.chunks(chunk_len);
+                assert!(block_size % chunk_len == 0);
+                Self {
+                    chunk_len,
+                    block_size,
+                }
+            }
+            pub fn bit_string(self, mut T: ThetaPointDim3, msg: Vec<u8>) -> ThetaPointDim3 {
+                let iter = msg.chunks(self.chunk_len);
                 for i in iter {
                     T = T.radical_two_isogeny(i.to_vec());
                 }
@@ -287,7 +293,8 @@ macro_rules! define_dim_three_theta_core {
             }
 
             pub fn hash(self, msg: Vec<u8>) -> (Fq, Fq, Fq, Fq, Fq, Fq, Fq) {
-                let T = self.bit_string(Self::O0, msg);
+                let padded_msg = pad_msg(msg, self.block_size);
+                let T = self.bit_string(Self::O0, padded_msg);
                 T.to_hash()
             }
         }

@@ -18,47 +18,54 @@ static MSG: [u8; 256] = [
 
 fn dimension_one_rad_2_5248_example() {
     println!("Computing using 2-radical isogenies...");
-    let cgl = thp5248::CGLDim1Rad2::new();
+    let block_size = 324;
+    let cgl = thp5248::CGLDim1Rad2::new(block_size);
     let hash = cgl.hash(MSG.to_vec());
     println!("Rust:     {}", hash);
 
-    let expected: &str = "i*1048790104549868760381845710182137722666314665670240273769600751651562439610 + 516135818785057378604189666983524574774965518529932074051373940387715252763";
+    let expected: &str = "i*1175115321110588234636748827639696740191085662044029690205157067136297489851 + 1733123938962694390472365711257600165904333930518679618652142301506945904479";
     println!("SageMath: {}", expected);
 }
 
 fn dimension_one_rad_4_5248_example() {
     println!("Computing using 4-radical isogenies...");
-    let cgl = thp5248::CGLDim1Rad4::new();
+    let block_size = 324;
+    let cgl = thp5248::CGLDim1Rad4::new(block_size);
     let hash = cgl.hash(MSG.to_vec());
 
     println!("Rust:     {}", hash);
 
-    let expected = "i*1591777228698064412432158294069564584505508595511695847665789421532577214324 + 1680247207835055787499001411562698045894861713928280006839599027958720694872";
+    let expected: &str = "i*639708434017176960680363788011691951478630737464825183378028357205845236539 + 2111092790111734845126313069227408483857723867262697296810704139886318080888";
     println!("SageMath: {}", expected);
 }
 
 fn dimension_one_rad_8_5248_example() {
     println!("Computing using 8-radical isogenies...");
-    let cgl = thp5248::CGLDim1Rad8::new();
+    let block_size = 324;
+    let cgl = thp5248::CGLDim1Rad8::new(block_size);
     let hash = cgl.hash(MSG.to_vec());
 
     println!("Rust:     {}", hash);
 
-    let expected = "i*623953899702050406121574801940143023523525779863632387363046409469719787819 + 141743768810756281317922111945465696489535516588307365005176069147968563672";
+    let expected: &str = "i*1713152820722042121560483199973967855022415860828735853279579284772517053665 + 1614205432150870091530419952171751517745377136920762256637389075657697131180";
     println!("SageMath: {}", expected);
 }
 
 fn dimension_two_rad_2_127_example() {
     println!("Computing using 2-radical isogenies...");
-    let cgl = thp127::CGLDim2Rad2::new();
+    let block_size = 324;
+    let cgl = thp127::CGLDim2Rad2::new(block_size);
     let (h1, h2, h3) = cgl.hash(MSG.to_vec());
 
     println!("Rust hash: {}", h1);
     println!("           {0}\n           {1}", h2, h3);
 
-    let ex1 = "i*12320047962523423279486361112665882772 + 108134968326043731154961119248302170639";
-    let ex2 = "i*15803407118249139560079599117651420281 + 66205839636749269947956199724487136674";
-    let ex3 = "i*90655641865476592982577206231671450841 + 127570496827730619947759641012315192423";
+    let ex1: &str =
+        "i*55352596873554344554080451593955087743 + 782814348061583778580831952510330245";
+    let ex2: &str =
+        "i*3636415493409036562625612378128461539 + 93312549852846027507575952345482069462";
+    let ex3: &str =
+        "i*116984420811334091568360555719211342140 + 115322330464924214960091192691425793045";
 
     println!("Sage hash: {}", ex1);
     println!("           {0}\n           {1}", ex2, ex3);
@@ -66,15 +73,19 @@ fn dimension_two_rad_2_127_example() {
 
 fn dimension_two_rad_4_127_example() {
     println!("Computing using 4-radical isogenies...");
-    let cgl: thp127::CGLDim2Rad4 = thp127::CGLDim2Rad4::new();
+    let block_size = 324;
+    let cgl: thp127::CGLDim2Rad4 = thp127::CGLDim2Rad4::new(block_size);
     let (h1, h2, h3) = cgl.hash(MSG.to_vec());
 
     println!("Rust hash: {}", h1);
     println!("           {0}\n           {1}", h2, h3);
 
-    let ex1 = "i*47375232055273767260534253219319124145 + 73346381814437457025019178306100270373";
-    let ex2 = "i*100355035873619011046902920138034070025 + 53620892648164048340211136423015102743";
-    let ex3 = "i*30161281981729506452828974222531171272 + 38825259926942117650301850823946812854";
+    let ex1: &str =
+        "i*24343354270362226702211756234962239688 + 165218543846196481307174152989384967825";
+    let ex2: &str =
+        "i*106957632277458656937006174938906787144 + 148088445431981206886473758973254407305";
+    let ex3: &str =
+        "i*79492710385759828854917783756632597417 + 22800526872756505643884305741401170041";
 
     println!("Sage hash: {}", ex1);
     println!("           {0}\n           {1}", ex2, ex3);
@@ -82,7 +93,8 @@ fn dimension_two_rad_4_127_example() {
 
 fn dimension_three_rad_2_64_example() {
     println!("Computing using 2-radical isogenies...");
-    let cgl = thp64::CGLDim3Rad2::new();
+    let block_size = 324;
+    let cgl = thp64::CGLDim3Rad2::new(block_size);
     let (h1, h2, h3, h4, h5, h6, h7) = cgl.hash(MSG.to_vec());
 
     println!("Rust hash: {}", h1);
@@ -91,13 +103,13 @@ fn dimension_three_rad_2_64_example() {
     println!("           {0}\n           {1}", h6, h7);
     println!("");
 
-    let ex1 = "i*9131022502302392460 + 8047160213627555690";
-    let ex2 = "i*4009428002838015941 + 8894398257467059120";
-    let ex3 = "i*2554299219589503533 + 1205992271966875535";
-    let ex4 = "i*13544911288836066678 + 14775662367645206447";
-    let ex5 = "i*13250694430739928298 + 10506884765976621283";
-    let ex6 = "i*17561772940977990423 + 12895187849928915004";
-    let ex7 = "i*17712918206892277537 + 63058281213942031";
+    let ex1: &str = "i*13212579667024449406 + 9867146542689415593";
+    let ex2: &str = "i*11154501579732554357 + 7488520770829592452";
+    let ex3: &str = "i*13775956530232887729 + 11803027984173444609";
+    let ex4: &str = "i*3491353953157071265 + 14062764780648358503";
+    let ex5: &str = "i*3705862768434398245 + 1466130130063688454";
+    let ex6: &str = "i*7576458214890515424 + 17056983682434763292";
+    let ex7: &str = "i*14197857576058751190 + 11027379226317326470";
 
     println!("Sage hash: {}", ex1);
     println!("           {0}\n           {1}", ex2, ex3);
