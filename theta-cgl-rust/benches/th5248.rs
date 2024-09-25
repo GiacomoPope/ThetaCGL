@@ -17,22 +17,25 @@ const MSG: [u8; 256] = [
 ];
 
 fn two_radical_5248(c: &mut Criterion) {
-    let cgl = thp5248::CGLDim1Rad2::new();
-    c.bench_function("CGL Hash: using p5248 and two radical isogeny", |b| {
+    let block_size = 324;
+    let cgl = thp5248::CGLDim1Rad2::new(block_size);
+    c.bench_function("CGL Hash (g=1) using 256-bit prime and two radical isogeny", |b| {
         b.iter(|| cgl.hash(black_box(MSG.to_vec())))
     });
 }
 
 fn four_radical_5248(c: &mut Criterion) {
-    let cgl = thp5248::CGLDim1Rad4::new();
-    c.bench_function("CGL Hash: using p5248 and four radical isogeny", |b| {
+    let block_size = 324;
+    let cgl = thp5248::CGLDim1Rad4::new(block_size);
+    c.bench_function("CGL Hash (g=1) using 256-bit prime and four radical isogeny", |b| {
         b.iter(|| cgl.hash(black_box(MSG.to_vec())))
     });
 }
 
 fn eight_radical_5248(c: &mut Criterion) {
-    let cgl = thp5248::CGLDim1Rad8::new();
-    c.bench_function("CGL Hash: using p5248 and eight radical isogeny", |b| {
+    let block_size = 324;
+    let cgl = thp5248::CGLDim1Rad8::new(block_size);
+    c.bench_function("CGL Hash (g=1) using 256-bit prime and eight radical isogeny", |b| {
         b.iter(|| cgl.hash(black_box(MSG.to_vec())))
     });
 }

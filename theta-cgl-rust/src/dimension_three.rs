@@ -205,11 +205,12 @@ macro_rules! define_dim_three_theta_core {
                 mut y5: Fq,
                 mut y6: Fq,
             ) -> (Fq, Fq, Fq, Fq, Fq, Fq, Fq, Fq) {
-                let (b0, b1, b2, b3, b4, b5, b6, b7) =
-                    self.to_hadamard(x0, x1, x2, x3, x4, x5, x6, x7);
+                let (a0, a1, a2, a3, a4, a5, a6, a7) = self.coords();
+                let a0123 = (&a0 * &a1 * &a2 * &a3).mul_small(16);
+                let a4567 = (&a4 * &a5 * &a6 * &a7).mul_small(16);
 
-                let R1 = &b0 * &b1 * &b2 * &b3;
-                let R3 = &b4 * &b5 * &b6 * &b7;
+                let r1 = a0123.square();
+                let r3 = a4567.square();
 
                 let x04 = x0 * x4;
                 let x15 = x1 * x5;
@@ -218,24 +219,22 @@ macro_rules! define_dim_three_theta_core {
                 let x0246 = &x04 * &x26;
                 let x1357 = &x15 * &x37;
 
-                let tmp = (&x04 - &x15 + &x26 - &x37).square();
-                let t0 = &tmp.mul_small(16) - &(&x0246 + &x1357).mul_small(64);
-
-                let r0 = (&R1 + &R3 - &t0);
-                let r0_is_zero = r0.iszero();
+                let t0 = &(&x04 - &x15 + &x26 - &x37).square() - &(&x0246 + &x1357).mul4();
+                let t = &r1 + &r3 - &t0;
+                let t_is_zero = t.iszero();
 
                 let y = y1 * y2 * y3 * y4 * y5 * y6;
 
-                let mut t1 = r0.square() + (x0246 * x1357).mul_small(16384) - (R1 * R3).mul4();
-                let mut t2 = r0.mul_small(256) * y;
+                let mut t1 = t.square() + (x0246 * x1357).mul_small(64) - (r1 * r3).mul4();
+                let mut t2 = t.mul_small(16) * y;
 
-                // When r0 == 0, t1 needs to be different
-                let (a0, a1, a2, a3, a4, a5, a6, a7) = self.coords();
-                let t1_prime = -(&a0 * &a1 * &a2 * &a3 * &a4 * &a5 * &a6 * &a7).mul_small(64);
+                // When r0 == 0, t1, t2 need to be different
+                let t1_prime = -(&a0123 * &a4567);
+                let t2_prime = y.mul4();
 
-                // If r0 is zero, modify the values of t1, t2
-                t1.set_cond(&t1_prime, r0_is_zero);
-                t2.set_cond(&y, r0_is_zero);
+                // If t is zero, modify the values of t1, t2
+                t1.set_cond(&t1_prime, t_is_zero);
+                t2.set_cond(&t2_prime, t_is_zero);
 
                 // Scale y0...y6 by the denominator
                 y0 *= t2;

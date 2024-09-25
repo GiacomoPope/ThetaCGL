@@ -120,8 +120,8 @@ macro_rules! define_dim_one_theta_core {
                 // Reconstruct the torsion for the next step
                 let t = &a01 * &u01.mul2();
                 let v0 = &t * &b1;
-                let v1 = &a00.mul2() * &u01.square() + &factor_4 * &a11
-                    - sqrt_two * &factor * &t * &u0;
+                let v1 =
+                    &a00.mul2() * &u01.square() + &factor_4 * &a11 - sqrt_two * &factor * &t * &u0;
                 let T = Self { X: v0, Z: v1 };
 
                 (B, T)

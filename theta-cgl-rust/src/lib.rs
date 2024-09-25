@@ -26,26 +26,26 @@ pub mod thp64 {
     const a0_re: Fp = Fp::from_u64_reduce(1);
     const a0_im: Fp = Fp::from_u64_reduce(0);
 
-    const a1_re: Fp = Fp::from_u64_reduce(0x87B04B57594569CE);
-    const a1_im: Fp = Fp::from_u64_reduce(0x78F1BBFCEF085139);
+    const a1_re: Fp = Fp::from_u64_reduce(0xD9B9E6A312EB10E3);
+    const a1_im: Fp = Fp::from_u64_reduce(0x0FACB7058EB3B138);
 
-    const a2_re: Fp = Fp::from_u64_reduce(0x9951FAA345111D58);
-    const a2_im: Fp = Fp::from_u64_reduce(0x4C54B5EDFE1772E3);
+    const a2_re: Fp = Fp::from_u64_reduce(0x2D68C7DE2DDE4AB0);
+    const a2_im: Fp = Fp::from_u64_reduce(0x7C628F1A55991804);
 
-    const a3_re: Fp = Fp::from_u64_reduce(0x4983137318DAA841);
-    const a3_im: Fp = Fp::from_u64_reduce(0xDD0B17775730480E);
+    const a3_re: Fp = Fp::from_u64_reduce(0x00A84F95E8123329);
+    const a3_im: Fp = Fp::from_u64_reduce(0xC39E1A6A8C5F5C81);
 
-    const a4_re: Fp = Fp::from_u64_reduce(0xDA7645E0C25FB5E5);
-    const a4_im: Fp = Fp::from_u64_reduce(0xC889A30394E23F36);
+    const a4_re: Fp = Fp::from_u64_reduce(0x7A562B50E2981860);
+    const a4_im: Fp = Fp::from_u64_reduce(0x17F3AD3F84EED1DA);
 
-    const a5_re: Fp = Fp::from_u64_reduce(0x5EE0D6C0B50D92F7);
-    const a5_im: Fp = Fp::from_u64_reduce(0xF0E3C5C92109B370);
+    const a5_re: Fp = Fp::from_u64_reduce(0x60830A6D51CE3888);
+    const a5_im: Fp = Fp::from_u64_reduce(0xD160A97019010209);
 
-    const a6_re: Fp = Fp::from_u64_reduce(0xB7F9DF6FBCCAA7BE);
-    const a6_im: Fp = Fp::from_u64_reduce(0xE3ED3FE9F292455B);
+    const a6_re: Fp = Fp::from_u64_reduce(0xFFCF8077B8C8B776);
+    const a6_im: Fp = Fp::from_u64_reduce(0x87FF9C2594B7F822);
 
-    const a7_re: Fp = Fp::from_u64_reduce(0xFAD8988D731F75B8);
-    const a7_im: Fp = Fp::from_u64_reduce(0x328ECA0EC2FAD54D);
+    const a7_re: Fp = Fp::from_u64_reduce(0xE593E5EA1DD3AF91);
+    const a7_im: Fp = Fp::from_u64_reduce(0xE9D550F205F88961);
 
     const A0: Fq = Fq::new(&a0_re, &a0_im);
     const A1: Fq = Fq::new(&a1_re, &a1_im);
@@ -244,13 +244,13 @@ mod cgl_tests {
         let cgl = thp64::CGLDim3Rad2::new(block_size);
         let (h1, h2, h3, h4, h5, h6, h7) = cgl.hash(MSG.to_vec());
 
-        let ex1: &str = "i*13212579667024449406 + 9867146542689415593";
-        let ex2: &str = "i*11154501579732554357 + 7488520770829592452";
-        let ex3: &str = "i*13775956530232887729 + 11803027984173444609";
-        let ex4: &str = "i*3491353953157071265 + 14062764780648358503";
-        let ex5: &str = "i*3705862768434398245 + 1466130130063688454";
-        let ex6: &str = "i*7576458214890515424 + 17056983682434763292";
-        let ex7: &str = "i*14197857576058751190 + 11027379226317326470";
+        let ex1: &str = "i*14715636858552704983 + 15452868413087287111";
+        let ex2: &str = "i*420104897209182168 + 14547627927149152291";
+        let ex3: &str = "i*7553490361471112083 + 16421010721108912633";
+        let ex4: &str = "i*8376455609674458376 + 13944539442861068611";
+        let ex5: &str = "i*7636771789307779928 + 11852614693545011447";
+        let ex6: &str = "i*11092513195598203570 + 6788899222922492439";
+        let ex7: &str = "i*10879969565550905398 + 14423116945163197625";
 
         assert_eq!(ex1, format!("{}", h1));
         assert_eq!(ex2, format!("{}", h2));

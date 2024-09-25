@@ -98,7 +98,6 @@ class ThetaCGLDim3(CGL):
             t1 = t * t + 64 * x0246 * x1357 - 4 * r1 * r3 # 2 M + 1 S + 2 m + 2 a
             t2 = 16 * t * y # 1 M + 1 m
         else:
-            a0, a1, a2, a3, a4, a5, a6, a7 = self.domain
             t1 = - a0123 * a4567 # 1 M
             t2 = 4 * y # 1 m
 
