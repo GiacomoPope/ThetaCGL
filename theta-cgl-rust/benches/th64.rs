@@ -20,7 +20,7 @@ fn two_radical_64(c: &mut Criterion) {
     let block_size = 324;
     let cgl = thp64::CGLDim3Rad2::new(block_size);
     c.bench_function(
-        "CGL Hash: using 64-bit prime and two radical isogeny",
+        "CGL Hash (g=3) using 64-bit prime and two radical isogeny",
         |b| b.iter(|| cgl.hash(black_box(MSG.to_vec()))),
     );
 }
