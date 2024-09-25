@@ -73,31 +73,37 @@ class ThetaCGLDim3(CGL):
         return F
 
     def last_sqrt(self, x0, x1, x2, x3, x4, x5, x6, x7, y0, y1, y2, y3, y4, y5, y6):
-        b0, b1, b2, b3, b4, b5, b6, b7 = self.hadamard(x0, x1, x2, x3, x4, x5, x6, x7)
-        R1 = b0 * b1 * b2 * b3
-        R3 = b4 * b5 * b6 * b7
+        #b0, b1, b2, b3, b4, b5, b6, b7 = self.hadamard(x0, x1, x2, x3, x4, x5, x6, x7)
+        
+        a0, a1, a2, a3, a4, a5, a6, a7 = self.domain
+
+        a0123 = 16 * a0 * a1 * a2 * a3 # 3 M + 1 m
+        a4567 =  16 * a4 * a5 * a6 * a7 # 3 M + 1 m
+        r1 =  a0123 * a0123  # 1 S
+        r3 =  a4567 * a4567  # 1 S
 
         x04 = x0 * x4
         x15 = x1 * x5
         x26 = x2 * x6
         x37 = x3 * x7
         x0246 = x04 * x26
-        x1357 = x15 * x37
+        x1357 = x15 * x37   # 6 M
 
-        t0 = 16 * (x04 - x15 + x26 - x37) ** 2 - 64 * (x0246 + x1357)
-        T = R1 + R3 - t0
-        y = y1 * y2 * y3 * y4 * y5 * y6
+        t0 = (x04 - x15 + x26 - x37) ** 2 - 4 * (x0246 + x1357)     # 1 S + 1 m + 5 a
+        t = r1 + r3 - t0 #  2 a
 
-        if T != 0:
-            t1 = T**2 + 16384 * x0246 * x1357 - 4 * R1 * R3
-            t2 = 256 * T * y
+        y = y1 * y2 * y3 * y4 * y5 * y6 # 5 M 
+
+        if t != 0:
+            t1 = t * t + 64 * x0246 * x1357 - 4 * r1 * r3 # 2 M + 1 S + 2 m + 2 a
+            t2 = 16 * t * y # 1 M + 1 m
         else:
             a0, a1, a2, a3, a4, a5, a6, a7 = self.domain
-            t1 = -64 * a0 * a1 * a2 * a3 * a4 * a5 * a6 * a7
-            t2 = y
+            t1 = - a0123 * a4567 # 1 M
+            t2 = 4 * y # 1 m
 
-        y0, y1, y2, y3, y4, y5, y6 = [t2 * y for y in [y0, y1, y2, y3, y4, y5, y6]]
-        y7 = t1 * x0**3
+        y0, y1, y2, y3, y4, y5, y6 = [t2 * y for y in [y0, y1, y2, y3, y4, y5, y6]]     # 7 M 
+        y7 = t1 * x0**3  # 2 M + 1 S
 
         return y0, y1, y2, y3, y4, y5, y6, y7
 
@@ -186,7 +192,7 @@ class ThetaCGLDim3(CGL):
         """
         a0, a1, a2, a3, a4, a5, a6, a7 = self.domain
         x0, x1, x2, x3, x4, x5, x6, x7 = self.hadamard(
-            a0 * a0, a1 * a1, a2 * a2, a3 * a3, a4 * a4, a5 * a5, a6 * a6, a7 * a7
+            a0 * a0, a1 * a1, a2 * a2, a3 * a3, a4 * a4, a5 * a5, a6 * a6, a7 *a7
         )
 
         # Ensure that if a value is zero, it is x7
