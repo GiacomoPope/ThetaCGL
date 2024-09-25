@@ -83,17 +83,20 @@ macro_rules! define_dim_one_theta_core {
                 zeta_8: &Fq,
                 sqrt_two: &Fq,
             ) -> (ThetaPointDim1, ThetaPointDim1) {
-                let (a, b) = self.coords();
-                let (r, s) = torsion.coords();
+                let (a0, a1) = self.coords();
+                let (u0, u1) = torsion.coords();
 
-                let rr = r.square();
-                let r8 = rr.square().square();
-                let s8 = s.square().square().square();
+                let a00 = a0.square();
+                let a01 = &a0 * &a1;
+                let a11 = a1.square();
 
-                let (mut factor, check) = (&r8 - &s8).eighth_root();
-                if (check == 0) {
-                    panic!("Something went wrong!");
-                }
+                let u00 = u0.square();
+                let u01 = &u0 * &u1;
+
+                let u0_8 = u00.square().square();
+                let u1_8 = u1.square().square().square();
+
+                let mut factor = (&u0_8 - &u1_8).eighth_root().0;
 
                 // if the first bit is zero, we negate the result
                 let ctl1 = ((bits[0] as u32) & 1).wrapping_neg();
@@ -107,22 +110,19 @@ macro_rules! define_dim_one_theta_core {
                 let ctl3 = ((bits[2] as u32) & 1).wrapping_neg();
                 factor.set_cond(&(&factor * zeta_8), ctl3);
 
-                // Precompute some constants
-                let rs = &r * &s;
-                let abrs_2 = &a * &b * &rs.mul2();
                 let factor_2 = factor.square();
                 let factor_4 = factor_2.square();
 
                 // Compute the codomain
-                let b0 = &rr + &factor_2;
-                let b1 = &rr - &factor_2;
+                let (b0, b1) = self.to_hadamard(&u00, &factor_2);
                 let B = Self { X: b0, Z: b1 };
 
                 // Reconstruct the torsion for the next step
-                let r4 = &abrs_2 * &b1;
-                let s4 = &a.square().mul2() * &rs.square() + &factor_4 * &b.square()
-                    - sqrt_two * &factor * &abrs_2 * &r;
-                let T = Self { X: r4, Z: s4 };
+                let t = &a01 * &u01.mul2();
+                let v0 = &t * &b1;
+                let v1 = &a00.mul2() * &u01.square() + &factor_4 * &a11
+                    - sqrt_two * &factor * &t * &u0;
+                let T = Self { X: v0, Z: v1 };
 
                 (B, T)
             }

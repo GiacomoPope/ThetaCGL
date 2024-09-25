@@ -186,9 +186,17 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
         Given a level 2-theta null point, compute a 4-isogeneous theta null
         point
         """
-        a, b = self.domain
-        r, s = self.torsion
-        factor = self.eighth_root(r**8 - s**8)
+        a0, a1 = self.domain
+        u0, u1 = self.torsion
+
+        a00 = a0 * a0
+        a01 = a0 * a1
+        a11 = a1 * a1
+
+        u00 = u0 * u0
+        u01 = u0 * u1
+
+        factor = self.eighth_root(u00**4 - u1**8)
 
         if bits[0] == 1:
             factor = -factor
@@ -199,33 +207,25 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
         if bits[2] == 1:
             factor = self.zeta8 * factor
 
-        assert factor**8 == r**8 - s**8
+        assert factor**8 == u0**8 - u1**8
 
-        # Precompute some values which are reused below
         factor_2 = factor * factor
         factor_4 = factor_2 * factor_2
 
-        ab = a * b
-        aa = a * a
-        bb = b * b
+        # Compute the codomain
+        b0, b1 = ThetaCGL.hadamard(u00, factor_2)
+        O1 = ThetaNullPoint(b0, b1)
 
-        rr = r * r
-        rs = r * s
-
-        a4 = rr + factor_2
-        b4 = rr - factor_2
-
-        rsab = rs * ab
-
-        r4 = 2 * rsab * (rr - factor_2)
-        s4 = (
-            2 * aa * rs**2 
-            + factor_4 * bb 
-            - 2 * self.sqrt2 * factor * rsab * r
+        # Recover the 8-torsion above
+        t = 2 * u01 * a01
+        v0 = t * b1
+        v1 = (
+            2 * a00 * u01**2 
+            + factor_4 * a11 
+            - self.sqrt2 * factor * t * u0
         )
-
-        O1 = ThetaNullPoint(a4, b4)
-        P1 = ThetaPoint(r4, s4)
+        P1 = ThetaPoint(v0, v1)
+        
         return O1, P1
 
     def advance(self, bits=[0, 0, 0]):
