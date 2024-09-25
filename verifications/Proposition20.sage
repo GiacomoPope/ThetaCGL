@@ -22,22 +22,28 @@ def scale(c0,c1,d0,d1):
 K.<lam,u0,u1,a0,a1,sqrt2> = QQ[]
 """
 (a0 : a1) is a theta nullpoint
-(u0 : u1) is an 8-torsion point satisfying 
-(a0^2 : a1^2) = (u0^4 + u1^4 : 2 * u0^2 * u1^2)
-
+(u0 : u1) is an 8-torsion point 
 lam = (u0^8 - u1^8)
 """
-relation1 = (u0^4 + u1^4) * a1^2 - 2 * u0^2 * u1^2 * a0^2
-relation2 = lam^8 - (u0^8 - u1^8)
-relation3 = sqrt2^2 - 2
+
+relation1 = lam^8 - (u0^8 - u1^8)
+relation2 = sqrt2^2 - 2
+
+"""
+The following relation describes the fact that
+ 2 * (u0 : u1)  = (1 : 0) 
+"""
+
+relation3 = (u0^4 + u1^4) * a1^2 - 2 * u0^2 * u1^2 * a0^2
 
 I = K.ideal([relation1, relation2,relation3])
 
+"""
+we show that (b0 : b1) as below is the theta nullpoint of the codomain of an 8-isogeny
+"""
 b0 = u0^2 + lam^2
 b1 = u0^2 - lam^2
 
-#v0 = sqrt(2) * a0 * (u0^2 - lam^2)
-#v1 = a0^2 + lam^4 - 2*a0*u0*lam
 v0 = a0*a1*(u0^2-lam^2)
 v1 = a0^2*u0*u1 + lam^4*a1^2/(2*u0*u1) - sq2*lam*a0*a1*u0
 
