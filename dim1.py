@@ -195,25 +195,28 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
 
         u00 = u0 * u0
         u01 = u0 * u1
+        u11 = u1 * u1
 
-        factor = self.eighth_root(u00**4 - u1**8)
+        u0_4 = u00 * u00
+        u1_4 = u11 * u11
+        lam = self.eighth_root((u0_4 - u1_4)*(u0_4 + u1_4))
 
         if bits[0] == 1:
-            factor = -factor
+            lam = -lam
 
         if bits[1] == 1:
-            factor = self.zeta4 * factor
+            lam = self.zeta4 * lam
 
         if bits[2] == 1:
-            factor = self.zeta8 * factor
+            lam = self.zeta8 * lam
 
-        assert factor**8 == u0**8 - u1**8
+        assert lam**8 == u0**8 - u1**8
 
-        factor_2 = factor * factor
-        factor_4 = factor_2 * factor_2
+        lam_2 = lam * lam
+        lam_4 = lam_2 * lam_2
 
         # Compute the codomain
-        b0, b1 = ThetaCGL.hadamard(u00, factor_2)
+        b0, b1 = ThetaCGL.hadamard(u00, lam_2)
         O1 = ThetaNullPoint(b0, b1)
 
         # Recover the 8-torsion above
@@ -221,8 +224,8 @@ class ThetaCGLRadical8(ThetaCGLRadical4):
         v0 = t * b1
         v1 = (
             2 * a00 * u01**2 
-            + factor_4 * a11 
-            - self.sqrt2 * factor * t * u0
+            + lam_4 * a11 
+            - self.sqrt2 * lam * t * u0
         )
         P1 = ThetaPoint(v0, v1)
         

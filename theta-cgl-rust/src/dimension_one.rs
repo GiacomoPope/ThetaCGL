@@ -92,36 +92,36 @@ macro_rules! define_dim_one_theta_core {
 
                 let u00 = u0.square();
                 let u01 = &u0 * &u1;
+                let u11 = u1.square();
 
-                let u0_8 = u00.square().square();
-                let u1_8 = u1.square().square().square();
-
-                let mut factor = (&u0_8 - &u1_8).eighth_root().0;
+                let u0_4 = u00.square();
+                let u1_4 = u11.square();
+                let mut lambda = (&(&u0_4 - &u1_4) * &(&u0_4 + &u1_4)).eighth_root().0;
 
                 // if the first bit is zero, we negate the result
                 let ctl1 = ((bits[0] as u32) & 1).wrapping_neg();
-                factor.set_condneg(ctl1);
+                lambda.set_condneg(ctl1);
 
                 // if the second bit is zero, we multiply by 4th root of unity
                 let ctl2 = ((bits[1] as u32) & 1).wrapping_neg();
-                factor.set_cond(&(&factor * &Fq::ZETA), ctl2);
+                lambda.set_cond(&(&lambda * &Fq::ZETA), ctl2);
 
                 // if the third bit is zero, we multiply by 8th root of unity
                 let ctl3 = ((bits[2] as u32) & 1).wrapping_neg();
-                factor.set_cond(&(&factor * zeta_8), ctl3);
+                lambda.set_cond(&(&lambda * zeta_8), ctl3);
 
-                let factor_2 = factor.square();
-                let factor_4 = factor_2.square();
+                let lambda_2 = lambda.square();
+                let lambda_4 = lambda_2.square();
 
                 // Compute the codomain
-                let (b0, b1) = self.to_hadamard(&u00, &factor_2);
+                let (b0, b1) = self.to_hadamard(&u00, &lambda_2);
                 let B = Self { X: b0, Z: b1 };
 
                 // Reconstruct the torsion for the next step
                 let t = &a01 * &u01.mul2();
                 let v0 = &t * &b1;
                 let v1 =
-                    &a00.mul2() * &u01.square() + &factor_4 * &a11 - sqrt_two * &factor * &t * &u0;
+                    &a00.mul2() * &u01.square() + &lambda_4 * &a11 - sqrt_two * &lambda * &t * &u0;
                 let T = Self { X: v0, Z: v1 };
 
                 (B, T)
