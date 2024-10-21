@@ -1,5 +1,5 @@
 """
-Symbolic verification of Theorem 11 in the paper 
+Symbolic verification of Theorem 8 in the paper 
 
 << Radical 2-isogenies in theta coordinates and 
 applications to cryptographic hash functions in

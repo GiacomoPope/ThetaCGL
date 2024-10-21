@@ -48,29 +48,6 @@ class ThetaCGLDim3(CGL):
         y7 = x0 - x1 - x2 + x3 - x4 + x5 + x6 - x7
         return (y0, y1, y2, y3, y4, y5, y6, y7)
 
-    def eval_F(self, x0, x1, x2, x3, x4, x5, x6, x7):
-        c0 = x0**2
-        c1 = x1**2
-        c2 = x2**2
-        c3 = x3**2
-        c4 = x4**2
-        c5 = x5**2
-        c6 = x6**2
-        c7 = x7**2
-        a0, a1, a2, a3, a4, a5, a6, a7 = self.hadamard(c0, c1, c2, c3, c4, c5, c6, c7)
-
-        b0 = 2 * (x0 * x4 + x1 * x5 + x2 * x6 + x3 * x7)
-        b1 = 2 * (x0 * x4 - x1 * x5 + x2 * x6 - x3 * x7)
-        b2 = 2 * (x0 * x4 + x1 * x5 - x2 * x6 - x3 * x7)
-        b3 = 2 * (x0 * x4 - x1 * x5 - x2 * x6 + x3 * x7)
-
-        R1 = a0 * a1 * a2 * a3
-        R2 = b0 * b1 * b2 * b3
-        R3 = a4 * a5 * a6 * a7
-
-        F = R1**2 + R2**2 + R3**2 - 2 * (R1 * R2 + R1 * R3 + R2 * R3)
-
-        return F
 
     def last_sqrt(self, x0, x1, x2, x3, x4, x5, x6, x7, y0, y1, y2, y3, y4, y5, y6):
         #b0, b1, b2, b3, b4, b5, b6, b7 = self.hadamard(x0, x1, x2, x3, x4, x5, x6, x7)
@@ -158,32 +135,6 @@ class ThetaCGLDim3(CGL):
             print("unexpected case: number of zeros is", zeros)
             return None
 
-    def last_sqrt_slow(
-        self, y0, y1, y2, y3, y4, y5, y6, y7, x0, x1, x2, x3, x4, x5, x6
-    ):
-        # input are the squares of the dual theta nullpoint coordinates
-        # and the first seven coordinates of the dual theta nullpoint
-        assert y0 == x0**2
-        assert y1 == x1**2
-        assert y2 == x2**2
-        assert y3 == x3**2
-        assert y4 == x4**2
-        assert y5 == x5**2
-        assert y6 == x6**2
-        x7 = self.sqrt(y7)
-
-        if not self.eval_F(x0, x1, x2, x3, x4, x5, x6, x7) == 0:
-            x7 = -x7
-            assert self.eval_F(x0, x1, x2, x3, x4, x5, x6, x7) == 0
-        if self.eval_F(x0, x1, x2, x3, x4, x5, x6, -x7) == 0:
-            print("square-root not uniquely determined")
-        else:
-            print("unique sqrt")
-
-        assert x7 * x7 == y7, "square-root incorrect"
-
-        return x7
-
     def radical_2isogeny(self, bits=[0, 0, 0, 0, 0, 0]):
         """
         Given a level 2-theta null point, compute a 2-isogeneous theta null
@@ -252,23 +203,6 @@ class ThetaCGLDim3(CGL):
         b0, b1, b2, b3, b4, b5, b6, b7 = self.hadamard(y0, y1, y2, y3, y4, y5, y6, y7)
         O1 = ThetaNullPointDim3(b0, b1, b2, b3, b4, b5, b6, b7)
         return O1
-
-    def eval_F2(self, x0, x1, x2, x3, x4, x5, x6, x7):
-        # should be zero on products
-        # f1 is unused?
-        # f1 = x7 * x5 * x4 * x0
-        f2 = -x0 * x2 - x1 * x3 + x4 * x6 + x5 * x7
-        f3 = -x0 * x2 + x1 * x3 - x4 * x6 + x5 * x7
-        f4 = x0 * x2 - x1 * x3 - x4 * x6 + x5 * x7
-        f5 = x0 * x2 + x1 * x3 + x4 * x6 + x5 * x7
-        f6 = -x1 * x2 * x5 * x6 + x0 * x3 * x4 * x7
-        f7 = (
-            -(x0**3) * x3**3
-            + 2 * x0 * x1**2 * x3 * x4**2
-            - 2 * x1 * x2**3 * x5 * x7
-            + x0 * x3 * x4**2 * x7**2
-        )
-        return [x0, x1, x2, x3, x4, x5, x6, x7, f2, f3, f4, f5, f6, f7]
 
     def advance(self, bits=[0, 0, 0, 0, 0, 0]):
         O1 = self.radical_2isogeny(bits)
