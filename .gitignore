@@ -6,6 +6,6 @@ __pycache__
 *.sage.py
 
 # For rust
-theta-cgl-rust/target
+theta_cgl_rust/target
 **/*.rs.bk
 *Cargo.lock
