@@ -23,7 +23,7 @@ pub mod Fp5248 {
 pub mod Fp64Ext {
     use super::Fp64::Fp;
 
-    const NQR_RE: Fp = Fp::from_u64_reduce(0xF3139B9D0738D2D1);
+    const NQR_RE: Fp = Fp::from_u64_reduce(5);
 
     crate::finitefield::fp2_gen::define_fp2_core! {}
     #[cfg(test)]
