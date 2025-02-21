@@ -16,21 +16,6 @@ sha3 = "0.10.6"
 criterion = { version = "0.4", features = ["html_reports"] }
 
 [[bench]]
-name = "p64"
-path = "benches/p64.rs"
-harness = false
-
-[[bench]]
-name = "p127"
-path = "benches/p127.rs"
-harness = false
-
-[[bench]]
-name = "p5248"
-path = "benches/p5248.rs"
-harness = false
-
-[[bench]]
 name = "th127"
 path = "benches/th127.rs"
 harness = false
