@@ -1,10 +1,11 @@
 """
-Symbolic verification of Proposition 20 in the paper 
+Radical 8-isogeny formula in dimension 1:
+
+Symbolic verification of Proposition 13 in the paper 
 
 << Radical 2-isogenies in theta coordinates and 
 applications to cryptographic hash functions in
 dimensions 1, 2 and 3 >>
-
 """
 
 def square(c0,c1):
